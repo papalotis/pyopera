@@ -9,6 +9,9 @@
             "type": "array",
             "items": {
                 "properties": {
+                    "name": {
+                        "type": "string"
+                    },
                     "premier_year": {
                         "type": "integer"
                     },
