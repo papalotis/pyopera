@@ -1,0 +1,41 @@
+{
+    "$schema": "https://raw.githubusercontent.com/papalotis/pyopera/main/schemas/opus_schema.json",
+    "data": [
+        {
+            "name": "La bohème",
+            "composer": "Giacomo Puccini",
+            "language": "Italian",
+            "premier_year": 1896
+        },
+        {
+            "name": "Aida",
+            "composer": "Giuseppe Verdi",
+            "language": "Italian",
+            "premier_year": 1871
+        },
+        {
+            "name": "Salome",
+            "composer": "Richard Strauss",
+            "language": "German",
+            "premier_year": 1905
+        },
+        {
+            "name": "Don Carlos",
+            "composer": "Giuseppe Verdi",
+            "language": "French",
+            "premier_year": 1867
+        },
+        {
+            "name": "Werther",
+            "composer": "Jules Massenet",
+            "language": "French",
+            "premier_year": 1892
+        },
+        {
+            "name": "La fille du régiment",
+            "composer": "Gaetano Donizetti",
+            "language": "French",
+            "premier_year": 1840
+        }
+    ]
+}
