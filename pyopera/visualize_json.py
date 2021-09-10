@@ -1,7 +1,6 @@
-from collections import Counter
 from itertools import chain
 from pathlib import Path
-from typing import Sequence, Set
+from typing import Counter, Sequence, Set
 
 import streamlit as st
 from icecream import ic
@@ -43,10 +42,6 @@ def get_all_names_from_performance(performance: dict) -> Set[str]:
     }
 
 
-def get_all_roles_from_performance(performance: dict) -> Set[str]:
-    pass
-
-
 all_names_counter: Counter[str] = Counter(
     name for performance in db for name in get_all_names_from_performance(performance)
 )
@@ -76,30 +71,25 @@ def format_title(performance: dict) -> str:
 
 
 performance = st.selectbox("Select Performance", db, format_func=format_title)
-performances = [performance]
 
 
-if len(performances) == 0:
-    st.header("No performance on this date")
-else:
-    for performance in performances:
-        st.markdown(f'## {performance["name"]}')
+st.markdown(f'## {performance["name"]}')
 
-        st.markdown(f"### Composer\n\n**{performance['composer']}**")
+st.markdown(f"### Composer\n\n**{performance['composer']}**")
 
-        leading_team = performance["leading_team"]
-        if len(leading_team) > 0:
-            st.markdown("### Leading Team")
-            for role, persons in leading_team.items():
-                persons_str = ", ".join(persons)
-                st.markdown(f"- **{role}** - " + persons_str)
+leading_team = performance["leading_team"]
+if len(leading_team) > 0:
+    st.markdown("### Leading Team")
+    for role, persons in leading_team.items():
+        persons_str = ", ".join(persons)
+        st.markdown(f"- **{role}** - " + persons_str)
 
-        cast_team = performance["cast"]
-        if len(cast_team) > 0:
-            st.markdown("### Cast")
-            for role, persons in cast_team.items():
-                persons_str = ", ".join(persons)
-                st.markdown(f"- **{role}** - " + persons_str)
+cast_team = performance["cast"]
+if len(cast_team) > 0:
+    st.markdown("### Cast")
+    for role, persons in cast_team.items():
+        persons_str = ", ".join(persons)
+        st.markdown(f"- **{role}** - " + persons_str)
 
 
 st.markdown("#### Based on https://archiv.wiener-staatsoper.at")
