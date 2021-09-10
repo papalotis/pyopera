@@ -8,8 +8,6 @@ from combine_with_v import filter_by_excel_file
 
 st.title("WSO Archive Visualization")
 
-"/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/works_info_db.json"
-
 
 @st.cache
 def load_data() -> list:
