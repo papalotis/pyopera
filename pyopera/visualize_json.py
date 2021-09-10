@@ -1,5 +1,7 @@
+from collections import Counter
+from itertools import chain
 from pathlib import Path
-from typing import MutableMapping
+from typing import Sequence, Set
 
 import streamlit as st
 from icecream import ic
@@ -27,7 +29,42 @@ def load_data() -> list:
     return db
 
 
-wso_db = load_data()
+db = load_data()
+
+
+def get_all_names_from_performance(performance: dict) -> Set[str]:
+    return {
+        name
+        for names in chain(
+            performance["leading_team"].values(),
+            performance["cast"].values(),
+        )
+        for name in names
+    }
+
+
+def get_all_roles_from_performance(performance: dict) -> Set[str]:
+    pass
+
+
+all_names_counter: Counter[str] = Counter(
+    name for performance in db for name in get_all_names_from_performance(performance)
+)
+
+options = st.multiselect(
+    "Person filter",
+    [value for value, _ in all_names_counter.most_common()],
+)
+
+db = [
+    performance
+    for performance in db
+    if set(options) <= get_all_names_from_performance(performance)
+]
+
+if len(db) == 0:
+    st.markdown("## No titles available")
+    st.stop()
 
 
 def format_title(performance: dict) -> str:
@@ -38,7 +75,7 @@ def format_title(performance: dict) -> str:
     return new_title
 
 
-performance = st.selectbox("Select Performance", wso_db, format_func=format_title)
+performance = st.selectbox("Select Performance", db, format_func=format_title)
 performances = [performance]
 
 
@@ -53,8 +90,9 @@ else:
         leading_team = performance["leading_team"]
         if len(leading_team) > 0:
             st.markdown("### Leading Team")
-            for role, person in leading_team.items():
-                st.markdown(f"- **{role}** - " + person)
+            for role, persons in leading_team.items():
+                persons_str = ", ".join(persons)
+                st.markdown(f"- **{role}** - " + persons_str)
 
         cast_team = performance["cast"]
         if len(cast_team) > 0:

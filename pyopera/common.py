@@ -34,6 +34,6 @@ class Performance:
     name: str
     date: datetime
     cast: Mapping[str, Sequence[str]]
-    leading_team: Mapping[str, str]
+    leading_team: Mapping[str, Sequence[str]]
     stage: str
     composer: str = ""

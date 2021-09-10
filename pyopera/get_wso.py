@@ -11,13 +11,7 @@ from joblib import Memory
 from more_itertools import chunked
 from tqdm import tqdm, trange
 
-from .common import Performance, austria_date_to_datetime
-
-"""
-Drei vorstellungen müssen gesondert hinzugefügt werden: 2.2.20 Rusalka, 30.11.17 Don Pasquale,
- 18.9.17 Chowanschtschina (Datum muss korrigiert werden in 17.9.17)
-"""
-
+from common import Performance, austria_date_to_datetime
 
 base_link = "https://archiv.wiener-staatsoper.at"
 
@@ -126,36 +120,56 @@ def get_performance_list_from_page(
 
                     function = "".join(filter(str.isalpha, function_maybe))
 
-                    person = x.find("td").text
-                    leading_team[function] = person
+                    persons = x.find("td").text.split(",")
+                    leading_team[function] = persons
 
         performances.append(
-            asdict(
-                Performance(
-                    name=name,
-                    date=date,
-                    cast=cast,
-                    leading_team=leading_team,
-                    stage="WSO",
-                )
+            Performance(
+                name=name,
+                date=date,
+                cast=cast,
+                leading_team=leading_team,
+                stage="WSO",
             )
         )
 
     return performances
 
 
-def default(obj: Union[datetime, Any]):
+def default(obj: Any) -> str:
     if isinstance(obj, datetime):
         return obj.isoformat()
+
+    if isinstance(obj, Performance):
+        return asdict(obj)
     raise TypeError("Unknown type: ", type(obj))
+
+
+"""
+Drei vorstellungen müssen gesondert hinzugefügt werden: 2.2.20 Rusalka, 30.11.17 Don Pasquale,
+ 18.9.17 Chowanschtschina (Datum muss korrigiert werden in 17.9.17)
+"""
+
+
+def fix_known_issues(performances: Sequence[Performance]) -> None:
+
+    for performance in performances:
+        if (
+            performance.date == datetime(2017, 9, 18)
+            and performance.name == "Chowanschtschina"
+        ):
+            performance.date = datetime(2017, 9, 17)
 
 
 def get_all():
     all_performances = tuple(
         performance
-        for i in trange(1045, 1046, desc=f"processing pages")
+        for i in trange(980, 1046, desc=f"processing pages")
         for performance in get_performance_list_from_page(get_wso_page(i))
     )
+
+    fix_known_issues(all_performances)
+
     return all_performances
 
 
