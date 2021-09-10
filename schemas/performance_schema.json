@@ -35,7 +35,11 @@
                     "leading_team": {
                         "type": "object",
                         "additionalProperties": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minItems": 1
                         }
                     }
                 }
