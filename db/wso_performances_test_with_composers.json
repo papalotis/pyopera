@@ -252,7 +252,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Tchaikovsky"
+            "composer": "Pjotr Iljitsch Tschaikowski"
         },
         {
             "name": "Emeralds",
@@ -525,7 +525,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Ruggero Leoncavallo"
+            "composer": ""
         },
         {
             "name": "Eugen Onegin",
@@ -592,7 +592,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Tchaikovsky"
+            "composer": "Pjotr Iljitsch Tschaikowski"
         },
         {
             "name": "Emeralds",
@@ -1054,7 +1054,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Ruggero Leoncavallo"
+            "composer": ""
         },
         {
             "name": "LIVE",
@@ -1366,7 +1366,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Hans Werner Henze"
+            "composer": ""
         },
         {
             "name": "Der Rosenkavalier",
@@ -1644,7 +1644,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "W. A. Mozart"
+            "composer": ""
         },
         {
             "name": "Carmen",
@@ -1784,7 +1784,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Giuseppe Verdi"
+            "composer": ""
         },
         {
             "name": "Parsifal",
@@ -1967,7 +1967,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Charles Gounod"
+            "composer": ""
         },
         {
             "name": "Faust",
@@ -2033,7 +2033,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Charles Gounod"
+            "composer": ""
         },
         {
             "name": "Glass Pieces",
@@ -2430,7 +2430,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Claudio Monteverdi"
+            "composer": ""
         },
         {
             "name": "Faust",
@@ -2496,7 +2496,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Charles Gounod"
+            "composer": ""
         },
         {
             "name": "Der Barbier f\u00fcr Kinder",
@@ -3012,7 +3012,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Claudio Monteverdi"
+            "composer": ""
         },
         {
             "name": "Carmen",
@@ -3475,7 +3475,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Claudio Monteverdi"
+            "composer": ""
         },
         {
             "name": "Carmen",
@@ -3665,7 +3665,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Claudio Monteverdi"
+            "composer": ""
         },
         {
             "name": "Glass Pieces",
@@ -4573,7 +4573,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Claudio Monteverdi"
+            "composer": ""
         },
         {
             "name": "Carmen",
@@ -5069,7 +5069,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "W. A. Mozart"
+            "composer": "Wolfgang Amadeus Mozart"
         },
         {
             "name": "Der Rosenkavalier",
@@ -5326,7 +5326,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "W. A. Mozart"
+            "composer": "Wolfgang Amadeus Mozart"
         },
         {
             "name": "Der Rosenkavalier",
@@ -5582,7 +5582,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "W. A. Mozart"
+            "composer": "Wolfgang Amadeus Mozart"
         },
         {
             "name": "Lohengrin",
@@ -6778,7 +6778,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Giuseppe Verdi"
+            "composer": ""
         },
         {
             "name": "Tosca",
@@ -6958,7 +6958,7 @@
                 ]
             },
             "stage": "WSO",
-            "composer": "Giuseppe Verdi"
+            "composer": ""
         },
         {
             "name": "Tosca",

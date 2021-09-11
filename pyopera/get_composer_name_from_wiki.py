@@ -1,13 +1,22 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-import wikipedia as wi
-from bs4 import BeautifulSoup
-from icecream import ic
+import numpy as np
+import pandas as pd
 from joblib import Memory
+from textdistance import levenshtein
 from tqdm import tqdm
-from wikipedia.wikipedia import WikipediaPage
+
+from combine_with_v import normalize_title
+
+
+def wrap_normalize_title(v: Any) -> Any:
+    if isinstance(v, str):
+        return normalize_title(v)
+
+    return v
+
 
 parent_path = Path(__file__).parent
 
@@ -15,7 +24,10 @@ cachedir_path = parent_path.parent / "cachedir"
 cachedir_path.mkdir(exist_ok=True)
 memory = Memory(cachedir_path, verbose=False)
 
+
 title_translation = {"Boris Godunow": "Boris Godunov"}
+
+hardcoded_searches = {"Manon": "Manon (Massenet)"}
 
 ignore_set = {
     "Glass Pieces",
@@ -31,7 +43,6 @@ ignore_set = {
     "Diamonds",
     "LIVE",
     "4",
-    "Die Fledermaus",
     "Solistenkonzert",
     "Suite En Blanc",
     "Before Nightfall",
@@ -56,7 +67,6 @@ ignore_set = {
     "Romeo und Julia",
     "Das Traumfresserchen",
     "Der Nussknacker",
-    "Alceste",  # TODO
     "Cipollino",
     "Tanzdemonstrationen",
     "Vers un Pays Sage",
@@ -68,40 +78,57 @@ ignore_set = {
 
 
 @memory.cache
+def get_list() -> pd.DataFrame:
+    df = pd.read_html("https://de.wikipedia.org/wiki/Liste_von_Opern")[0]
+    df["normalized_title_german"] = df["Deutscher Titel"].apply(wrap_normalize_title)
+    df["normalized_title_original"] = df["Originaltitel"].apply(wrap_normalize_title)
+    return df
+
+
+df = get_list()
+
+
+@memory.cache
 def get_composer_from_title(title: str) -> Optional[str]:
+    nt = normalize_title(title)
 
-    if title in ignore_set:
+    def wrap_hm(value: Any) -> float:
+        if isinstance(value, str):
+            return levenshtein.normalized_distance(nt, value)
+
+        return 1
+
+    if title in ignore_set or "für Kinder" in title:
         return None
+    distances_title_german = df["normalized_title_german"].apply(wrap_hm)
+    distances_title_original = df["normalized_title_original"].apply(wrap_hm)
 
-    try:
-        first, second, *_ = wi.search(f"{title.split('(')[0]} (opera)")
-
-        res = first
-        if "Manon Lescaut" in first:
-            if "Puccini" not in first:
-                res = second
-
-    except ValueError:
-        # raise
+    min_distance = np.minimum(distances_title_german, distances_title_original)
+    row = df[min_distance < 0.12]
+    if len(row) == 0:
         return None
+    elif len(row) > 1:
+        if nt == "laboheme":
+            index_to_keep = 1
+        elif nt == "salome":
+            index_to_keep = 1
+        elif nt == "otello":
+            index_to_keep = 1
+        elif nt == "wozzeck":
+            index_to_keep = 0
+        else:
+            print(row)
+            print(title, nt)
+            assert False
+    else:
+        index_to_keep = 0
 
-    try:
-        page: WikipediaPage = wi.page(res, auto_suggest=False)
-    except wi.exceptions.DisambiguationError:
-        return None
+    row = row.iloc[index_to_keep]
 
-    content = page.html()
-    soup = BeautifulSoup(content, "lxml")
-
-    try:
-        infobox = soup.find_all("td", class_=["infobox-subheader", "reference"])[0]
-        return infobox.find_all("a")[-1].text.strip()
-    except IndexError:
-        # raise
-        return None
+    return row["Komponist"]
 
 
-# print(get_composer_from_title("Manon Lescaut"))
+# print(get_composer_from_title("La Bohème (Puccini)"))
 # exit()
 
 path = Path("/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/wso_performances.json")
@@ -111,9 +138,12 @@ db = obj["data"]
 
 for performance in tqdm(db):
     name = performance["name"]
-    name = title_translation.get(name, name)
 
-    composer = get_composer_from_title(name)
+    try:
+        composer = get_composer_from_title(name)
+    except AssertionError:
+        print(performance["date"])
+        raise
 
     if composer is not None:
         performance["composer"] = composer
