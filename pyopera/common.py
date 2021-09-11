@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 
 def austria_date_to_datetime(date_str: str) -> datetime:
@@ -37,3 +38,20 @@ class Performance:
     leading_team: Mapping[str, Sequence[str]]
     stage: str
     composer: str = ""
+
+
+def export_as_json(performances: Sequence[Performance]) -> str:
+    def default(obj: Any) -> str:
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+
+        if isinstance(obj, Performance):
+            return asdict(obj)
+        raise TypeError("Unknown type: ", type(obj))
+
+    to_save = {
+        "$schema": "https://raw.githubusercontent.com/papalotis/pyopera/main/schemas/performance_schema.json",
+        "data": performances,
+    }
+
+    return json.dumps(to_save, default=default)

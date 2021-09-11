@@ -7,7 +7,9 @@ from icecream import ic
 
 from combine_with_v import filter_by_excel_file
 
-st.title("WSO Archive Visualization")
+NAME = "Vangelis Opera Archiv"
+
+st.set_page_config(page_title=NAME, page_icon=":violin:")
 
 
 @st.cache
@@ -18,7 +20,7 @@ def load_data() -> list:
     json_path = [
         parent_path.parent / "db" / works_db_filename
         for works_db_filename in [
-            "wso_performances.json",
+            "wso_performances_with_composers.json",
         ]
     ]
     json_work_path = parent_path.parent / "db" / "works_info_db.json"
@@ -32,7 +34,8 @@ db = load_data()
 
 
 def get_all_names_from_performance(performance: dict) -> Set[str]:
-    return {
+
+    return_set = {
         name
         for names in chain(
             performance["leading_team"].values(),
@@ -41,55 +44,95 @@ def get_all_names_from_performance(performance: dict) -> Set[str]:
         for name in names
     }
 
+    if performance["composer"] != "":
+        return_set.add(performance["composer"])
+
+    return return_set
+
 
 all_names_counter: Counter[str] = Counter(
     name for performance in db for name in get_all_names_from_performance(performance)
 )
 
-options = st.multiselect(
-    "Person filter",
-    [value for value, _ in all_names_counter.most_common()],
+
+with st.sidebar:
+
+    st.title(NAME)
+
+    options = st.multiselect(
+        "Person filter",
+        [value for value, _ in all_names_counter.most_common()],
+    )
+
+    db: Sequence[dict] = [
+        performance
+        for performance in db
+        if set(options) <= get_all_names_from_performance(performance)
+    ]
+
+    if len(db) == 0:
+        st.markdown("## No titles available")
+        st.stop()
+
+    def format_title(performance: dict) -> str:
+        date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
+        name = performance["name"]
+        stage = performance["stage"]
+        new_title = f"{date} - {name} - {stage}"
+        return new_title
+
+    st.session_state["performance"] = st.selectbox(
+        "Select Performance",
+        db,
+        format_func=format_title,
+    )
+
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
+        width: 500px;
+    }
+    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
+        width: 500px;
+        margin-left: -500px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-db = [
-    performance
-    for performance in db
-    if set(options) <= get_all_names_from_performance(performance)
-]
+performance = st.session_state["performance"]
+st.markdown(f'# {performance["name"]}')
 
-if len(db) == 0:
-    st.markdown("## No titles available")
-    st.stop()
+st.markdown(f"## Composer\n\n**{performance['composer']}**")
 
 
-def format_title(performance: dict) -> str:
-    date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
-    name = performance["name"]
-    stage = performance["stage"]
-    new_title = f"{date} - {name} - {stage}"
-    return new_title
+def hightlight_person_if_selected(person: str) -> str:
+    if person in options:
+        person = f"**{person}**"
+
+    return person
 
 
-performance = st.selectbox("Select Performance", db, format_func=format_title)
-
-
-st.markdown(f'## {performance["name"]}')
-
-st.markdown(f"### Composer\n\n**{performance['composer']}**")
-
-leading_team = performance["leading_team"]
-if len(leading_team) > 0:
-    st.markdown("### Leading Team")
-    for role, persons in leading_team.items():
-        persons_str = ", ".join(persons)
+def write_person_with_role(d: dict) -> None:
+    for role, persons in d.items():
+        persons_str = ", ".join(
+            hightlight_person_if_selected(person) for person in persons
+        )
         st.markdown(f"- **{role}** - " + persons_str)
 
-cast_team = performance["cast"]
-if len(cast_team) > 0:
-    st.markdown("### Cast")
-    for role, persons in cast_team.items():
-        persons_str = ", ".join(persons)
-        st.markdown(f"- **{role}** - " + persons_str)
+col_left, col_right = st.columns(2)
 
+with col_left:
+    cast_team = performance["cast"]
+    if len(cast_team) > 0:
+        st.markdown("## Cast")
+        write_person_with_role(cast_team)
 
-st.markdown("#### Based on https://archiv.wiener-staatsoper.at")
+with col_right:
+    leading_team = performance["leading_team"]
+    if len(leading_team) > 0:
+        st.markdown("## Leading Team")
+        write_person_with_role(leading_team)

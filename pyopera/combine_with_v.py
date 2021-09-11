@@ -117,14 +117,25 @@ def filter_by_excel_file(
 
 
 if __name__ == "__main__":
-    filter_by_excel_file(
+    # from icecream import ic
+    ic = lambda x: x
+
+    ic(
         [
-            Path(
-                "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/wso_performances.json"
+            e
+            for e in filter_by_excel_file(
+                [
+                    Path(
+                        "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/wso_performances.json"
+                    )
+                ],
+                Path(
+                    "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/pyopera/vangelos.xlsx"
+                ),
+                Path(
+                    "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/works_info_db.json"
+                ),
             )
-        ],
-        Path("/mnt/c/Users/papal/Documents/fun_stuff/pyopera/pyopera/vangelos.xlsx"),
-        Path(
-            "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/cachedir/app_cache/works_db.json"
-        ),
+            if "Chow" in e["name"]
+        ]
     )

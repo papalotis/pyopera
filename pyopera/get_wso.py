@@ -1,9 +1,9 @@
 import asyncio
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence, Tuple, Union
+from typing import Any, Iterable, Sequence, TypeVar
 
 import requests
 from bs4 import BeautifulSoup
@@ -58,6 +58,74 @@ def get_wso_performances_from_list_of_links(
     return responses
 
 
+T = TypeVar("T")
+
+
+def find_subsequence_in_sequence(
+    sequence: Sequence[T], subsequence: Sequence[T]
+) -> Iterable[int]:
+    """
+    adapted `find_pivot` from https://stackoverflow.com/a/60819519
+    """
+    n = len(sequence)
+    m = len(subsequence)
+    stop = n - m + 1
+    if n > 0:
+        item = subsequence[0]
+        i = 0
+        try:
+            while i < stop:
+                i = sequence.index(item, i)
+                if sequence[i : i + m] == subsequence:
+                    yield i
+                i += 1
+        except ValueError:
+            return
+
+
+def recombine_function(
+    full_search_function: str, split_functions_to_recombine: Sequence[str]
+) -> Sequence[str]:
+    """
+    >>> recombine_function("Musikalische Leitung", ["Bühne", "Licht", "Musikalische", "Leitung", "Kostüme"])
+
+    `['Bühne', 'Licht', 'Musikalische Leitung', 'Kostüme']`
+    """
+    split_functions_to_recombine = list(split_functions_to_recombine)
+
+    split_search_function = full_search_function.split(" ")
+    results = list(
+        find_subsequence_in_sequence(
+            split_functions_to_recombine, split_search_function
+        )
+    )
+
+    if len(results) == 0:
+        return split_functions_to_recombine
+    if len(results) > 1:
+        raise ValueError(f"Function found more than once {len(results)}")
+
+    index_to_overwrite = results[0]
+    split_functions_to_recombine[index_to_overwrite] = full_search_function
+
+    number_of_remaining = len(split_search_function) - 1
+    del split_functions_to_recombine[
+        index_to_overwrite + 1 : index_to_overwrite + number_of_remaining + 1
+    ]
+
+    return split_functions_to_recombine
+
+
+def fix_false_function_splits(split_functions: Sequence[str]) -> Sequence[str]:
+    for full_search_function in (
+        "Musikalische Leitung",
+        "Szenische Einstudierung",
+    ):
+        split_functions = recombine_function(full_search_function, split_functions)
+
+    return split_functions
+
+
 def get_performance_list_from_page(
     response: requests.Response,
 ) -> Iterable[Performance]:
@@ -100,13 +168,18 @@ def get_performance_list_from_page(
                     cast[role] = persons
 
         leading_team = {}
+
         for x in leading_team_table:
             th_ = x.find("th")
-
             if th_ != -1:
                 function_str: str = th_.text
+                function_str_split_by_space = function_str.split(" ")
 
-                for function_maybe in function_str.split(" "):
+                function_str_split_fixed = fix_false_function_splits(
+                    function_str_split_by_space
+                )
+
+                for function_maybe in function_str_split_fixed:
                     if not (
                         function_maybe != ""
                         and function_maybe[0].isalpha()
@@ -115,12 +188,12 @@ def get_performance_list_from_page(
                     ):
                         continue
 
-                    if function_maybe.endswith("in"):
-                        function_maybe = function_maybe[:-2]
+                    function = "".join(
+                        filter(lambda s: s.isalpha() or s.isspace(), function_maybe)
+                    )
 
-                    function = "".join(filter(str.isalpha, function_maybe))
-
-                    persons = x.find("td").text.split(",")
+                    persons_split: Sequence[str] = x.find("td").text.split(",")
+                    persons = [p.strip() for p in persons_split]
                     leading_team[function] = persons
 
         performances.append(
@@ -134,15 +207,6 @@ def get_performance_list_from_page(
         )
 
     return performances
-
-
-def default(obj: Any) -> str:
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-
-    if isinstance(obj, Performance):
-        return asdict(obj)
-    raise TypeError("Unknown type: ", type(obj))
 
 
 """
@@ -164,7 +228,7 @@ def fix_known_issues(performances: Sequence[Performance]) -> None:
 def get_all():
     all_performances = tuple(
         performance
-        for i in trange(980, 1046, desc=f"processing pages")
+        for i in trange(980, 1049, desc=f"Processing pages 📑")
         for performance in get_performance_list_from_page(get_wso_page(i))
     )
 
@@ -173,14 +237,21 @@ def get_all():
     return all_performances
 
 
+from common import export_as_json
+
 if __name__ == "__main__":
     all_performances = get_all()
 
-    to_save = {
-        "$schema": "https://raw.githubusercontent.com/papalotis/pyopera/main/schemas/performance_schema.json",
-        "data": all_performances,
-    }
+    filename = "wso_performances"
 
-    json_path = parent_path / "wso_performances_test.json"
-    with open(json_path, "w") as json_file:
-        json.dump(to_save, json_file, default=default)
+    if all_performances[0].date > datetime(2013, 1, 1) and all_performances[
+        -1
+    ].date > datetime(2020, 1, 1):
+        filename = filename + "_test"
+
+    json_path = (parent_path.parent / "db" / filename).with_suffix(".json")
+
+    json_path.write_text(export_as_json(all_performances))
+
+
+"macbeth 14.06.21"
