@@ -88,21 +88,6 @@ with st.sidebar:
     )
 
 
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-        width: 500px;
-    }
-    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-        width: 500px;
-        margin-left: -500px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 performance = st.session_state["performance"]
 st.markdown(f'# {performance["name"]}')
 
@@ -122,6 +107,7 @@ def write_person_with_role(d: dict) -> None:
             hightlight_person_if_selected(person) for person in persons
         )
         st.markdown(f"- **{role}** - " + persons_str)
+
 
 col_left, col_right = st.columns(2)
 
