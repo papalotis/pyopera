@@ -132,3 +132,5 @@ dmypy.json
 cachedir/
 
 .vscode
+
+deta_project_data.json

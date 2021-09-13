@@ -1,11 +1,12 @@
+import json
+import os
 from itertools import chain
 from pathlib import Path
 from typing import Counter, Sequence, Set
 
+import requests
 import streamlit as st
 from icecream import ic
-
-from combine_with_v import filter_by_excel_file
 
 NAME = "Vangelis Opera Archiv"
 
@@ -15,17 +16,13 @@ st.set_page_config(page_title=NAME, page_icon=":violin:")
 @st.cache
 def load_data() -> list:
 
-    parent_path = Path(__file__).parent
-    excel_path = parent_path / "vangelos.xlsx"
-    json_path = [
-        parent_path.parent / "db" / works_db_filename
-        for works_db_filename in [
-            "wso_performances_with_composers.json",
-        ]
-    ]
-    json_work_path = parent_path.parent / "db" / "works_info_db.json"
+    response = requests.get("http://127.0.0.1:8000/final_db.json")
 
-    db = filter_by_excel_file(json_path, excel_path, json_work_path)
+    db = response.json()["data"]
+
+    # json_final_path = Path(__file__).parent.parent / "db" / "final_db.json"
+
+    # db = json.loads(json_final_path.read_text())["data"]
 
     return db
 

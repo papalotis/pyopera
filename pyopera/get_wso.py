@@ -15,6 +15,9 @@ from common import Performance, austria_date_to_datetime
 
 base_link = "https://archiv.wiener-staatsoper.at"
 
+# tqdm = lambda x, *a, **k: x
+# trange = lambda *args, **k: range(*args)
+
 
 parent_path = Path(__file__).parent
 
@@ -126,6 +129,13 @@ def fix_false_function_splits(split_functions: Sequence[str]) -> Sequence[str]:
     return split_functions
 
 
+ignore_set = set(
+    json.loads((parent_path.parent / "db" / "non_opera_titles.json").read_text())[
+        "data"
+    ]
+)
+
+
 def get_performance_list_from_page(
     response: requests.Response,
 ) -> Iterable[Performance]:
@@ -147,11 +157,11 @@ def get_performance_list_from_page(
     for performance, info_response in tqdm(
         all_performances_with_infos, desc="processing performances", leave=False
     ):
-        name = performance.find("h2").text.strip()
-        if name == "GESCHLOSSEN / KEINE VORSTELLUNG":
+        name = performance.find("h2").text.split("(")[0].strip()
+        if name in ignore_set:
             continue
-        date = austria_date_to_datetime(performance.find("p").text.strip())
 
+        date = austria_date_to_datetime(performance.find("p").text.strip())
         performance_soup = BeautifulSoup(info_response.text, "html.parser")
 
         leading_team_table, cast_table = performance_soup.findAll(
@@ -164,9 +174,14 @@ def get_performance_list_from_page(
 
             if th_ != -1:
                 for role in th_.text.split("/"):
-                    persons = x.find("td").text.split(", ")
-                    cast[role] = persons
+                    td_ = x.find("td")
 
+                    # remove sup tag
+                    for sup in td_.select("sup"):
+                        sup.extract()
+
+                    persons = td_.text.split(", ")
+                    cast[role] = persons
         leading_team = {}
 
         for x in leading_team_table:

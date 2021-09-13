@@ -1,7 +1,11 @@
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, TypeVar
+
+from unidecode import unidecode
+
+from pyopera.excel_to_json import ExcelRow
 
 
 def austria_date_to_datetime(date_str: str) -> datetime:
@@ -39,8 +43,11 @@ class Performance:
     stage: str
     composer: str = ""
 
+T = TypeVar('T', Performance, ExcelRow)
 
-def export_as_json(performances: Sequence[Performance]) -> str:
+
+
+def export_as_json(performances: Sequence[T]) -> str:
     def default(obj: Any) -> str:
         if isinstance(obj, datetime):
             return obj.isoformat()
@@ -55,3 +62,17 @@ def export_as_json(performances: Sequence[Performance]) -> str:
     }
 
     return json.dumps(to_save, default=default)
+
+
+def normalize_title(title: str) -> str:
+    return "".join(
+        filter(
+            str.isalpha,
+            unidecode(title)
+            .split("(")[0]
+            .split("/")[0]
+            .lower()
+            .replace(" ", "")
+            .strip(),
+        )
+    )
