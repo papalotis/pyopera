@@ -6,7 +6,11 @@ from typing import Counter, Sequence, Set
 
 import requests
 import streamlit as st
-from icecream import ic
+
+try:
+    from icecream import ic
+except ImportError:
+    ic = lambda *a: a
 
 
 def run():
