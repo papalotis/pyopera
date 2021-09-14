@@ -9,9 +9,10 @@ st.set_page_config(page_title=NAME, page_icon=":violin:")
 
 with st.sidebar:
     st.title(NAME)
-    mode = st.radio("Mode", ["Visualization", "Add new performance"])
+    modes = ["Explore visits", "Add new performance"]
+    mode = st.radio("Mode", modes)
 
-if mode == "Visualization":
+if modes.index(mode) == 0:
     run_vis_json()
 else:
     run_add_performance()

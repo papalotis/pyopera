@@ -1,5 +1,6 @@
 import operator
 from datetime import datetime
+from typing import Optional
 
 import requests
 import streamlit as st
@@ -27,9 +28,9 @@ def run():
     def delete_performance_by_key(key: str) -> None:
         return requests.delete(f"{base_url}/vangelis_db/{key}")
 
-    @st.cache(ttl=60*60, show_spinner=False)
+    @st.cache(ttl=60 * 60, show_spinner=False)
     def load_existing_entries():
-        with st.spinner('Loading existing entries ...'):
+        with st.spinner("Loading existing entries ..."):
             response = requests.get(f"{base_url}/vangelis_db")
             db = response.json()
             return sort_entries_by_date(db)
@@ -42,30 +43,33 @@ def run():
 
     load_existing_entries()
 
-    def format_title(performance: dict) -> str:
+    def format_title(performance: Optional[dict]) -> str:
+        if performance is None:
+            return "Add new visit"
+
         date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
         name = performance["name"]
         stage = performance["stage"]
         new_title = f"{date} - {name} - {stage}"
         return new_title
 
-    title = st.empty()
+    if "db" not in st.session_state:
+        with st.spinner("Loading existing entries"):
+            update_existing_entries()
 
-    update_existing = st.checkbox("Update existing")
+    with st.sidebar:
+        entry_to_update: Optional[dict] = st.selectbox(
+            "Select entry", [None] + st.session_state["db"], format_func=format_title
+        )
 
-    title.title(
+    update_existing = entry_to_update is not None
+
+    st.title(
         ("Update an existing" if update_existing else "Add a new visited")
         + " performance"
     )
 
-    if update_existing:
-        if "db" not in st.session_state:
-            with st.spinner("Loading existing entries"):
-                update_existing_entries()
-
-        entry_to_update: dict = st.selectbox(
-            "Select entry", st.session_state["db"], format_func=format_title
-        )
+    # if update_existing:
 
     default_name = entry_to_update["name"] if update_existing else ""
     default_production = entry_to_update["production"] if update_existing else ""
