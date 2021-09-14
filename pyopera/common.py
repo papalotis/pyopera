@@ -4,10 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence, TypeVar
 
-from deta import Deta
 from unidecode import unidecode
 
-from pyopera.excel_to_json import ExcelRow
+try:
+    from pyopera.excel_to_json import ExcelRow
+except ImportError:
+    from excel_to_json import ExcelRow
 
 
 def austria_date_to_datetime(date_str: str) -> datetime:
