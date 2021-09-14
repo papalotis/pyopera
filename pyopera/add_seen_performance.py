@@ -27,16 +27,20 @@ def run():
     def delete_performance_by_key(key: str) -> None:
         return requests.delete(f"{base_url}/vangelis_db/{key}")
 
+    @st.cache(ttl=60*60, show_spinner=False)
     def load_existing_entries():
-        response = requests.get(f"{base_url}/vangelis_db")
-        db = response.json()
-        return sort_entries_by_date(db)
+        with st.spinner('Loading existing entries ...'):
+            response = requests.get(f"{base_url}/vangelis_db")
+            db = response.json()
+            return sort_entries_by_date(db)
 
     def sort_entries_by_date(entires: list) -> list:
         return sorted(entires, key=operator.itemgetter("date"))
 
     def update_existing_entries():
         st.session_state["db"] = load_existing_entries()
+
+    load_existing_entries()
 
     def format_title(performance: dict) -> str:
         date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
@@ -46,8 +50,6 @@ def run():
         return new_title
 
     title = st.empty()
-
-    # st.title()
 
     update_existing = st.checkbox("Update existing")
 
@@ -70,24 +72,40 @@ def run():
     default_stage = entry_to_update["stage"] if update_existing else ""
     default_composer = entry_to_update["composer"] if update_existing else ""
     default_comments = entry_to_update["comments"] if update_existing else ""
-    default_datetime_object = (
-        datetime.fromisoformat(entry_to_update["date"])
-        if update_existing
-        else datetime.now()
-    )
-    default_date = datetime.date(default_datetime_object)
 
-    date_obj = st.date_input(
-        label="Date", help="The day of the visit", value=default_date
-    )
-    datetime_obj = datetime(date_obj.year, date_obj.month, date_obj.day)
+    col1, col2 = st.columns([1, 1])
 
-    name = st.text_input(label="Name", help="The name of the opera", value=default_name)
-    production = st.text_input(
-        label="Production", help="The production company", value=default_production
-    )
-    stage = st.text_input(label="Stage", value=default_stage)
-    composer = st.text_input(label="Composer", value=default_composer)
+    with col1:
+        name = st.text_input(
+            label="Name", help="The name of the opera", value=default_name
+        )
+
+    with col2:
+
+        default_datetime_object = (
+            datetime.fromisoformat(entry_to_update["date"])
+            if update_existing
+            else datetime.now()
+        )
+        default_date = datetime.date(default_datetime_object)
+
+        date_obj = st.date_input(
+            label="Date", help="The day of the visit", value=default_date
+        )
+        datetime_obj = datetime(date_obj.year, date_obj.month, date_obj.day)
+
+    col1, col2, col3 = st.columns([1, 1, 3])
+
+    with col1:
+        production = st.text_input(
+            label="Production", help="The production company", value=default_production
+        )
+    with col2:
+        stage = st.text_input(label="Stage", value=default_stage)
+
+    with col3:
+        composer = st.text_input(label="Composer", value=default_composer)
+
     comments = st.text_area(
         label="Comments",
         help="Personal comments regarding the performance",
@@ -133,11 +151,11 @@ def run():
 
                 response = send_new_performance(final_data)
                 if response.ok:
-                    st.session_state["db"].append(final_data)
-                    st.session_state["db"] = sort_entries_by_date(
-                        st.session_state["db"]
+
+                    st.success(
+                        "Added to DB. You have to clear the app cache for the "
+                        "updates to be visible in the app"
                     )
-                    st.success("Added to DB")
 
                 else:
                     try:

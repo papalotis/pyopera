@@ -15,10 +15,6 @@ except ImportError:
 
 def run():
 
-    NAME = "Vangelis Opera Archiv"
-
-    # st.set_page_config(page_title=NAME, page_icon=":violin:")
-
     base_url = "https://wf5n5c.deta.dev"
     # base_url = 'http://127.0.0.1:8000'
 
@@ -26,26 +22,27 @@ def run():
         st.session_state["db_hash"] = None
         st.session_state["existing_db"] = None
 
-    @st.cache(ttl=60 * 2)
+    @st.cache(ttl=60 * 60 * 2, show_spinner=False)
     def load_data() -> list:
 
-        hash = requests.get(f"{base_url}/final_db/hash").json()["hash"]
-        if (
-            hash == st.session_state["db_hash"]
-            and st.session_state["existing_db"] is not None
-        ):
-            return st.session_state["existing_db"]
+        with st.spinner("Loading data ..."):
+            hash = requests.get(f"{base_url}/final_db/hash").json()["hash"]
+            if (
+                hash == st.session_state["db_hash"]
+                and st.session_state["existing_db"] is not None
+            ):
+                return st.session_state["existing_db"]
 
-        response = requests.get(f"{base_url}/final_db")
-        if response.ok:
+            response = requests.get(f"{base_url}/final_db")
+            if response.ok:
 
-            st.session_state["db_hash"] = hash
+                st.session_state["db_hash"] = hash
 
-            st.session_state["existing_db"] = sorted(
-                response.json(), key=lambda el: el["date"]
-            )
+                st.session_state["existing_db"] = sorted(
+                    response.json(), key=lambda el: el["date"]
+                )
 
-            return st.session_state["existing_db"]
+                return st.session_state["existing_db"]
 
         raise RuntimeError()
 
@@ -74,8 +71,6 @@ def run():
     )
 
     with st.sidebar:
-
-        st.title(NAME)
 
         options = st.multiselect(
             "Person filter",
