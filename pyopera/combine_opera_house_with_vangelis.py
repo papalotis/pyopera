@@ -83,18 +83,13 @@ composers_db = load_title_to_composer_db_and_index_by_normalized_title(
 )
 
 
-project_id = "b0r92g6h"
-base_name = "p_entries"
-
-
 async def handle_visit(visit_dict: dict) -> Optional[dict]:
     import requests
 
     headers = {"X-API-Key": load_deta_project_key(), "Content-type": "application/json"}
 
-    # ic(headers)
-
-    # ic(f"https://database.deta.sh/v1/{project_id}/{base_name}/{visit_dict['key']}")
+    project_id = load_deta_project_key().split("_")[0]
+    base_name = "p_entries"
 
     request_callable = partial(
         requests.get,
