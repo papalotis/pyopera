@@ -16,14 +16,33 @@ base_url = "https://wf5n5c.deta.dev"
 # base_url = 'http://127.0.0.1:8000'
 
 
+if "db_hash" not in st.session_state:
+    st.session_state["db_hash"] = None
+    st.session_state["existing_db"] = None
+
+
 @st.cache(ttl=60 * 2)
 def load_data() -> list:
 
+    hash = requests.get(f"{base_url}/final_db/hash").json()["hash"]
+    if (
+        hash == st.session_state["db_hash"]
+        and st.session_state["existing_db"] is not None
+    ):
+        return st.session_state["existing_db"]
+
     response = requests.get(f"{base_url}/final_db")
+    if response.ok:
 
-    db = sorted(response.json(), key=lambda el: el["date"])
+        st.session_state["db_hash"] = hash
 
-    return db
+        st.session_state["existing_db"] = sorted(
+            response.json(), key=lambda el: el["date"]
+        )
+
+        return st.session_state["existing_db"]
+
+    raise RuntimeError()
 
 
 db = load_data()
