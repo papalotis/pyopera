@@ -15,8 +15,7 @@ from common import Performance, austria_date_to_datetime
 
 base_link = "https://archiv.wiener-staatsoper.at"
 
-# tqdm = lambda x, *a, **k: x
-# trange = lambda *args, **k: range(*args)
+# tqdm = lambda a, *args, **kwargs: a
 
 
 parent_path = Path(__file__).parent
@@ -27,8 +26,11 @@ memory = Memory(cachedir_path, verbose=False)
 
 
 @memory.cache
-def get_wso_page(page: int) -> requests.Response:
-    response = requests.get(base_link + f"/performances/page/{page}")
+def get_wso_page(date: str) -> requests.Response:
+    date_formated = ".".join(date.split("T")[0].split("-")[::-1])
+    response = requests.get(
+        base_link + "/search", params={"since": date_formated, "until": date_formated}
+    )
 
     return response
 
@@ -158,10 +160,15 @@ def get_performance_list_from_page(
         all_performances_with_infos, desc="processing performances", leave=False
     ):
         name = performance.find("h2").text.split("(")[0].strip()
-        if name in ignore_set:
+
+        date_p_split = performance.find("p").text.split("|")
+
+        if len(date_p_split) > 1:
             continue
 
-        date = austria_date_to_datetime(performance.find("p").text.strip())
+        date_str = date_p_split[0]
+
+        date = austria_date_to_datetime(date_str.strip())
         performance_soup = BeautifulSoup(info_response.text, "html.parser")
 
         leading_team_table, cast_table = performance_soup.findAll(
@@ -241,9 +248,20 @@ def fix_known_issues(performances: Sequence[Performance]) -> None:
 
 
 def get_all():
+
+    b = json.loads(
+        Path(
+            "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/vangelis_excel_converted.json"
+        ).read_text()
+    )["data"]
+
+    wso_dates = {visit["date"] for visit in b if visit["stage"] == "WSO"}
+    # wrong date chowanschtschina
+    wso_dates.add("2017-09-18T00:00:00")
+
     all_performances = tuple(
         performance
-        for i in trange(980, 1049, desc=f"Processing pages 📑")
+        for i in tqdm(wso_dates, desc=f"Processing pages 📑")
         for performance in get_performance_list_from_page(get_wso_page(i))
     )
 
@@ -252,17 +270,18 @@ def get_all():
     return all_performances
 
 
+from icecream import ic
+
 from common import export_as_json
 
 if __name__ == "__main__":
     all_performances = get_all()
 
+    ic(all_performances)
+
     filename = "wso_performances"
 
-    if all_performances[0].date > datetime(2013, 1, 1) and all_performances[
-        -1
-    ].date > datetime(2020, 1, 1):
-        filename = filename + "_test"
+    filename = filename + "_test"
 
     json_path = (parent_path.parent / "db" / filename).with_suffix(".json")
 

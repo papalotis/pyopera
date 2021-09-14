@@ -1,0 +1,1 @@
+{"id":"c1be16c5-7d6e-433b-b9af-6a1582db1f2f","space":10737,"runtime":"python3.7","name":"pyopera","path":"wf5n5c","project":"b0r92g6h","account":"144798365827","region":"us-east-1","deps":["fastapi==0.68.1","more-itertools==8.8.0","Unidecode==1.2.0","typing-extensions==3.10.0.0","requests==2.26.0"],"envs":null,"public":true,"log_level":"debug","cron":""}

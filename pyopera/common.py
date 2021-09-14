@@ -1,8 +1,10 @@
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Mapping, Sequence, TypeVar
 
+from deta import Deta
 from unidecode import unidecode
 
 from pyopera.excel_to_json import ExcelRow
@@ -43,8 +45,8 @@ class Performance:
     stage: str
     composer: str = ""
 
-T = TypeVar('T', Performance, ExcelRow)
 
+T = TypeVar("T", Performance, ExcelRow)
 
 
 def export_as_json(performances: Sequence[T]) -> str:
@@ -76,3 +78,32 @@ def normalize_title(title: str) -> str:
             .strip(),
         )
     )
+
+
+def load_deta_project_key() -> str:
+    deta_project_key: str = json.loads(
+        (Path(__file__).parent.parent / "deta_project_data.json").read_text()
+    )["Project Key"]
+
+    return deta_project_key
+
+
+def create_key_for_visited_performance(performance: dict) -> str:
+    import hashlib
+
+    string = "".join(
+        filter(
+            str.isalnum,
+            "".join(
+                map(
+                    normalize_title,
+                    (
+                        performance["name"],
+                        performance["stage"],
+                    ),
+                )
+            )
+            + performance["date"],
+        )
+    )
+    return hashlib.sha1(string.encode()).hexdigest()[-12:]

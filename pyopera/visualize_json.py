@@ -12,17 +12,16 @@ NAME = "Vangelis Opera Archiv"
 
 st.set_page_config(page_title=NAME, page_icon=":violin:")
 
+base_url = "https://wf5n5c.deta.dev"
+# base_url = 'http://127.0.0.1:8000'
 
-@st.cache
+
+@st.cache(ttl=60 * 2)
 def load_data() -> list:
 
-    response = requests.get("http://127.0.0.1:8000/final_db.json")
+    response = requests.get(f"{base_url}/final_db")
 
-    db = response.json()["data"]
-
-    # json_final_path = Path(__file__).parent.parent / "db" / "final_db.json"
-
-    # db = json.loads(json_final_path.read_text())["data"]
+    db = sorted(response.json(), key=lambda el: el["date"])
 
     return db
 

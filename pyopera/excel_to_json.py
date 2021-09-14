@@ -1,9 +1,22 @@
 import json
 from datetime import datetime
+from http.client import ImproperConnectionState
 from pathlib import Path
-from typing import TypedDict
 
-import pandas as pd
+from typing_extensions import TypedDict
+
+try:
+    import pandas as pd
+except ImportError:
+
+    class A:
+        pass
+
+    pd = A()
+    pd.Series = "pandas.Series"
+# try :
+#     from typing import TypedDict
+# except ImportError:
 
 
 class ExcelRow(TypedDict):
@@ -14,11 +27,6 @@ class ExcelRow(TypedDict):
     stage: str
     comments: str
 
-
-df = pd.read_excel(
-    "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/vangelos.xlsx",
-    converters={"KOSTEN": str},
-)
 
 last_row = None
 
@@ -35,6 +43,8 @@ def convert_row_to_typed_dict(row: pd.Series) -> ExcelRow:
     else:
         last_row = row
 
+    dates_names.add((date, name))
+
     entry = ExcelRow(
         date=date.isoformat(),
         production=production,
@@ -47,13 +57,21 @@ def convert_row_to_typed_dict(row: pd.Series) -> ExcelRow:
     return entry
 
 
-data = [
-    convert_row_to_typed_dict(row)
-    for _, row in df.iterrows()
-    if isinstance(row["DATUM"], (datetime, float)) and isinstance(row["OPER"], str)
-]
+if __name__ == "__main__":
 
+    df = pd.read_excel(
+        "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/vangelos.xlsx",
+        converters={"KOSTEN": str},
+    )
 
-(Path(__file__).parent.parent / "db" / "vangelis_excel_converted.json").write_text(
-    json.dumps({"$schema": "", "data": data})
-)
+    dates_names = set()
+
+    data = [
+        convert_row_to_typed_dict(row)
+        for _, row in df.iterrows()
+        if isinstance(row["DATUM"], (datetime, float)) and isinstance(row["OPER"], str)
+    ]
+
+    # (Path(__file__).parent.parent / "db" / "vangelis_excel_converted.json").write_text(
+    #     json.dumps({"$schema": "", "data": data})
+    # )
