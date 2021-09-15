@@ -134,3 +134,5 @@ cachedir/
 .vscode
 
 deta_project_data.json
+
+temp.cache/

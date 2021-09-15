@@ -109,3 +109,25 @@ def create_key_for_visited_performance(performance: dict) -> str:
         )
     )
     return hashlib.sha1(string.encode()).hexdigest()[-12:]
+
+
+def create_key_for_visited_performance_v2(performance: dict) -> str:
+    import hashlib
+
+    string = "".join(
+        filter(
+            str.isalnum,
+            "".join(
+                map(
+                    normalize_title,
+                    (
+                        performance["name"],
+                        performance["stage"],
+                        performance["composer"],
+                    ),
+                )
+            )
+            + performance["date"],
+        )
+    )
+    return hashlib.sha1(string.encode()).hexdigest()

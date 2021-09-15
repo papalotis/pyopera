@@ -21,3 +21,4 @@ with st.sidebar:
     st.markdown("#")
     if st.button("Clear cache"):
         caching.clear_cache()
+        st.experimental_rerun()

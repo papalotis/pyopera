@@ -2,10 +2,11 @@ import json
 import os
 from itertools import chain
 from pathlib import Path
-from typing import Counter, Sequence, Set
+from typing import Counter, Optional, Sequence, Set
 
-import requests
 import streamlit as st
+
+from streamlit_common import format_title, load_db, write_cast_and_leading_team
 
 try:
     from icecream import ic
@@ -15,38 +16,7 @@ except ImportError:
 
 def run():
 
-    base_url = "https://wf5n5c.deta.dev"
-    # base_url = 'http://127.0.0.1:8000'
-
-    if "db_hash" not in st.session_state:
-        st.session_state["db_hash"] = None
-        st.session_state["existing_db"] = None
-
-    @st.cache(ttl=60 * 60 * 2, show_spinner=False)
-    def load_data() -> list:
-
-        with st.spinner("Loading data ..."):
-            hash = requests.get(f"{base_url}/final_db/hash").json()["hash"]
-            if (
-                hash == st.session_state["db_hash"]
-                and st.session_state["existing_db"] is not None
-            ):
-                return st.session_state["existing_db"]
-
-            response = requests.get(f"{base_url}/final_db")
-            if response.ok:
-
-                st.session_state["db_hash"] = hash
-
-                st.session_state["existing_db"] = sorted(
-                    response.json(), key=lambda el: el["date"]
-                )
-
-                return st.session_state["existing_db"]
-
-        raise RuntimeError()
-
-    db = load_data()
+    db = load_db()
 
     def get_all_names_from_performance(performance: dict) -> Set[str]:
 
@@ -87,17 +57,8 @@ def run():
             st.markdown("## No titles available")
             st.stop()
 
-        def format_title(performance: dict) -> str:
-            date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
-            name = performance["name"]
-            stage = performance["stage"]
-            new_title = f"{date} - {name} - {stage}"
-            return new_title
-
         st.session_state["performance"] = st.selectbox(
-            "Select Performance",
-            db,
-            format_func=format_title,
+            "Select Performance", db, format_func=format_title
         )
 
     performance = st.session_state["performance"]
@@ -106,28 +67,20 @@ def run():
     st.markdown(f"## Composer\n\n**{performance['composer']}**")
 
     def hightlight_person_if_selected(person: str) -> str:
+
         if person in options:
             person = f"**{person}**"
 
         return person
 
-    def write_person_with_role(d: dict) -> None:
-        for role, persons in d.items():
-            persons_str = ", ".join(
-                hightlight_person_if_selected(person) for person in persons
-            )
-            st.markdown(f"- **{role}** - " + persons_str)
+    cast_highlighted = {
+        role: [hightlight_person_if_selected(person) for person in persons]
+        for role, persons in performance["cast"].items()
+    }
 
-    col_left, col_right = st.columns(2)
+    leading_team_highlighted = {
+        role: [hightlight_person_if_selected(person) for person in persons]
+        for role, persons in performance["leading_team"].items()
+    }
 
-    with col_left:
-        cast_team = performance["cast"]
-        if len(cast_team) > 0:
-            st.markdown("## Cast")
-            write_person_with_role(cast_team)
-
-    with col_right:
-        leading_team = performance["leading_team"]
-        if len(leading_team) > 0:
-            st.markdown("## Leading Team")
-            write_person_with_role(leading_team)
+    write_cast_and_leading_team(cast_highlighted, leading_team_highlighted)
