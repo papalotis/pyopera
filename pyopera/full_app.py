@@ -1,11 +1,13 @@
 import streamlit as st
 from streamlit import caching
 
-from add_seen_performance import run as run_add_performance
-from visualize_json import run as run_vis_json
-
 NAME = "Vangelis Opera Archiv"
 st.set_page_config(page_title=NAME, page_icon=":violin:")
+
+if True:
+    from add_seen_performance import run as run_add_performance
+    from visualize_json import run as run_vis_json
+
 
 with st.sidebar:
     st.title(NAME)
