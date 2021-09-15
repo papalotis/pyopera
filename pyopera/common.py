@@ -89,7 +89,7 @@ def load_deta_project_key() -> str:
         import streamlit as st
 
         st.write(os.environ)
-        deta_project_key = os.environ["Project Key"]
+        deta_project_key = os.environ["project_key"]
     except KeyError:
 
         deta_project_key: str = json.loads(
