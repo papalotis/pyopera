@@ -83,9 +83,15 @@ def normalize_title(title: str) -> str:
 
 
 def load_deta_project_key() -> str:
-    deta_project_key: str = json.loads(
-        (Path(__file__).parent.parent / "deta_project_data.json").read_text()
-    )["Project Key"]
+    try:
+        import os
+
+        deta_project_key = os.environ["Project Key"]
+    except KeyError:
+
+        deta_project_key: str = json.loads(
+            (Path(__file__).parent.parent / "deta_project_data.json").read_text()
+        )["Project Key"]
 
     return deta_project_key
 
