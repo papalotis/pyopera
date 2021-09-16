@@ -43,10 +43,7 @@ class Performance:
     composer: str = ""
 
 
-T = TypeVar("T", Performance)
-
-
-def export_as_json(performances: Sequence[T]) -> str:
+def export_as_json(performances: Sequence[Performance]) -> str:
     def default(obj: Any) -> str:
         if isinstance(obj, datetime):
             return obj.isoformat()
