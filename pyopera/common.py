@@ -6,8 +6,6 @@ from typing import Any, Mapping, Sequence, TypeVar
 
 from unidecode import unidecode
 
-from excel_to_json import ExcelRow
-
 
 def austria_date_to_datetime(date_str: str) -> datetime:
     """
@@ -45,7 +43,7 @@ class Performance:
     composer: str = ""
 
 
-T = TypeVar("T", Performance, ExcelRow)
+T = TypeVar("T", Performance)
 
 
 def export_as_json(performances: Sequence[T]) -> str:
