@@ -7,9 +7,9 @@ from typing import Optional
 
 import streamlit as st
 
-
 from common import create_key_for_visited_performance_v2
 from streamlit_common import DB, format_title, load_db, write_cast_and_leading_team
+
 
 def run():
     def send_new_performance(new_performance: dict):
@@ -32,7 +32,8 @@ def run():
         except KeyError:
             pass
 
-    password = st.text_input("Enter password", type="password")
+    password_widget = st.empty()
+    password = password_widget.text_input("Enter password", type="password")
     if (
         sha1(password.encode()).hexdigest()
         != "ac2e1249ad3cbbe5908d15e5b1da6f0a603aaaf4"
@@ -40,6 +41,8 @@ def run():
         if password != "":
             st.error("Wrong password")
         st.stop()
+
+    password_widget.empty()
 
     st.session_state["db"] = load_db()
 
@@ -231,12 +234,10 @@ def run():
 
                     st.success("Added to DB")
                     st.balloons()
-                    
+
                     st.caching.clear_cache()
                     st.experimental_rerun()
 
                 except Exception as e:
                     st.write(e)
                     st.error("Could not add new entry to database")
-
-

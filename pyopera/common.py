@@ -85,7 +85,6 @@ def load_deta_project_key() -> str:
 
         import streamlit as st
 
-        st.write(os.environ)
         deta_project_key = os.environ["project_key"]
     except KeyError:
 

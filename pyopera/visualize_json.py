@@ -42,23 +42,33 @@ def run():
 
     with st.sidebar:
 
+        performance_selectbox = st.empty()
+
         options = st.multiselect(
             "Person filter",
             [value for value, _ in all_names_counter.most_common()],
         )
 
-        db: Sequence[dict] = [
+        checkbox_only_full = st.checkbox("Only show full entries", value=True)
+
+        db_filtered: Sequence[dict] = [
             performance
             for performance in db
             if set(options) <= get_all_names_from_performance(performance)
+            and (
+                not checkbox_only_full
+                or (len(performance["cast"]) + len(performance["leading_team"])) > 0
+            )
         ]
 
-        if len(db) == 0:
+        if len(db_filtered) == 0:
             st.markdown("## No titles available")
             st.stop()
 
-        st.session_state["performance"] = st.selectbox(
-            "Select Performance", db, format_func=format_title
+        # performance_selectbox.selectbox()
+
+        st.session_state["performance"] = performance_selectbox.selectbox(
+            "Select Performance", db_filtered, format_func=format_title
         )
 
     performance = st.session_state["performance"]
