@@ -6,10 +6,7 @@ from typing import Any, Mapping, Sequence, TypeVar
 
 from unidecode import unidecode
 
-try:
-    from pyopera.excel_to_json import ExcelRow
-except ImportError:
-    from excel_to_json import ExcelRow
+from excel_to_json import ExcelRow
 
 
 def austria_date_to_datetime(date_str: str) -> datetime:

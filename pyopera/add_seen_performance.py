@@ -7,14 +7,9 @@ from typing import Optional
 
 import streamlit as st
 
-# try:
+
 from common import create_key_for_visited_performance_v2
 from streamlit_common import DB, format_title, load_db, write_cast_and_leading_team
-
-# except ImportError:
-#     from pyopera.common import create_key_for_visited_performance
-#     from pyopera.excel_to_json import ExcelRow
-
 
 def run():
     def send_new_performance(new_performance: dict):
@@ -201,7 +196,7 @@ def run():
 
         if number_of_form_errors == 0:
             with st.spinner(text="Contacting DB..."):
-
+                time.sleep(1.5)
                 cast = {k: list(v) for k, v in st.session_state["cast"].items()}
                 leading_team = {
                     k: list(v) for k, v in st.session_state["leading_team"].items()
@@ -229,7 +224,6 @@ def run():
                     ):
                         delete_performance_by_key(entry_to_update["key"])
                     try:
-
                         send_new_performance(final_data)
                     except Exception:
                         send_new_performance(entry_to_update)
@@ -237,9 +231,8 @@ def run():
 
                     st.success("Added to DB")
                     st.balloons()
-                    time.sleep(1)
+                    
                     st.caching.clear_cache()
-
                     st.experimental_rerun()
 
                 except Exception as e:
@@ -247,4 +240,3 @@ def run():
                     st.error("Could not add new entry to database")
 
 
-# run()

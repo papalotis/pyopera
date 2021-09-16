@@ -11,7 +11,7 @@ deta = Deta(load_deta_project_key())
 DB = deta.Base("performances")
 
 
-@st.cache
+@st.cache(show_spinner=False)
 def load_db() -> list:
     with st.spinner("Loading data..."):
         return sort_entries_by_date(DB.fetch().items)
@@ -42,56 +42,9 @@ def write_cast_and_leading_team(cast: dict, leading_team: dict):
         write_role_with_persons("Leading team", leading_team)
 
 
-def sort_entries_by_date(entires: list) -> list:
-    return sorted(entires, key=operator.itemgetter("date"))
+def sort_entries_by_date(entries: list) -> list:
+    return sorted(entries, key=operator.itemgetter("date"))
 
-
-base_url = "https://wf5n5c.deta.dev"
-# base_url = 'http://127.0.0.1:8000'
-
-
-def create_load_final_db() -> Callable[[], list]:
-
-    if "db_hash" not in st.session_state:
-        st.session_state["db_hash"] = None
-        st.session_state["existing_db"] = None
-
-    @st.cache(ttl=60 * 60 * 2, show_spinner=False)
-    def load_data() -> list:
-
-        with st.spinner("Loading data ..."):
-            hash = requests.get(f"{base_url}/final_db/hash").json()["hash"]
-            if (
-                hash == st.session_state["db_hash"]
-                and st.session_state["existing_db"] is not None
-            ):
-                return st.session_state["existing_db"]
-
-            response = requests.get(f"{base_url}/final_db")
-            if response.ok:
-
-                st.session_state["db_hash"] = hash
-
-                st.session_state["existing_db"] = sorted(
-                    response.json(), key=lambda el: el["date"]
-                )
-
-                return st.session_state["existing_db"]
-
-        raise RuntimeError()
-
-    return load_data
-
-
-def create_load_manual_db() -> Callable[[], list]:
-    @st.cache(ttl=60 * 60, show_spinner=False)
-    def load_existing_entries() -> list:
-        with st.spinner("Loading existing entries ..."):
-            response = requests.get(f"{base_url}/vangelis_db")
-            db = response.json()
-            return sort_entries_by_date(db)
-
-    return load_existing_entries
 
 
 def format_title(performance: Optional[dict]) -> str:
