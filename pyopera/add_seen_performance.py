@@ -60,8 +60,12 @@ def run():
         st.session_state["leading_team"] = defaultdict(set)
 
         if update_existing:
-            st.session_state["cast"].update(entry_to_update["cast"])
-            st.session_state["leading_team"].update(entry_to_update["leading_team"])
+            st.session_state["cast"].update(
+                {k: set(v) for k, v in entry_to_update["cast"].items()}
+            )
+            st.session_state["leading_team"].update(
+                {k: set(v) for k, v in entry_to_update["leading_team"].items()}
+            )
 
     st.title(
         ("Update an existing" if update_existing else "Add a new visited")
@@ -131,7 +135,7 @@ def run():
             label = "Name" + " " * add_to_cast
             cast_leading_team_name = st.text_input(label)
 
-        append_button = st.form_submit_button("Append")
+        append_button = st.form_submit_button("Append to " + mode)
 
     if append_button:
         if cast_leading_team_name != "" or role_or_part != "":
@@ -161,6 +165,7 @@ def run():
 
     if do_remove and (len(cast_flat) > 0 or len(leading_team_flat) > 0):
         role, person = remove
+
         st.session_state["cast"][role] = st.session_state["cast"][role] - {person}
 
         st.session_state["leading_team"][role] = st.session_state["leading_team"][
@@ -178,6 +183,8 @@ def run():
     st.markdown("#\n\n---")
 
     submit_button = st.button(label="Submit" + (" update" if update_existing else ""))
+
+    print(submit_button)
 
     if submit_button:
         number_of_form_errors = 0
@@ -232,11 +239,8 @@ def run():
                         send_new_performance(entry_to_update)
                         raise
 
-                    st.success("Added to DB")
-                    st.balloons()
-
+                    st.success("Database updated successfully")
                     st.caching.clear_cache()
-                    st.experimental_rerun()
 
                 except Exception as e:
                     st.write(e)

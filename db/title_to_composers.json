@@ -8,9 +8,6 @@
     "Aufstieg und Fall der Stadt Mahagonny": [
         "Kurt Weill"
     ],
-    "Il barbiere di Siviglia": [
-        "Gioachino Rossini"
-    ],
     "L' elisir d'amore": [
         "Gaetano Donizetti"
     ],
@@ -76,9 +73,6 @@
         "Antoine Mariotte",
         "Richard Strauss"
     ],
-    "La clemenza di Tito": [
-        "Wolfgang Amadeus Mozart"
-    ],
     "Der fliegende Holl\u00e4nder": [
         "Richard Wagner"
     ],
@@ -98,7 +92,6 @@
     "Lucia di Lammermoor": [
         "Gaetano Donizetti"
     ],
-    "I Vespri Siciliani": [],
     "Romeo und Julia": [
         "Heinrich Sutermeister"
     ],
@@ -163,6 +156,9 @@
         "Giuseppe Verdi"
     ],
     "Eugen Onegin": [
+        "Pjotr Iljitsch Tschaikowski"
+    ],
+    "Jewgeni Onegin": [
         "Pjotr Iljitsch Tschaikowski"
     ],
     "Pollicino": [],
@@ -263,9 +259,11 @@
     "Alcina": [
         "Georg Friedrich H\u00e4ndel"
     ],
-    "Symphonie in C": [],
     "Falstaff": [
         "Giuseppe Verdi"
+    ],
+    "Falstaff ossia Le tre burle": [
+        "Antonio Salieri"
     ],
     "Die tote Stadt": [
         "Erich Wolfgang Korngold"
@@ -293,7 +291,6 @@
     "Lulu": [
         "Alban Berg"
     ],
-    "Peer Gynt": [],
     "Ariodante": [
         "Georg Friedrich H\u00e4ndel"
     ],
@@ -316,12 +313,917 @@
         "Benjamin Britten"
     ],
     "Orlando": [
-        "Olga Neuwirth"
+        "Olga Neuwirth",
+        "Georg Friedrich Händel"
     ],
     "Die Entf\u00fchrung aus dem Serail": [
         "Wolfgang Amadeus Mozart"
     ],
     "L' incoronazione di Poppea": [
         "Claudio Monteverdi"
+    ],
+    "La Wally": [
+        "Alfredo Catalani"
+    ],
+    "La Rosinda": [
+        "Francesco Cavalli"
+    ],
+    "La damnation de Faust": [
+        "Hector Berlioz"
+    ],
+    "Semele": [
+        "Georg Friedrich Händel",
+        "Johann Adolph Hasse"
+    ],
+    "Radamisto": [
+        "Georg Friedrich Händel"
+    ],
+    "La finta giardiniera": [
+        "Wolfgang Amadeus Mozart"
+    ],
+    "Le prophète": [
+        "Giacomo Meyerbeer"
+    ],
+    "Der Prophet": [
+        "Giacomo Meyerbeer"
+    ],
+    "Powder Her Face": [
+        "Thomas Adès"
+    ],
+    "Dido and Aeneas": [
+        "Henry Purcell"
+    ],
+    "Dido und Aeneas": [
+        "Henry Purcell"
+    ],
+    "Admeto, Re di Tessaglia": [
+        "Georg Friedrich Händel"
+    ],
+    "Il prigioniero": [
+        "Luigi Dallapiccola"
+    ],
+    "Der Gefangene": [
+        "Luigi Dallapiccola"
+    ],
+    "Die Harmonie der Welt": [
+        "Paul Hindemith"
+    ],
+    "Osud": [
+        "Leoš Janáček"
+    ],
+    "Osud / Schicksal": [
+        "Leoš Janáček"
+    ],
+    "Výlety páně Broučkovy": [
+        "Leoš Janáček"
+    ],
+    "Die Ausflüge des Herrn Brouček": [
+        "Leoš Janáček"
+    ],
+    "Le roi Carotte": [
+        "Jacques Offenbach"
+    ],
+    "König Karotte": [
+        "Jacques Offenbach"
+    ],
+    "Il viaggio a Reims": [
+        "Gioachino Rossini"
+    ],
+    "Die Reise nach Reims": [
+        "Gioachino Rossini"
+    ],
+    "Castor et Pollux": [
+        "Jean-Philippe Rameau"
+    ],
+    "Die schweigsame Frau": [
+        "Richard Strauss"
+    ],
+    "I masnadieri": [
+        "Giuseppe Verdi"
+    ],
+    "Die Räuber": [
+        "Giuseppe Verdi"
+    ],
+    "Die lustige Witwe": [
+        "Franz Lehár"
+    ],
+    "Золотой петушок (Solotoi petuschok)": [
+        "Nikolai Rimski-Korsakow"
+    ],
+    "Der goldene Hahn": [
+        "Nikolai Rimski-Korsakow"
+    ],
+    "La forza del destino": [
+        "Giuseppe Verdi"
+    ],
+    "Die Macht des Schicksals": [
+        "Giuseppe Verdi"
+    ],
+    "Les mamelles de Tirésias": [
+        "Francis Poulenc"
+    ],
+    "Die Brüste des Tiresias": [
+        "Francis Poulenc"
+    ],
+    "Il primo omicidio": [
+        "Alessandro Scarlatti"
+    ],
+    "La rondine": [
+        "Giacomo Puccini"
+    ],
+    "Die Schwalbe": [
+        "Giacomo Puccini"
+    ],
+    "The Greek Passion": [
+        "Bohuslav Martinů"
+    ],
+    "Griechische Passion": [
+        "Bohuslav Martinů"
+    ],
+    "La gazzetta": [
+        "Gioachino Rossini"
+    ],
+    "Die Zeitung": [
+        "Gioachino Rossini"
+    ],
+    "La vestale": [
+        "Gaspare Spontini"
+    ],
+    "Die Vestalin": [
+        "Gaspare Spontini"
+    ],
+    "Царская невеста (Zarskaja newesta)": [
+        "Nikolai Rimski-Korsakow"
+    ],
+    "Die Zarenbraut": [
+        "Nikolai Rimski-Korsakow"
+    ],
+    "La liberazione di Ruggiero dall’isola d’Alcina": [
+        "Francesca Caccini"
+    ],
+    "Die Befreiung Ruggieros von Alcinas Insel": [
+        "Francesca Caccini"
+    ],
+    "Der ferne Klang": [
+        "Franz Schreker"
+    ],
+    "L’Orfeo": [
+        "Claudio Monteverdi"
+    ],
+    "Orpheus": [
+        "Claudio Monteverdi"
+    ],
+    "L’enfant et les sortilèges": [
+        "Maurice Ravel"
+    ],
+    "Das Kind und der Zauberspuk": [
+        "Maurice Ravel"
+    ],
+    "La clemenza di Tito": [
+        "Wolfgang Amadeus Mozart"
+    ],
+    "Die Milde des Titus": [
+        "Wolfgang Amadeus Mozart"
+    ],
+    "Jonny spielt auf": [
+        "Ernst Krenek"
+    ],
+    "A Quiet Place": [
+        "Leonard Bernstein"
+    ],
+    "Ruh’ und Frieden": [
+        "Leonard Bernstein"
+    ],
+    "Князь Игорь (Knjas Igor)": [
+        "Alexander Borodin"
+    ],
+    "Fürst Igor": [
+        "Alexander Borodin"
+    ],
+    "Giulio Cesare in Egitto": [
+        "Georg Friedrich Händel"
+    ],
+    "Euryanthe": [
+        "Carl Maria von Weber"
+    ],
+    "Der Zwerg": [
+        "Alexander von Zemlinsky"
+    ],
+    "Sosarme, Re di Media": [
+        "Georg Friedrich Händel"
+    ],
+    "Porgy and Bess": [
+        "George Gershwin"
+    ],
+    "The Beggar’s Opera": [
+        "Johann Christoph Pepusch"
+    ],
+    "Les Fées du Rhin": [
+        "Jacques Offenbach"
+    ],
+    "Die Rheinnixen": [
+        "Jacques Offenbach"
+    ],
+    "Carlo il Calvo": [
+        "Nicola Antonio Porpora"
+    ],
+    "Prodaná nevěsta": [
+        "Bedřich Smetana"
+    ],
+    "Die verkaufte Braut": [
+        "Bedřich Smetana"
+    ],
+    "Luisa Miller": [
+        "Giuseppe Verdi"
+    ],
+    "Platée": [
+        "Jean-Philippe Rameau"
+    ],
+    "Il turco in Italia": [
+        "Gioachino Rossini"
+    ],
+    "Der Türke in Italien": [
+        "Gioachino Rossini"
+    ],
+    "Elegy for Young Lovers": [
+        "Hans Werner Henze"
+    ],
+    "Elegie für junge Liebende": [
+        "Hans Werner Henze"
+    ],
+    "Orfeo ed Euridice": [
+        "Christoph Willibald Gluck"
+    ],
+    "Lucio Cornelio Silla": [
+        "Georg Friedrich Händel"
+    ],
+    "Zoroastre": [
+        "Jean-Philippe Rameau"
+    ],
+    "María de Buenos Aires": [
+        "Astor Piazzolla"
+    ],
+    "Das Wundertheater": [
+        "Hans Werner Henze"
+    ],
+    "Les Danaïdes": [
+        "Antonio Salieri"
+    ],
+    "Das Wunder der Heliane": [
+        "Erich Wolfgang Korngold"
+    ],
+    "Der Schmied von Gent": [
+        "Franz Schreker"
+    ],
+    "La Gioconda": [
+        "Amilcare Ponchielli"
+    ],
+    "Der Kaiser von Atlantis oder Die Tod-Verweigerung": [
+        "Viktor Ullmann"
+    ],
+    "Czaar und Zimmermann": [
+        "Albert Lortzing"
+    ],
+    "Zar und Zimmermann": [
+        "Albert Lortzing"
+    ],
+    "La morte d’Abel": [
+        "Erste Vertonung von Antonio Caldara"
+    ],
+    "Parnasso in festa per li sponsali di Teti e Peleo": [
+        "Georg Friedrich Händel"
+    ],
+    "Il Parnasso in festa / Das Fest auf dem Parnass für die Hochzeit von Thetis und Peleus": [
+        "Georg Friedrich Händel"
+    ],
+    "La donna del lago": [
+        "Gioachino Rossini"
+    ],
+    "Die Dame vom See": [
+        "Gioachino Rossini"
+    ],
+    "I Capuleti e i Montecchi": [
+        "Vincenzo Bellini"
+    ],
+    "Feuersnot": [
+        "Richard Strauss"
+    ],
+    "Demofoonte": [
+        "Christoph Willibald Gluck"
+    ],
+    "Halka": [
+        "Stanisław Moniuszko"
+    ],
+    "Król Roger": [
+        "Karol Szymanowski"
+    ],
+    "König Roger": [
+        "Karol Szymanowski"
+    ],
+    "Albert Herring": [
+        "Benjamin Britten"
+    ],
+    "Piramo e Tisbe": [
+        "Johann Adolph Hasse"
+    ],
+    "Pyramus und Thisbe": [
+        "Johann Adolph Hasse"
+    ],
+    "Mefistofele": [
+        "Arrigo Boito"
+    ],
+    "The Rape of Lucrezia": [
+        "Benjamin Britten"
+    ],
+    "Der Raub/Die Schändung der Lucretia": [
+        "Benjamin Britten"
+    ],
+    "Dalibor": [
+        "Bedřich Smetana"
+    ],
+    "Die Liebe der Danae": [
+        "Richard Strauss"
+    ],
+    "Maria Stuarda": [
+        "Gaetano Donizetti"
+    ],
+    "Maria Stuart": [
+        "Gaetano Donizetti"
+    ],
+    "Il barbiere di Siviglia": [
+        "Gioachino Rossini"
+    ],
+    "Der Barbier von Sevilla": [
+        "Gioachino Rossini"
+    ],
+    "Béatrice et Bénédict": [
+        "Hector Berlioz"
+    ],
+    "Béatrice und Bénédict": [
+        "Hector Berlioz"
+    ],
+    "Onkel Präsident": [
+        "Friedrich Cerha"
+    ],
+    "Orlando paladino": [
+        "Joseph Haydn"
+    ],
+    "Ritter Roland": [
+        "Joseph Haydn"
+    ],
+    "Jakobín": [
+        "Antonín Dvořák"
+    ],
+    "Der Jakobiner": [
+        "Antonín Dvořák"
+    ],
+    "La scuola de’ gelosi": [
+        "Antonio Salieri"
+    ],
+    "Die Schule der Eifersüchtigen": [
+        "Antonio Salieri"
+    ],
+    "Publio Cornelio Scipione": [
+        "Georg Friedrich Händel"
+    ],
+    "Le convenienze ed inconvenienze teatrali": [
+        "Gaetano Donizetti"
+    ],
+    "Viva la Mamma!": [
+        "Gaetano Donizetti"
+    ],
+    "Das geheime Königreich": [
+        "Ernst Krenek"
+    ],
+    "Die ägyptische Helena": [
+        "Richard Strauss"
+    ],
+    "Schwergewicht oder Die Ehre der Nation": [
+        "Ernst Krenek"
+    ],
+    "Hippolyte et Aricie": [
+        "Jean-Philippe Rameau"
+    ],
+    "Semiramide": [
+        "Gioachino Rossini"
+    ],
+    "Semiramis": [
+        "Gioachino Rossini"
+    ],
+    "Lotario": [
+        "Georg Friedrich Händel"
+    ],
+    "I due Foscari": [
+        "Giuseppe Verdi"
+    ],
+    "Die beiden Foscari": [
+        "Giuseppe Verdi"
+    ],
+    "Serse": [
+        "Georg Friedrich Händel"
+    ],
+    "Xerxes": [
+        "Georg Friedrich Händel"
+    ],
+    "Rinaldo": [
+        "Georg Friedrich Händel"
+    ],
+    "Ormisda": [
+        "Georg Friedrich Händel"
+    ],
+    "I Lombardi alla prima crociata": [
+        "Giuseppe Verdi"
+    ],
+    "Die Lombarden auf dem ersten Kreuzzug": [
+        "Giuseppe Verdi"
+    ],
+    "Lucio Silla": [
+        "Wolfgang Amadeus Mozart"
+    ],
+    "Il trionfo del Tempo e del Disinganno": [
+        "Georg Friedrich Händel"
+    ],
+    "Arianna in Creta": [
+        "Georg Friedrich Händel"
+    ],
+    "Les pêcheurs de perles": [
+        "Georges Bizet"
+    ],
+    "Die Perlenfischer": [
+        "Georges Bizet"
+    ],
+    "Oberon, König der Elfen": [
+        "Paul Wranitzky"
+    ],
+    "Zazà": [
+        "Ruggero Leoncavallo"
+    ],
+    "Počátek románu": [
+        "Leoš Janáček"
+    ],
+    "Anfang eines Romans": [
+        "Leoš Janáček"
+    ],
+    "Die Weiden": [
+        "Johannes Maria Staud"
+    ],
+    "Die Schuldigkeit des ersten Gebots": [
+        "Wolfgang Amadeus Mozart "
+    ],
+    "Death in Venice": [
+        "Benjamin Britten"
+    ],
+    "Tod in Venedig": [
+        "Benjamin Britten"
+    ],
+    "Teseo": [
+        "Georg Friedrich Händel"
+    ],
+    "La dame blanche": [
+        "François-Adrien Boieldieu"
+    ],
+    "Die weiße Dame": [
+        "François-Adrien Boieldieu"
+    ],
+    "Z mrtvého domu": [
+        "Leoš Janáček"
+    ],
+    "Aus einem Totenhaus": [
+        "Leoš Janáček"
+    ],
+    "Lo speziale": [
+        "Joseph Haydn"
+    ],
+    "Der Apotheker": [
+        "Joseph Haydn"
+    ],
+    "Luci mie traditrici": [
+        "Salvatore Sciarrino"
+    ],
+    "Die tödliche Blume": [
+        "Salvatore Sciarrino"
+    ],
+    "A kékszakállú herceg vára": [
+        "Béla Bartók"
+    ],
+    "Herzog Blaubarts Burg": [
+        "Béla Bartók"
+    ],
+    "Ernani": [
+        "Giuseppe Verdi"
+    ],
+    "Aci, Galatea e Polifemo": [
+        "Georg Friedrich Händel"
+    ],
+    "Hans Heiling": [
+        "Heinrich Marschner"
+    ],
+    "Amadigi di Gaula": [
+        "Georg Friedrich Händel"
+    ],
+    "The Mikado": [
+        "Arthur Sullivan"
+    ],
+    "Der Mikado": [
+        "Arthur Sullivan"
+    ],
+    "The Bassarids": [
+        "Hans Werner Henze"
+    ],
+    "Die Bassariden": [
+        "Hans Werner Henze"
+    ],
+    "Le comte Ory": [
+        "Gioachino Rossini"
+    ],
+    "Der Graf Ory": [
+        "Gioachino Rossini"
+    ],
+    "Ezio": [
+        "Christoph Willibald Gluck"
+    ],
+    "Giulietta e Romeo": [
+        "Niccolò Antonio Zingarelli"
+    ],
+    "Arminio": [
+        "Georg Friedrich Händel"
+    ],
+    "Königskinder": [
+        "Engelbert Humperdinck"
+    ],
+    "Pigmalion": [
+        "Jean-Philippe Rameau"
+    ],
+    "Pygmalion": [
+        "Jean-Philippe Rameau"
+    ],
+    "Tolomeo, Re di Egitto": [
+        "Georg Friedrich Händel"
+    ],
+    "Guillaume Tell": [
+        "Gioachino Rossini"
+    ],
+    "Wilhelm Tell": [
+        "Gioachino Rossini"
+    ],
+    "L’isola disabitata": [
+        "Erste Vertonung von Giuseppe Bonno"
+    ],
+    "King Arthur, or The British Worthy": [
+        "Henry Purcell"
+    ],
+    "Садко": [
+        "Nikolai Rimski-Korsakow"
+    ],
+    "Sadko": [
+        "Nikolai Rimski-Korsakow"
+    ],
+    "Matilde [di] Shabran, o sia Bellezza e cuor di ferro": [
+        "Gioachino Rossini"
+    ],
+    "Mathilde [von] Shabran, oder Schönheit und Herz von Eisen": [
+        "Gioachino Rossini"
+    ],
+    "Il trionfo di Clelia": [
+        "Christoph Willibald Gluck"
+    ],
+    "Oedipe": [
+        "George Enescu"
+    ],
+    "Billy Budd": [
+        "Benjamin Britten"
+    ],
+    "Tamerlano": [
+        "Georg Friedrich Händel"
+    ],
+    "Vincer se stesso è la maggior vittoria": [
+        "Georg Friedrich Händel"
+    ],
+    "Rodrigo": [
+        "Georg Friedrich Händel"
+    ],
+    "Armida": [
+        "Antonio Salieri",
+        "Joseph Haydn"
+    ],
+    "Don Quichotte": [
+        "Jules Massenet"
+    ],
+    "The Turn of the Screw": [
+        "Benjamin Britten"
+    ],
+    "Die Drehung der Schraube, Die sündigen Engel oder Die Besessenen": [
+        "Benjamin Britten"
+    ],
+    "Adriano in Siria": [
+        "Antonio Caldara",
+        "Giovanni Battista Pergolesi"
+    ],
+    "Libuše": [
+        "Bedřich Smetana"
+    ],
+    "Libussa": [
+        "Bedřich Smetana"
+    ],
+    "Attila": [
+        "Giuseppe Verdi"
+    ],
+    "Ottone, re di Germania": [
+        "Georg Friedrich Händel"
+    ],
+    "Ottone": [
+        "Georg Friedrich Händel"
+    ],
+    "Tarare": [
+        "Antonio Salieri"
+    ],
+    "Rodelinda, regina de’ Longobardi": [
+        "Georg Friedrich Händel"
+    ],
+    "Catone in Utica": [
+        "Erste Vertonung von Leonardo Vinci"
+    ],
+    "Beatrice Cenci": [
+        "Berthold Goldschmidt"
+    ],
+    "Erwartung": [
+        "Arnold Schönberg"
+    ],
+    "Der Vampyr": [
+        "Heinrich Marschner"
+    ],
+    "Oberon": [
+        "Carl Maria von Weber"
+    ],
+    "Les Horace": [
+        "Antonio Salieri"
+    ],
+    "Iris": [
+        "Pietro Mascagni"
+    ],
+    "Hadrian in Syrien": [
+        "Giovanni Battista Pergolesi"
+    ],
+    "The Tempest": [
+        "Thomas Adès"
+    ],
+    "Abaris ou Les Boréades": [
+        "Jean-Philippe Rameau"
+    ],
+    "Die Boreaden": [
+        "Jean-Philippe Rameau"
+    ],
+    "Die Gezeichneten": [
+        "Franz Schreker"
+    ],
+    "Hamlet": [
+        "Ambroise Thomas"
+    ],
+    "Berenice, Regina di Egitto": [
+        "Georg Friedrich Händel"
+    ],
+    "Karl V.": [
+        "Ernst Krenek"
+    ],
+    "Pénélope": [
+        "Gabriel Fauré"
+    ],
+    "Giustino": [
+        "Georg Friedrich Händel"
+    ],
+    "Il mondo della luna": [
+        "Joseph Haydn"
+    ],
+    "Die Welt auf dem Monde": [
+        "Joseph Haydn"
+    ],
+    "Огненный ангел (Ognenny angel)": [
+        "Sergei Prokofjew"
+    ],
+    "Der feurige Engel": [
+        "Sergei Prokofjew"
+    ],
+    "Šárka": [
+        "Leoš Janáček"
+    ],
+    "Penthesilea": [
+        "Othmar Schoeck"
+    ],
+    "Мазепа (Masepa)": [
+        "Pjotr Iljitsch Tschaikowski"
+    ],
+    "Mazeppa": [
+        "Pjotr Iljitsch Tschaikowski"
+    ],
+    "Médée": [
+        "Luigi Cherubini"
+    ],
+    "Il barbiere di Siviglia, ovvero La precauzione inutile": [
+        "Giovanni Paisiello"
+    ],
+    "Der Barbier von Sevilla oder Die nutzlose Vorsicht": [
+        "Giovanni Paisiello"
+    ],
+    "Agrippina": [
+        "Georg Friedrich Händel"
+    ],
+    "Rienzi, der letzte der Tribunen": [
+        "Richard Wagner"
+    ],
+    "Nos; russisch Нос": [
+        "Dmitri Schostakowitsch"
+    ],
+    "Die Nase": [
+        "Dmitri Schostakowitsch"
+    ],
+    "Poro, Re dell’Indie": [
+        "Georg Friedrich Händel"
+    ],
+    "Пассажирка (Passaschirka)": [
+        "Mieczysław Weinberg"
+    ],
+    "Die Passagierin": [
+        "Mieczysław Weinberg"
+    ],
+    "Alessandro": [
+        "Georg Friedrich Händel"
+    ],
+    "Der Diktator": [
+        "Ernst Krenek"
+    ],
+    "Oreste": [
+        "Georg Friedrich Händel"
+    ],
+    "Der Besuch der alten Dame": [
+        "Gottfried von Einem"
+    ],
+    "Peer Gynt": [
+        "Werner Egk"
+    ],
+    "Ariane et Barbe-Bleue": [
+        "Paul Dukas"
+    ],
+    "Angels in America": [
+        "Péter Eötvös"
+    ],
+    "Roméo et Juliette": [
+        "Charles Gounod"
+    ],
+    "Hercules": [
+        "Georg Friedrich Händel"
+    ],
+    "Theodora": [
+        "Georg Friedrich Händel"
+    ],
+    "Saul": [
+        "Georg Friedrich Händel"
+    ],
+    "Acis and Galatea": [
+        "Georg Friedrich Händel"
+    ],
+    "Solomon": [
+        "Georg Friedrich Händel"
+    ],
+    "Die Schöpfung": [
+        "Joseph Haydn"
+    ],
+    "Jephtha": [
+        "Georg Friedrich Händel"
+    ],
+    "Parnasso in festa": [
+        "Georg Friedrich Händel"
+    ],
+    "Messiah": [
+        "Georg Friedrich Händel"
+    ],
+    "Candide": [
+        "Leonard Bernstein"
+    ],
+    "Irene": [
+        "Nella Larsen"
+    ],
+    "Don Chisciotte in Sierra Morena": [
+        "Francesco Bartolomeo Conti"
+    ],
+    "L'empio punito": [
+        "Composer"
+    ],
+    "Dafne in lauro": [
+        "Johann Joseph Fux"
+    ],
+    "L\u2019 Olimpiade": [
+        "Metastasio"
+    ],
+    "Fierabras": [
+        "David Aubert"
+    ],
+    "La m\u00e8re coupable": [
+        "Darius Milhaud"
+    ],
+    "Orlando furioso ": [
+        "Antonio Vivaldi"
+    ],
+    "Kr\u00fat\u0148ava": [
+        "Eugen Sucho\u0148"
+    ],
+    "Antigone": [
+        "Nikiforos Lytras"
+    ],
+    "Siroe ": [
+        "Johann Adolph Hasse"
+    ],
+    "Iphigenie en Tauride": [
+        "Christoph Willibald Gluck"
+    ],
+    "The Rake\u2019s Progress": [
+        "Igor Stravinsky"
+    ],
+    "Les Huguenots": [
+        "Giacomo Meyerbeer"
+    ],
+    "I Vespri Siciliani": [
+        "Giuseppe Verdi"
+    ],
+    "Xerse ": [
+        "Francesco Cavalli"
+    ],
+    "Charodeyka": [
+        "Victor Herbert"
+    ],
+    "Wei\u00dfe Rose": [
+        "Eberhard Koebel"
+    ],
+    "Der Mond": [
+        "Carl Orff"
+    ],
+    "Merope": [
+        "Francesco Gasparini",
+        "Riccardo Broschi"
+    ],
+    "Polifemo": [
+        "Nicola Porpora"
+    ],
+    "La Straniera": [
+        "Vincenzo Bellini"
+    ],
+    "Olympia": [
+        "Ren\u00e9 Magritte"
+    ],
+    "La Dori": [
+        "Antonio Cesti"
+    ],
+    "\u010cert a K\u00e1\u010da": [
+        "Anton\u00edn Dvo\u0159\u00e1k"
+    ],
+    "The Rape of Lucretia": [
+        "Benjamin Britten"
+    ],
+    "Vasco da Gama": [
+        "Lu\u00eds de Cam\u00f5es"
+    ],
+    "Arianna in Nasso ": [
+        "Nicola Porpora"
+    ],
+    "Candide ": [
+        "Voltaire"
+    ],
+    "Bajazet ": [
+        "Antonio Vivaldi"
+    ],
+    "Veremonda, l\u2019amazzone di Aragona": [
+        "Giulio Strozzi"
+    ],
+    "Br\u00fcnnhilde": [
+        "Gaston Bussi\u00e8re"
+    ],
+    "Il trittico": [
+        "Giacomo Puccini"
+    ],
+    "La clemenza di Tito ": [
+        "Pietro Metastasio"
+    ],
+    "Iolanta": [
+        "Gilbert and Sullivan"
+    ],
+    "Cinq-Mars ": [
+        "Charles Gounod"
+    ],
+    "La Stellidaura vendicante": [
+        "Francesco Provenzale"
+    ],
+    "Sz\u00e9kely fon\u00f3": [
+        "Zolt\u00e1n Kod\u00e1ly"
+    ],
+    "Gianni Schicchi": [
+        "Giacomo Puccini"
+    ],
+    "Guglielmo Tell": [
+        "Gioachino Rossini"
+    ],
+    "Hry o Marii": [
+        "Bohuslav Martin\u016f"
+    ],
+    "Die lustigen Weiber von Windsor": [
+        "Otto Nicolai"
     ]
 }
