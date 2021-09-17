@@ -17,6 +17,7 @@ from typing import (
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from plotly.graph_objects import Figure
 
 from streamlit_common import load_db
 
@@ -36,6 +37,12 @@ def add_split_date_to_db(
     return db
 
 
+def truncate_composer_name(composer: str) -> str:
+    parts = composer.split()
+    return " ".join([part[0] + "." for part in parts[:-1]] + [parts[-1]])
+
+
+# @st.cache
 def create_frequency_chart(
     db: Sequence[Mapping[str, Hashable]],
     columns: Union[str, Sequence[str]],
@@ -43,7 +50,7 @@ def create_frequency_chart(
     separator: str = ", ",
     column_mapper: Optional[Mapping[str, Mapping[str, str]]] = None,
     column_order: Optional[Sequence[str]] = None,
-) -> None:
+) -> Figure:
 
     if isinstance(columns, str):
         columns = cast(Sequence[str], (columns,))
@@ -59,7 +66,11 @@ def create_frequency_chart(
     counter = Counter(
         [
             separator.join(
-                str(column_mapper.get(column, {}).get(*([entry[column]] * 2)))
+                textwrap.shorten(
+                    str(column_mapper.get(column, lambda x: x)(entry[column])),
+                    20,
+                    placeholder="...",
+                )
                 for column in columns
             )
             for entry in db
@@ -74,22 +85,49 @@ def create_frequency_chart(
 
     composers_freq_df = pd.DataFrame(
         {
-            column_names_combined: [
-                textwrap.shorten(el, 30, placeholder=" ...") for el in columns_combined
-            ],
+            column_names_combined: columns_combined,
+            #  [
+            #     textwrap.shorten(
+            #         el, 20 * len(columns), placeholder=" ...", break_long_words=True
+            #     )
+            #     for el in
+            # ],
             "Frequency": frequencies,
         }
     )
 
-    composers_bar = px.bar(
+    bar_chart = px.bar(
         composers_freq_df,
         x=column_names_combined,
         y="Frequency",
         category_orders={column_names_combined: column_order},
-        title=f"Frequency of {column_names_combined}",
+        # height=800,
+        # template="presentation",
     )
 
-    st.plotly_chart(composers_bar, use_container_width=True)
+    # bar_chart.update_layout()
+
+    return bar_chart
+
+
+def show_frequency_chart(
+    db: Sequence[Mapping[str, Hashable]],
+    columns: Union[str, Sequence[str]],
+    range_to_show: Optional[Union[int, Tuple[int, int]]] = None,
+    separator: str = ", ",
+    column_mapper: Optional[Mapping[str, Mapping[str, str]]] = None,
+    column_order: Optional[Sequence[str]] = None,
+) -> None:
+    st.plotly_chart(
+        create_frequency_chart(
+            db, columns, range_to_show, separator, column_mapper, column_order
+        ),
+        use_container_width=True,
+    )
+
+
+def format_column_name(column_name: str) -> str:
+    return column_name.replace("is_", "").replace("_", " ").title()
 
 
 def run():
@@ -97,46 +135,47 @@ def run():
 
     db = add_split_date_to_db(load_db())
 
-    with st.expander("Opus"):
-        number_to_show = st.slider("Number to show", 1, 30, 10, key="slider Opus")
-        create_frequency_chart(db, "name", number_to_show)
+    presets = {
+        ("name",): "Name of opus",
+        ("composer",): "Composer",
+        ("stage",): "Stage",
+        ("month",): "Number of performances seen each month",
+        ("day", "month"): "Day of year",
+    }
 
-    with st.expander("Composer"):
-        number_to_show = st.slider("Number to show", 1, 30, 10, key="slider composer")
-        create_frequency_chart(db, "composer", number_to_show)
-    with st.expander("Stage"):
-        number_to_show = st.slider("Number to show", 1, 30, 10, key="slider stage")
-        create_frequency_chart(db, "stage", number_to_show)
-
-    with st.expander("Opus, stage combination"):
-        create_frequency_chart(db, ["name", "stage"], 20)
-
-    with st.expander("Performances seen by Month"):
-        create_frequency_chart(
-            db,
-            "month",
-            column_mapper={"month": month_to_month_name},
-            column_order=list(month_to_month_name.values()),
-        )
-    with st.expander("Performances seen by day of year"):
-
-        create_frequency_chart(
-            db,
-            ["day", "month"],
-            20,
-            ". ",
-            column_mapper={"month": month_to_month_name},
+    col1, col2 = st.columns(2)
+    with col1:
+        preset = st.selectbox("Presets", presets, format_func=presets.get)
+    with col2:
+        options = st.multiselect(
+            "Categories to combine",
+            filter(
+                lambda el: isinstance(db[0][el], (str, int))
+                and el not in ("comments", "key"),
+                db[0].keys(),
+            ),
+            default=preset,
+            format_func=format_column_name,
         )
 
-        create_frequency_chart(
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        number_to_show = st.number_input("Number of bars to show", 1, value=20)
+    show_all = st.checkbox("Show full bar chart")
+
+    if show_all:
+        number_to_show = None
+
+    if len(options) > 0:
+        show_frequency_chart(
             db,
-            ["day", "month"],
-            366,
-            ". ",
-            column_mapper={"month": month_to_month_name},
-            column_order=[
-                f"{day}. {month_to_month_name[month]}"
-                for month in month_to_month_name
-                for day in range(1, calendar.monthrange(2012, month)[1] + 1)
-            ],
+            options,
+            number_to_show,
+            column_mapper={
+                "month": month_to_month_name.get,
+                "composer": truncate_composer_name,
+                "date": lambda el: ".".join(el.split("T")[0].split("-")[::-1]),
+            },
         )
+    else:
+        st.warning("Add category names to above widget")

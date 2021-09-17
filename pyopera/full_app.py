@@ -10,18 +10,16 @@ if True:
     from visualize_json import run as run_vis_json
 
 
-FUNCTION_TO_STRING = {
-    run_vis_json: "Explore visits",
-    run_stats: "Explore stats",
-    run_add_performance: "Edit database",
+STRING_TO_FUNCTION = {
+    "Explore visits": run_vis_json,
+    "Explore statistics": run_stats,
+    "Edit database": run_add_performance,
 }
 
 with st.sidebar:
     st.title(NAME)
 
-    mode_function = st.radio(
-        "Mode", FUNCTION_TO_STRING, format_func=FUNCTION_TO_STRING.get
-    )
+    mode_function = STRING_TO_FUNCTION.get(st.radio("Mode", STRING_TO_FUNCTION))
 
 mode_function()
 
