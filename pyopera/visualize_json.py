@@ -79,10 +79,7 @@ def run():
 
     if performance["comments"] != "":
         with st.expander("Comments", expanded=True):
-            st.markdown(
-                performance["comments"]
-                + "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-            )
+            st.markdown(performance["comments"])
 
     def hightlight_person_if_selected(person: str) -> str:
 

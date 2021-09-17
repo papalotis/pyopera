@@ -78,14 +78,20 @@ def load_deta_project_key() -> str:
     try:
         import os
 
-        import streamlit as st
-
-        deta_project_key = os.environ["project_key"]
+        return os.environ["project_key"]
     except KeyError:
+        try:
+            deta_project_key: str = json.loads(
+                (Path(__file__).parent.parent / "deta_project_data.json").read_text()
+            )["Project Key"]
+        except (FileNotFoundError, KeyError) as error:
+            try:
+                import streamlit as st
+            except ImportError:
+                raise error
 
-        deta_project_key: str = json.loads(
-            (Path(__file__).parent.parent / "deta_project_data.json").read_text()
-        )["Project Key"]
+            st.error("Cannot find database key. Cannot continue!")
+            st.stop()
 
     return deta_project_key
 
