@@ -75,7 +75,7 @@ def run():
 
     st.markdown(f'# {performance["name"]}')
 
-    st.markdown(f"## Composer\n\n**{performance['composer']}**")
+    st.markdown(f"#### **{performance['composer']}** - {performance['stage']}\n\n---")
 
     if performance["comments"] != "":
         with st.expander("Comments", expanded=True):

@@ -140,7 +140,10 @@ def run():
     if append_button:
         if cast_leading_team_name != "" or role_or_part != "":
             key = "cast" if add_to_cast else "leading_team"
-            st.session_state[key][role_or_part].add(cast_leading_team_name)
+            st.session_state[key][role_or_part].update(
+                {n.strip() for n in cast_leading_team_name.split(",")}
+            )
+
         else:
             st.error("At least one field is empty")
 
