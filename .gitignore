@@ -136,3 +136,6 @@ cachedir/
 deta_project_data.json
 
 temp.cache/
+
+pyopera/temp.py
+backup.json
