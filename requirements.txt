@@ -5,3 +5,4 @@ typing-extensions==3.10.0.0
 requests==2.26.0
 fastapi-utils==0.2.1
 deta==1.0.0
+plotly==5.3.1
