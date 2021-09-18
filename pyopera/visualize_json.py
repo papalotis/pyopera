@@ -75,7 +75,10 @@ def run():
 
     st.markdown(f'# {performance["name"]}')
 
-    st.markdown(f"#### **{performance['composer']}** - {performance['stage']}\n\n---")
+    st.markdown(
+        f"#### **{performance['composer']}**\n{performance['stage']}"
+        f"{' - ' + performance['production'] if performance['stage'] != performance['production'] else ''}"
+    )
 
     def hightlight_person_if_selected(person: str) -> str:
 
