@@ -77,10 +77,6 @@ def run():
 
     st.markdown(f"#### **{performance['composer']}** - {performance['stage']}\n\n---")
 
-    if performance["comments"] != "":
-        with st.expander("Comments", expanded=True):
-            st.markdown(performance["comments"])
-
     def hightlight_person_if_selected(person: str) -> str:
 
         if person in options:
@@ -99,3 +95,7 @@ def run():
     }
 
     write_cast_and_leading_team(cast_highlighted, leading_team_highlighted)
+
+    if performance["comments"] != "":
+        st.markdown("---")
+        st.markdown(performance["comments"])

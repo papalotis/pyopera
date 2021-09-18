@@ -1,5 +1,5 @@
 import operator
-from typing import Callable, Optional
+from typing import Callable, Mapping, Optional, Sequence
 
 import requests
 import streamlit as st
@@ -17,11 +17,22 @@ def load_db() -> list:
         return sort_entries_by_date(DB.fetch().items)
 
 
-def write_person_with_role(d: dict) -> None:
-    for role, persons in d.items():
+def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
+    exceptions = {"Orchester", "Orchestra", "Chor"}
+
+    d_without_exceptions = {k: v for k, v in d.items() if k not in exceptions}
+
+    for role, persons in d_without_exceptions.items():
         if len(persons) > 0:
             persons_str = ", ".join(persons)
             st.markdown(f"- **{role}** - " + persons_str)
+
+    if len(exceptions - set(d)) < len(exceptions):
+        st.markdown("---")
+        for exception in exceptions:
+            to_print = d.get(exception)
+            if to_print is not None:
+                st.write(f"**{''.join(to_print)}**")
 
 
 def write_role_with_persons(title: str, dict_of_roles: dict):
@@ -31,7 +42,9 @@ def write_role_with_persons(title: str, dict_of_roles: dict):
         write_person_with_role(dict_of_roles)
 
 
-def write_cast_and_leading_team(cast: dict, leading_team: dict):
+def write_cast_and_leading_team(
+    cast: Mapping[str, Sequence[str]], leading_team: Mapping[str, Sequence[str]]
+):
 
     col_left, col_right = st.columns([1, 1])
 
@@ -39,12 +52,12 @@ def write_cast_and_leading_team(cast: dict, leading_team: dict):
         write_role_with_persons("Cast", cast)
 
     with col_right:
+
         write_role_with_persons("Leading team", leading_team)
 
 
 def sort_entries_by_date(entries: list) -> list:
     return sorted(entries, key=operator.itemgetter("date"))
-
 
 
 def format_title(performance: Optional[dict]) -> str:
