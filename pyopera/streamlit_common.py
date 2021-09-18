@@ -17,19 +17,27 @@ def load_db() -> list:
         return sort_entries_by_date(DB.fetch().items)
 
 
-def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
-    exceptions = {"Orchester", "Orchestra", "Chor"}
+def key_is_exception(key: str) -> bool:
+    exceptions = {"orchester", "orchestra", "chor"}
 
-    d_without_exceptions = {k: v for k, v in d.items() if k not in exceptions}
+    key_alpha = "".join(filter(str.isalpha, key.lower()))
+
+    return key_alpha in exceptions or "ensemble" in key_alpha
+
+
+def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
+
+    d_without_exceptions = {k: v for k, v in d.items() if not key_is_exception(k)}
 
     for role, persons in d_without_exceptions.items():
         if len(persons) > 0:
             persons_str = ", ".join(persons)
             st.markdown(f"- **{role}** - " + persons_str)
 
-    if len(exceptions - set(d)) < len(exceptions):
+    exception_keys = set(d) - set(d_without_exceptions)
+    if len(exception_keys) > 0:
         st.markdown("---")
-        for exception in exceptions:
+        for exception in exception_keys:
             to_print = d.get(exception)
             if to_print is not None:
                 st.write(f"**{''.join(to_print)}**")
