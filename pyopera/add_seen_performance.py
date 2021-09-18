@@ -121,8 +121,8 @@ def run():
         concertante = st.checkbox(label="Concertante", value=default_concertant)
 
     comments = st.text_area(
-        label="Comments",
-        help="Personal comments regarding the performance",
+        label="Notes",
+        help="Notes regarding the performance",
         value=default_comments,
     )
 
