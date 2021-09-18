@@ -40,6 +40,11 @@ def run():
     ):
         if password != "":
             st.error("Wrong password")
+        try:
+            del st.session_state["cast"]
+            del st.session_state["leading_team"]
+        except KeyError:
+            pass
         st.stop()
 
     password_widget.empty()
