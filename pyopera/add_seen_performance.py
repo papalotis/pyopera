@@ -3,12 +3,33 @@ from collections import defaultdict
 from datetime import datetime
 from hashlib import sha1
 from itertools import chain
-from typing import Optional
+from typing import Mapping, NoReturn, Optional, Sequence
 
 import streamlit as st
 
 from common import create_key_for_visited_performance_v2
 from streamlit_common import DB, format_title, load_db, write_cast_and_leading_team
+
+
+def authenticate() -> Optional[NoReturn]:
+    if "authenticated" not in st.session_state:
+        password_widget = st.empty()
+        password = password_widget.text_input("Enter password", type="password")
+        if (
+            sha1(password.encode()).hexdigest()
+            != "ac2e1249ad3cbbe5908d15e5b1da6f0a603aaaf4"
+        ):
+            if password != "":
+                st.error("Wrong password")
+            try:
+                del st.session_state["cast"]
+                del st.session_state["leading_team"]
+            except KeyError:
+                pass
+            st.stop()
+        else:
+            password_widget.empty()
+            st.session_state["authenticated"] = True
 
 
 def run():
@@ -32,22 +53,7 @@ def run():
         except KeyError:
             pass
 
-    password_widget = st.empty()
-    password = password_widget.text_input("Enter password", type="password")
-    if (
-        sha1(password.encode()).hexdigest()
-        != "ac2e1249ad3cbbe5908d15e5b1da6f0a603aaaf4"
-    ):
-        if password != "":
-            st.error("Wrong password")
-        try:
-            del st.session_state["cast"]
-            del st.session_state["leading_team"]
-        except KeyError:
-            pass
-        st.stop()
-
-    password_widget.empty()
+    authenticate()
 
     st.session_state["db"] = load_db()
 
@@ -152,7 +158,7 @@ def run():
         else:
             st.error("At least one field is empty")
 
-    def all_persons_with_role(dol: dict) -> list:
+    def all_persons_with_role(dol: Mapping[str, Sequence[str]]) -> list:
         return [
             (role, person)
             for role in dol
@@ -192,11 +198,9 @@ def run():
         st.session_state["cast"], st.session_state["leading_team"]
     )
 
-    st.markdown("#\n\n---")
+    st.markdown("---")
 
     submit_button = st.button(label="Submit" + (" update" if update_existing else ""))
-
-    print(submit_button)
 
     if submit_button:
         number_of_form_errors = 0
