@@ -2,8 +2,9 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence, TypedDict, TypeVar
+from typing import Any, Mapping, Sequence
 
+from typing_extensions import TypedDict
 from unidecode import unidecode
 
 GERMAN_MONTH_TO_INT = {
