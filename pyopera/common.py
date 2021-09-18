@@ -2,7 +2,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence, TypeVar
+from typing import Any, Mapping, Sequence, TypedDict, TypeVar
 
 from unidecode import unidecode
 
@@ -22,6 +22,15 @@ GERMAN_MONTH_TO_INT = {
     "Dezember": 12,
 }
 
+SHORT_STAGE_NAME_TO_FULL = {
+    "WSO": "Wiener Staatsoper",
+    "TAW": "Theater an der Wien",
+    "VOW": "Volksoper Wien",
+    "DOB": "Deutsche Oper Berlin",
+    "KOB": "Komische Oper Berlin",
+    "SUL": "Staatsoper Unter den Linden",
+}
+
 
 def austria_date_to_datetime(date_str: str) -> datetime:
     """
@@ -35,14 +44,17 @@ def austria_date_to_datetime(date_str: str) -> datetime:
     return datetime(year_int, month_int, day_int)
 
 
-@dataclass
-class Performance:
+class Performance(TypedDict):
     name: str
-    date: datetime
+    date: str
     cast: Mapping[str, Sequence[str]]
     leading_team: Mapping[str, Sequence[str]]
     stage: str
-    composer: str = ""
+    production: str
+    composer: str
+    comments: str
+    is_concertante: bool
+    key: str
 
 
 def export_as_json(performances: Sequence[Performance]) -> str:
