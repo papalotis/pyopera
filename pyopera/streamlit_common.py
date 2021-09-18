@@ -1,20 +1,23 @@
 import operator
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
-import requests
 import streamlit as st
 from deta import Deta
+from streamlit.script_request_queue import ScriptRequestQueue
 
-from common import load_deta_project_key
+from common import Performance, load_deta_project_key
 
 deta = Deta(load_deta_project_key())
 DB = deta.Base("performances")
 
+DB_TYPE = Sequence[Performance]
+
 
 @st.cache(show_spinner=False)
-def load_db() -> list:
+def load_db() -> DB_TYPE:
     with st.spinner("Loading data..."):
-        return sort_entries_by_date(DB.fetch().items)
+        raw_data: DB_TYPE = DB.fetch().items
+        return sort_entries_by_date(raw_data)
 
 
 def key_is_exception(key: str) -> bool:
@@ -64,7 +67,8 @@ def write_cast_and_leading_team(
         write_role_with_persons("Leading team", leading_team)
 
 
-def sort_entries_by_date(entries: list) -> list:
+def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
+
     return sorted(entries, key=operator.itemgetter("date"))
 
 
