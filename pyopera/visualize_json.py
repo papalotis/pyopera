@@ -1,11 +1,9 @@
-import json
-import os
 from itertools import chain
-from pathlib import Path
-from typing import Counter, Optional, Sequence, Set
+from typing import Counter, Sequence, Set
 
 import streamlit as st
 
+from common import SHORT_STAGE_NAME_TO_FULL
 from streamlit_common import format_title, load_db, write_cast_and_leading_team
 
 try:
@@ -67,16 +65,17 @@ def run():
 
         # performance_selectbox.selectbox()
 
-        st.session_state["performance"] = performance_selectbox.selectbox(
+        performance = performance_selectbox.selectbox(
             "Select Performance", db_filtered, format_func=format_title
         )
 
-    performance = st.session_state["performance"]
-
     st.markdown(f'# {performance["name"]}')
 
+    stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
+        performance["stage"], performance["stage"]
+    )
     st.markdown(
-        f"#### **{performance['composer']}**\n{performance['stage']}"
+        f"#### **{performance['composer']}**\n{stage_name_to_show}"
         f"{' - ' + performance['production'] if performance['stage'] != performance['production'] else ''}"
     )
 
