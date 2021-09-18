@@ -30,6 +30,8 @@ SHORT_STAGE_NAME_TO_FULL = {
     "DOB": "Deutsche Oper Berlin",
     "KOB": "Komische Oper Berlin",
     "SUL": "Staatsoper Unter den Linden",
+    "GTLF": "Teatro La Fenice",
+    "KOaF": "Kammeroper am Fleischmarkt",
 }
 
 
