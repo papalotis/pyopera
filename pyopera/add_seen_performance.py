@@ -175,13 +175,17 @@ def run():
         role, person = remove
 
         st.session_state["cast"][role] = st.session_state["cast"][role] - {person}
+        if len(st.session_state["cast"][role]) == 0:
+            del st.session_state["cast"][role]
 
         st.session_state["leading_team"][role] = st.session_state["leading_team"][
             role
         ] - {person}
-        # index = st.session_state["leading_team"][role].index(person)
-        #     del st.session_state["leading_team"][role][index]
 
+        if len(st.session_state["leading_team"][role]) == 0:
+            del st.session_state["leading_team"][role]
+
+        # st.experimental_rerun()
         st.experimental_rerun()
 
     write_cast_and_leading_team(
