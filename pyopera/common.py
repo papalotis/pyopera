@@ -60,6 +60,9 @@ class Performance(TypedDict):
     key: str
 
 
+DB_TYPE = Sequence[Performance]
+
+
 def export_as_json(performances: Sequence[Performance]) -> str:
     def default(obj: Any) -> str:
         if isinstance(obj, datetime):

@@ -4,12 +4,10 @@ from typing import Mapping, Optional, Sequence, Union
 import streamlit as st
 from deta import Deta
 
-from common import Performance, load_deta_project_key
+from common import DB_TYPE, Performance, load_deta_project_key
 
 deta = Deta(load_deta_project_key())
 DB = deta.Base("performances")
-
-DB_TYPE = Sequence[Performance]
 
 
 @st.cache(show_spinner=False)

@@ -9,7 +9,7 @@ from deta import Deta
 # from pyopera.common import Performance, create_key_for_visited_performance_v2
 
 if TYPE_CHECKING:
-    from pyopera.streamlit_common import DB_TYPE
+    from pyopera.common import DB_TYPE
 else:
     DB_TYPE = object
 
