@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from hashlib import sha1
 from itertools import chain
-from typing import Mapping, NoReturn, Optional, Sequence
+from typing import Mapping, NoReturn, Optional, Sequence, Tuple
 
 import streamlit as st
 
@@ -158,7 +158,9 @@ def run():
         else:
             st.error("At least one field is empty")
 
-    def all_persons_with_role(dol: Mapping[str, Sequence[str]]) -> list:
+    def all_persons_with_role(
+        dol: Mapping[str, Sequence[str]]
+    ) -> Sequence[Tuple[str, str]]:
         return [
             (role, person)
             for role in dol

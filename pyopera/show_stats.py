@@ -17,7 +17,6 @@ from typing import (
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from plotly.graph_objects import Figure
 
 from streamlit_common import load_db
 
@@ -50,7 +49,7 @@ def create_frequency_chart(
     separator: str = ", ",
     column_mapper: Optional[Mapping[str, Mapping[str, str]]] = None,
     column_order: Optional[Sequence[str]] = None,
-) -> Figure:
+) -> None:
 
     if isinstance(columns, str):
         columns = cast(Sequence[str], (columns,))
@@ -86,12 +85,6 @@ def create_frequency_chart(
     composers_freq_df = pd.DataFrame(
         {
             column_names_combined: columns_combined,
-            #  [
-            #     textwrap.shorten(
-            #         el, 20 * len(columns), placeholder=" ...", break_long_words=True
-            #     )
-            #     for el in
-            # ],
             "Frequency": frequencies,
         }
     )
@@ -101,29 +94,11 @@ def create_frequency_chart(
         x=column_names_combined,
         y="Frequency",
         category_orders={column_names_combined: column_order},
-        # height=800,
-        # template="presentation",
     )
 
-    # bar_chart.update_layout()
+    bar_chart.update_layout()
 
-    return bar_chart
-
-
-def show_frequency_chart(
-    db: Sequence[Mapping[str, Hashable]],
-    columns: Union[str, Sequence[str]],
-    range_to_show: Optional[Union[int, Tuple[int, int]]] = None,
-    separator: str = ", ",
-    column_mapper: Optional[Mapping[str, Mapping[str, str]]] = None,
-    column_order: Optional[Sequence[str]] = None,
-) -> None:
-    st.plotly_chart(
-        create_frequency_chart(
-            db, columns, range_to_show, separator, column_mapper, column_order
-        ),
-        use_container_width=True,
-    )
+    st.plotly_chart(bar_chart, use_container_width=True)
 
 
 def format_column_name(column_name: str) -> str:
@@ -160,14 +135,14 @@ def run():
 
     col1, col2 = st.columns([1, 3])
     with col1:
-        number_to_show = st.number_input("Number of bars to show", 1, value=20)
+        number_to_show = st.number_input("Number of bars to show", 1, value=20, step=5)
     show_all = st.checkbox("Show full bar chart")
 
     if show_all:
         number_to_show = None
 
     if len(options) > 0:
-        show_frequency_chart(
+        create_frequency_chart(
             db,
             options,
             number_to_show,
