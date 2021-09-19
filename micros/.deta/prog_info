@@ -1,1 +1,1 @@
-{"id":"388f58ef-c44c-47d6-8fab-a32418555349","space":10737,"runtime":"python3.7","name":"micros","path":"bpxr55","project":"b0r92g6h","account":"144798365827","region":"us-east-1","deps":["deta"],"envs":null,"public":true,"log_level":"debug","cron":"1 minute"}
+{"id":"388f58ef-c44c-47d6-8fab-a32418555349","space":10737,"runtime":"python3.7","name":"micros","path":"bpxr55","project":"b0r92g6h","account":"144798365827","region":"us-east-1","deps":["deta","fastapi","aiofiles"],"envs":null,"public":true,"log_level":"debug","cron":"1 minute"}
