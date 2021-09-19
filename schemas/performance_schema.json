@@ -2,15 +2,15 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
-        "$schema": {
-            "type": "string"
-        },
         "data": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
                     "stage": {
+                        "type": "string"
+                    },
+                    "production": {
                         "type": "string"
                     },
                     "name": {
@@ -20,11 +20,13 @@
                         "type": "string"
                     },
                     "date": {
-                        "type": "string"
+                        "type": "string",
+                        "$comment": "iso date as string (ex. 2021-12-25T12:34:56)"
                     },
                     "cast": {
                         "type": "object",
                         "additionalProperties": {
+                            "$comment": "each key is a role and each value is a list of names",
                             "type": "array",
                             "items": {
                                 "type": "string"
@@ -35,12 +37,23 @@
                     "leading_team": {
                         "type": "object",
                         "additionalProperties": {
+                            "$comment": "each key is a role and each value is a list of names",
                             "type": "array",
                             "items": {
                                 "type": "string"
                             },
                             "minItems": 1
                         }
+                    },
+                    "comments": {
+                        "type": "string"
+                    },
+                    "is_concertante": {
+                        "type": "boolean"
+                    },
+                    "key": {
+                        "type": "string",
+                        "$comment": "sha1 hash (see create_key... function)"
                     }
                 }
             }
