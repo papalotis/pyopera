@@ -3,7 +3,6 @@ from typing import Mapping, Optional, Sequence, Union
 
 import streamlit as st
 from deta import Deta
-from streamlit.script_request_queue import ScriptRequestQueue
 
 from common import Performance, load_deta_project_key
 
