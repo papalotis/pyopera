@@ -2,7 +2,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-long_description = (Path(__file__).parent / "README.md").read_text()
+long_description = ""  # (Path(__file__).parent / "README.md").read_text()
 
 setup(
     name="pyopera",
