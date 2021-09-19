@@ -1,9 +1,9 @@
-# fastapi==0.68.1
-# more-itertools==8.8.0
-# Unidecode==1.2.0
-# typing-extensions==3.10.0.0
-# requests==2.26.0
-# fastapi-utils==0.2.1
-# deta==1.0.0
-# plotly==5.3.1
--e git+ssh://git@github.com/papalotis/pyopera.git@test_deploy#egg=pyopera
+fastapi==0.68.1
+more-itertools==8.8.0
+Unidecode==1.2.0
+typing-extensions==3.10.0.0
+requests==2.26.0
+fastapi-utils==0.2.1
+deta==1.0.0
+plotly==5.3.1
+# -e git+ssh://git@github.com/papalotis/pyopera.git@test_deploy#egg=pyopera
