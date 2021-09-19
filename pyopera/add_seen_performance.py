@@ -3,11 +3,11 @@ from collections import defaultdict
 from datetime import datetime
 from hashlib import sha1
 from itertools import chain
-from typing import Mapping, NoReturn, Optional, Sequence, Tuple
+from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 
-from common import create_key_for_visited_performance_v2
+from common import Performance, create_key_for_visited_performance_v2
 from streamlit_common import DB, format_title, load_db, write_cast_and_leading_team
 
 
@@ -55,16 +55,20 @@ def run():
 
     authenticate()
 
-    st.session_state["db"] = load_db()
+    db = load_db()
 
     with st.sidebar:
-        entry_to_update: Optional[dict] = st.selectbox(
+        entry_to_update: Union[Performance, dict] = st.selectbox(
             "Select entry",
-            [None] + st.session_state["db"],
+            [{}] + db,
             format_func=format_title,
             on_change=clear_cast_leading_team_from_session_state,
         )
-    update_existing = entry_to_update is not None
+
+        if entry_to_update != {}:
+            update_existing = not st.checkbox("Use for new entry")
+        else:
+            update_existing = False
 
     if "cast" not in st.session_state:
         st.session_state["cast"] = defaultdict(set)
@@ -83,12 +87,12 @@ def run():
         + " performance"
     )
 
-    default_name = entry_to_update["name"] if update_existing else ""
-    default_production = entry_to_update["production"] if update_existing else ""
-    default_stage = entry_to_update["stage"] if update_existing else ""
-    default_composer = entry_to_update["composer"] if update_existing else ""
-    default_comments = entry_to_update["comments"] if update_existing else ""
-    default_concertant = entry_to_update["is_concertante"] if update_existing else False
+    default_name = entry_to_update.get("name", "")
+    default_production = entry_to_update.get("production", "")
+    default_stage = entry_to_update.get("stage", "")
+    default_composer = entry_to_update.get("composer", "")
+    default_comments = entry_to_update.get("comments", "")
+    default_concertant = entry_to_update.get("is_concertante", False)
 
     col1, col2 = st.columns([1, 1])
 
@@ -101,7 +105,7 @@ def run():
 
         default_datetime_object = (
             datetime.fromisoformat(entry_to_update["date"])
-            if update_existing
+            if "date" in entry_to_update
             else datetime.now()
         )
         default_date = datetime.date(default_datetime_object)
@@ -246,19 +250,25 @@ def run():
                         final_data
                     )
 
-                    if (
-                        entry_to_update is not None
-                        and entry_to_update["key"] != final_data["key"]
-                    ):
-                        delete_performance_by_key(entry_to_update["key"])
-                    try:
-                        send_new_performance(final_data)
-                    except Exception:
-                        send_new_performance(entry_to_update)
-                        raise
+                    if final_data in db:
+                        st.error("Uploading same entry")
 
-                    st.success("Database updated successfully")
-                    st.caching.clear_cache()
+                    else:
+                        if (
+                            update_existing
+                            and entry_to_update["key"] != final_data["key"]
+                        ):
+                            st.write("deleting entry")
+                            delete_performance_by_key(entry_to_update["key"])
+                        try:
+                            st.write("sending entry")
+                            send_new_performance(final_data)
+                        except Exception:
+                            send_new_performance(entry_to_update)
+                            raise
+
+                        st.success("Database updated successfully")
+                        st.caching.clear_cache()
 
                 except Exception as e:
                     st.write(e)

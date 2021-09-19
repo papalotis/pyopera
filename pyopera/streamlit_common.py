@@ -1,5 +1,5 @@
 import operator
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence, Union
 
 import streamlit as st
 from deta import Deta
@@ -72,8 +72,8 @@ def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
     return sorted(entries, key=operator.itemgetter("date"))
 
 
-def format_title(performance: Optional[dict]) -> str:
-    if performance is None:
+def format_title(performance: Optional[Union[Performance, dict]]) -> str:
+    if performance in (None, {}):
         return "Add new visit"
 
     date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
