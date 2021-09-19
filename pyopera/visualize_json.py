@@ -1,9 +1,12 @@
-from itertools import chain
-from typing import Counter, Sequence, Set
+from typing import Counter, Sequence
 
 import streamlit as st
 
-from common import SHORT_STAGE_NAME_TO_FULL
+from common import (
+    SHORT_STAGE_NAME_TO_FULL,
+    filter_only_full_entries,
+    get_all_names_from_performance,
+)
 from streamlit_common import format_title, load_db, write_cast_and_leading_team
 
 try:
@@ -15,22 +18,6 @@ except ImportError:
 def run():
 
     db = load_db()
-
-    def get_all_names_from_performance(performance: dict) -> Set[str]:
-
-        return_set = {
-            name
-            for names in chain(
-                performance["leading_team"].values(),
-                performance["cast"].values(),
-            )
-            for name in names
-        }
-
-        if performance["composer"] != "":
-            return_set.add(performance["composer"])
-
-        return return_set
 
     all_names_counter: Counter[str] = Counter(
         name
@@ -49,15 +36,25 @@ def run():
 
         checkbox_only_full = st.checkbox("Only show full entries", value=True)
 
-        db_filtered: Sequence[dict] = [
-            performance
-            for performance in db
-            if set(options) <= get_all_names_from_performance(performance)
-            and (
-                not checkbox_only_full
-                or (len(performance["cast"]) + len(performance["leading_team"])) > 0
+        db_filtered_full = filter_only_full_entries(db)
+
+        ratio_full = len(db_filtered_full) / len(db)
+        st.markdown(
+            f"<sub>{ratio_full * 100:.0f}% of entries are full</sub>",
+            unsafe_allow_html=True,
+        )
+        st.progress(ratio_full)
+
+        db_use_full = db_filtered_full if checkbox_only_full else list(db)
+        db_filtered = list(
+            filter(
+                lambda performance: set(options)
+                <= get_all_names_from_performance(performance),
+                db_use_full,
             )
-        ]
+        )
+
+        db = load_db()
 
         if len(db_filtered) == 0:
             st.markdown("## No titles available")

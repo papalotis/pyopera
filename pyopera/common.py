@@ -1,8 +1,8 @@
 import json
-from dataclasses import asdict, dataclass
 from datetime import datetime
+from itertools import chain
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Set
 
 from typing_extensions import TypedDict
 from unidecode import unidecode
@@ -65,8 +65,6 @@ def export_as_json(performances: Sequence[Performance]) -> str:
         if isinstance(obj, datetime):
             return obj.isoformat()
 
-        if isinstance(obj, Performance):
-            return asdict(obj)
         raise TypeError("Unknown type: ", type(obj))
 
     to_save = {
@@ -154,3 +152,30 @@ def create_key_for_visited_performance_v2(performance: dict) -> str:
         )
     )
     return hashlib.sha1(string.encode()).hexdigest()
+
+
+def get_all_names_from_performance(performance: Performance) -> Set[str]:
+
+    return_set = {
+        name
+        for names in chain(
+            performance["leading_team"].values(),
+            performance["cast"].values(),
+        )
+        for name in names
+    }
+
+    if performance["composer"] != "":
+        return_set.add(performance["composer"])
+
+    return return_set
+
+
+def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
+    db_filtered = [
+        performance
+        for performance in db
+        if (len(performance["cast"]) + len(performance["leading_team"])) > 0
+    ]
+
+    return db_filtered

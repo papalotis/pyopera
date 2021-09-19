@@ -28,6 +28,4 @@ with st.sidebar:
     if st.button("Clear cache"):
         caching.clear_cache()
 
-    st.markdown(
-        "#\n\n#\n\n---\n\n<sup>made by Panagiotis</sup>", unsafe_allow_html=True
-    )
+    st.markdown("---\n<sup>made by Panagiotis</sup>", unsafe_allow_html=True)
