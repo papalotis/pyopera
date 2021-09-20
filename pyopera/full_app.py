@@ -4,11 +4,15 @@ from streamlit import caching
 NAME = "Vangelis Opera Archiv"
 st.set_page_config(page_title=NAME, page_icon=":violin:")
 
+
 if True:
     from add_seen_performance import run as run_add_performance
     from show_stats import run as run_stats
+    from streamlit_common import hide_hamburger_and_change_footer
     from visualize_json import run as run_vis_json
 
+
+hide_hamburger_and_change_footer()
 
 STRING_TO_FUNCTION = {
     "Explore visits": run_vis_json,
@@ -27,5 +31,3 @@ with st.sidebar:
     st.markdown("#")
     if st.button("Clear cache"):
         caching.clear_cache()
-
-    st.markdown("---\n<sup>made by Panagiotis</sup>", unsafe_allow_html=True)

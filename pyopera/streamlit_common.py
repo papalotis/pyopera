@@ -10,6 +10,25 @@ deta = Deta(load_deta_project_key())
 DB = deta.Base("performances")
 
 
+def hide_hamburger_and_change_footer() -> None:
+    hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            footer:after {
+                content:"Made by Panagiotis"; 
+                visibility: visible;
+                display: block;
+                position: relative;
+                #background-color: red;
+                padding: 5px;
+                top: 2px;
+            }
+            </style>
+            """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+
 @st.cache(show_spinner=False)
 def load_db() -> DB_TYPE:
     with st.spinner("Loading data..."):
