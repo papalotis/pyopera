@@ -1,12 +1,9 @@
 import json
 from copy import deepcopy
 from datetime import datetime
-from ssl import create_default_context
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple
 
 from deta import Deta
-
-# from pyopera.common import Performance, create_key_for_visited_performance_v2
 
 if TYPE_CHECKING:
     from pyopera.common import DB_TYPE
@@ -19,6 +16,11 @@ try:
 except ImportError:
     load_deta_project_key = lambda: None
 
+try:
+    from icecream import ic
+except ImportError:  # Graceful fallback if IceCream isn't installed.
+    ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)
+
 
 deta = Deta(load_deta_project_key())
 base = deta.Base("performances")
@@ -30,11 +32,19 @@ def load_all() -> DB_TYPE:
 
 
 def file_sort_key(filename: str) -> str:
+    """
+    backup filename pattern backup_{ISO_FORMATED_DATE}
+    backup filename example backup_2021-04-30T04:03:02
+    """
     return filename.split("_", maxsplit=1)[1]
 
 
+def get_all_backup_filename_list() -> Sequence[str]:
+    return drive.list(prefix="backup_")["names"]
+
+
 def get_latest_backup_filename() -> Optional[str]:
-    backup_files = drive.list(prefix="backup_")["names"]
+    backup_files = get_all_backup_filename_list()
     if len(backup_files) == 0:
         return None
 
@@ -68,8 +78,24 @@ def do_backup() -> Tuple[bool, str]:
     return will_perform_backup, backup_filename
 
 
+def do_delete_old_files() -> Sequence[str]:
+    """
+    Delete old files and return a list of all names of all the deleted files
+    """
+    number_of_files_to_keep = 20
+    all_backup_filenames = sorted(get_all_backup_filename_list(), key=file_sort_key)
+
+    latest_n_files = all_backup_filenames[-number_of_files_to_keep:]
+
+    filenames_to_delete = set(all_backup_filenames) - set(latest_n_files)
+
+    for filename_to_delete in filenames_to_delete:
+        drive.delete(filename_to_delete)
+
+    return list(filenames_to_delete)
+
+
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 try:
@@ -78,12 +104,26 @@ try:
     app: FastAPI = App(FastAPI())
 
     @app.lib.run(action="backup")
-    @app.lib.cron()
-    def cron_task(event):
+    # @app.lib.cron()
+    def backup(event):
         print(f"running backup")
-        did_backup, filename = do_backup()
 
-        return {"did_backup": did_backup, "filename": filename}
+        did_backup, current_backup_file = do_backup()
+
+        return {"did_backup": did_backup, "current_backup_file": current_backup_file}
+
+    @app.lib.run(action="delete_old_files")
+    def delete_old_files(event):
+        print(f"running delete old files")
+
+        deleted_files = do_delete_old_files()
+
+        return {"deleted_files": deleted_files}
+
+    @app.lib.run(action="test")
+    @app.lib.cron()
+    def cron(event) -> None:
+        return {**backup(event), **delete_old_files(event)}
 
 
 except ImportError:
