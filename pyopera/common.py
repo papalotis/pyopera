@@ -32,6 +32,7 @@ SHORT_STAGE_NAME_TO_FULL = {
     "SUL": "Staatsoper Unter den Linden",
     "GTLF": "Teatro La Fenice",
     "KOaF": "Kammeroper am Fleischmarkt",
+    "MMAT": "Μέγαρο Μουσικής Αθηνών",
 }
 
 
