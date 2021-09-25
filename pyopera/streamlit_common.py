@@ -37,7 +37,7 @@ def hide_hamburger_and_change_footer() -> None:
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 
-@st.cache(show_spinner=False)
+@st.cache(show_spinner=False, suppress_st_warning=True)
 def load_db() -> DB_TYPE:
     with st.spinner("Loading data..."):
         raw_data: DB_TYPE
