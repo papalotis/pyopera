@@ -1,13 +1,21 @@
+import http.client
 import operator
 from typing import Mapping, Optional, Sequence, Union
 
+import requests
 import streamlit as st
 from deta import Deta
 
 from common import DB_TYPE, Performance, load_deta_project_key
 
 deta = Deta(load_deta_project_key())
+
 DB = deta.Base("performances")
+
+
+def reload_db_instance():
+    global DB
+    DB = deta.Base("performances")
 
 
 def hide_hamburger_and_change_footer() -> None:
@@ -32,7 +40,28 @@ def hide_hamburger_and_change_footer() -> None:
 @st.cache(show_spinner=False)
 def load_db() -> DB_TYPE:
     with st.spinner("Loading data..."):
-        raw_data: DB_TYPE = DB.fetch().items
+        raw_data: DB_TYPE
+        try:
+            raw_data = DB.fetch().items
+        except http.client.CannotSendRequest:
+            warning = st.warning(
+                "Using alternative download method. Updating database might not be possible."
+            )
+            project_key = load_deta_project_key()
+            project_id = project_key.split("_")[0]
+            base_name = "performances"
+            base_url = f"https://database.deta.sh/v1/{project_id}/{base_name}"
+            headers = {"X-API-Key": project_key, "Content-Type": "application/json"}
+
+            final_url = base_url + "/query"
+
+            response = requests.post(final_url, data="{}", headers=headers)
+            raw_data = response.json()["items"]
+
+            reload_db_instance()
+
+            warning.empty()
+
         return sort_entries_by_date(raw_data)
 
 
@@ -88,11 +117,15 @@ def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
     return sorted(entries, key=operator.itemgetter("date"))
 
 
+def format_iso_date_to_day_month_year_with_dots(date_iso: str) -> str:
+    return ".".join(date_iso.split("T")[0].split("-")[::-1])
+
+
 def format_title(performance: Optional[Union[Performance, dict]]) -> str:
     if performance in (None, {}):
         return "Add new visit"
 
-    date = ".".join(performance["date"].split("T")[0].split("-")[::-1])
+    date = format_iso_date_to_day_month_year_with_dots(performance["date"])
     name = performance["name"]
     stage = performance["stage"]
     new_title = f"{date} - {name} - {stage}"

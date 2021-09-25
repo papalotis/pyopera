@@ -33,6 +33,7 @@ SHORT_STAGE_NAME_TO_FULL = {
     "GTLF": "Teatro La Fenice",
     "KOaF": "Kammeroper am Fleischmarkt",
     "MMAT": "Μέγαρο Μουσικής Αθηνών",
+    "SNF": "Αίθουσα Σταύρος Νιάρχος",
 }
 
 
@@ -46,6 +47,10 @@ def austria_date_to_datetime(date_str: str) -> datetime:
     month_int = GERMAN_MONTH_TO_INT[month_name]
     year_int = int(year)
     return datetime(year_int, month_int, day_int)
+
+
+def convert_short_stage_name_to_long_if_available(short_state_name: str) -> str:
+    return SHORT_STAGE_NAME_TO_FULL.get(short_state_name, short_state_name)
 
 
 class Performance(TypedDict):

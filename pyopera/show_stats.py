@@ -18,12 +18,11 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from streamlit_common import load_db
+from common import DB_TYPE, convert_short_stage_name_to_long_if_available
+from streamlit_common import format_iso_date_to_day_month_year_with_dots, load_db
 
 
-def add_split_date_to_db(
-    db: Sequence[Mapping[str, Any]]
-) -> Sequence[Mapping[str, Any]]:
+def add_split_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
 
     db = deepcopy(db)
     for entry in db:
@@ -105,7 +104,12 @@ def format_column_name(column_name: str) -> str:
     return column_name.replace("is_", "").replace("_", " ").title()
 
 
-def run():
+def key_sort_opus_by_name(name: str) -> str:
+    return name.replace("A ", "").replace("The ", "").replace("An ", "")
+
+
+def run_frequencies():
+
     month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
 
     db = add_split_date_to_db(load_db())
@@ -154,3 +158,31 @@ def run():
         )
     else:
         st.warning("Add category names to above widget")
+
+
+def run_single_opus():
+    with st.sidebar:
+        all_opus = sorted(
+            {performance["name"] for performance in load_db()},
+            key=key_sort_opus_by_name,
+        )
+
+        opus = st.selectbox("Opus", all_opus)
+
+    st.title(opus)
+    all_entries_of_opus = [
+        performance for performance in load_db() if performance["name"] == opus
+    ]
+    for entry in all_entries_of_opus:
+        st.markdown(
+            f"- {format_iso_date_to_day_month_year_with_dots(entry['date'])} - {convert_short_stage_name_to_long_if_available( entry['stage'])}"
+        )
+
+
+def run():
+    modes = {"Frequencies": run_frequencies, "Opus Info": run_single_opus}
+
+    with st.sidebar:
+        function = modes.get(st.radio("Stats to show", modes))
+
+    function()
