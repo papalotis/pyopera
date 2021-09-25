@@ -82,7 +82,7 @@ def do_delete_old_files() -> Sequence[str]:
     """
     Delete old files and return a list of all names of all the deleted files
     """
-    number_of_files_to_keep = 20
+    number_of_files_to_keep = 200
     all_backup_filenames = sorted(get_all_backup_filename_list(), key=file_sort_key)
 
     latest_n_files = all_backup_filenames[-number_of_files_to_keep:]
