@@ -1,5 +1,6 @@
 import http.client
 import operator
+import socket
 from typing import Mapping, Optional, Sequence, Union
 
 import requests
@@ -43,7 +44,7 @@ def load_db() -> DB_TYPE:
         raw_data: DB_TYPE
         try:
             raw_data = DB.fetch().items
-        except http.client.CannotSendRequest:
+        except (http.client.CannotSendRequest, socket.timeout):
             warning = st.warning(
                 "Using alternative download method. Updating database might not be possible."
             )
