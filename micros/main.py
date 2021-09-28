@@ -92,7 +92,7 @@ def do_delete_old_files() -> Sequence[str]:
     for filename_to_delete in filenames_to_delete:
         drive.delete(filename_to_delete)
 
-    return list(filenames_to_delete)
+    return list(filenames_to_delete), get_all_backup_filename_list()
 
 
 from fastapi import FastAPI
@@ -116,9 +116,9 @@ try:
     def delete_old_files(event):
         print(f"running delete old files")
 
-        deleted_files = do_delete_old_files()
+        deleted_files, backup_filenames = do_delete_old_files()
 
-        return {"deleted_files": deleted_files}
+        return {"deleted_files": deleted_files, "backup_filenames": backup_filenames}
 
     @app.lib.run(action="test")
     @app.lib.cron()
