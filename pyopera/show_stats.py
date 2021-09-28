@@ -195,7 +195,7 @@ def run_single_opus():
         )
 
     st.title(name)
-    st.markdown(composer)
+    st.markdown(f"#### {composer}")
     all_entries_of_opus = [
         performance
         for performance in load_db()
@@ -274,7 +274,7 @@ def run_single_role():
         role = st.selectbox("Role", roles)
 
     st.title(role)
-    st.markdown(f"{name} - {composer}")
+    st.markdown(f"#### {name} - {composer}")
     all_entries_of_opus = [
         performance
         for performance in load_db()
