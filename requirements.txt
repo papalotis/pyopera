@@ -5,4 +5,4 @@ typing-extensions==3.10.0.0
 requests==2.26.0
 fastapi-utils==0.2.1
 plotly==5.3.1
-# -e git+ssh://git@github.com/papalotis/pyopera.git@test_deploy#egg=pyopera
+streamlit==0.89.0

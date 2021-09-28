@@ -13,7 +13,12 @@ from common import (
     delete_item_db,
     put_db,
 )
-from streamlit_common import format_title, load_db, write_cast_and_leading_team
+from streamlit_common import (
+    clear_streamlit_cache,
+    format_title,
+    load_db,
+    write_cast_and_leading_team,
+)
 
 
 def authenticate() -> Optional[NoReturn]:
@@ -268,7 +273,7 @@ def run():
                             raise
 
                         st.success("Database updated successfully")
-                        st.caching.clear_cache()
+                        clear_streamlit_cache()
 
                 except Exception as e:
                     st.write(e)

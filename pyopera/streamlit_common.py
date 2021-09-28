@@ -9,7 +9,6 @@ from common import DB_TYPE, Performance, fetch_db
 def hide_hamburger_and_change_footer() -> None:
     hide_streamlit_style = """
             <style>
-            #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             footer:after {
                 content:"Made by Panagiotis"; 
@@ -96,3 +95,9 @@ def format_title(performance: Optional[Union[Performance, dict]]) -> str:
     stage = performance["stage"]
     new_title = f"{date} - {name} - {stage}"
     return new_title
+
+
+def clear_streamlit_cache() -> None:
+    import streamlit.legacy_caching
+
+    streamlit.legacy_caching.clear_cache()

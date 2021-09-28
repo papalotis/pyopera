@@ -1,10 +1,15 @@
 import streamlit as st
-from streamlit import caching
+
+from streamlit_common import clear_streamlit_cache
 
 NAME = "Vangelis Opera Archiv"
-st.set_page_config(page_title=NAME, page_icon=":violin:")
+st.set_page_config(
+    page_title=NAME,
+    page_icon=":violin:",
+    menu_items={"About": "An interface for Vangelis' Opera Archive"},
+)
 
-
+# this is a trick so that isort does not put the imports above the set config line
 if True:
     from add_seen_performance import run as run_add_performance
     from show_stats import run as run_stats
@@ -29,5 +34,4 @@ mode_function()
 
 with st.sidebar:
     st.markdown("#")
-    if st.button("Clear cache"):
-        caching.clear_cache()
+    st.button("Clear cache", on_click=clear_streamlit_cache)

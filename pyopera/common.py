@@ -1,10 +1,12 @@
 import json
+from collections import ChainMap
 from datetime import datetime
-from itertools import chain
+from hashlib import sha1
 from pathlib import Path
 from typing import Any, Mapping, Sequence, Set, Tuple, Union
 
 import requests
+from more_itertools import flatten
 from typing_extensions import TypedDict
 from unidecode import unidecode
 
@@ -35,6 +37,8 @@ SHORT_STAGE_NAME_TO_FULL = {
     "KOaF": "Kammeroper am Fleischmarkt",
     "MMAT": "Μέγαρο Μουσικής Αθηνών",
     "SNF": "Αίθουσα Σταύρος Νιάρχος",
+    "SNF-ES": "(SNF) Εναλλακτική Σκηνή",
+    "OLY": "Θέατρο Oλύμπια",
 }
 
 
@@ -44,7 +48,7 @@ def austria_date_to_datetime(date_str: str) -> datetime:
     """
 
     day_name, day, month_name, year = date_str.split(" ")
-    day_int = int(day[:-1])
+    day_int = int(day.replace(".", ""))
     month_int = GERMAN_MONTH_TO_INT[month_name]
     year_int = int(year)
     return datetime(year_int, month_int, day_int)
@@ -115,14 +119,15 @@ def load_deta_project_key() -> str:
             except ImportError:
                 raise error
 
-            st.error("Cannot find database key. Cannot continue!")
+            st.error(
+                "Cannot find database key. Cannot continue! Please reload the page."
+            )
             st.stop()
 
     return deta_project_key
 
 
 def create_key_for_visited_performance_v2(performance: Performance) -> str:
-    import hashlib
 
     string = "".join(
         filter(
@@ -140,19 +145,19 @@ def create_key_for_visited_performance_v2(performance: Performance) -> str:
             + performance["date"],
         )
     )
-    return hashlib.sha1(string.encode()).hexdigest()
+    return sha1(string.encode()).hexdigest()
 
 
 def get_all_names_from_performance(performance: Performance) -> Set[str]:
 
-    return_set = {
-        name
-        for names in chain(
-            performance["leading_team"].values(),
-            performance["cast"].values(),
+    return_set = set(
+        flatten(
+            ChainMap(
+                performance["leading_team"],
+                performance["cast"],
+            ).values()
         )
-        for name in names
-    }
+    )
 
     if performance["composer"] != "":
         return_set.add(performance["composer"])
