@@ -3,11 +3,12 @@ from collections import ChainMap
 from datetime import datetime
 from hashlib import sha1
 from pathlib import Path
-from typing import Any, Mapping, Sequence, Set, Tuple, Union
+from typing import Any, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import requests
 from more_itertools import flatten
-from typing_extensions import TypedDict
+from pydantic import BaseModel, validator
+from pydantic.types import conlist, constr
 from unidecode import unidecode
 
 GERMAN_MONTH_TO_INT = {
@@ -37,7 +38,7 @@ SHORT_STAGE_NAME_TO_FULL = {
     "KOaF": "Kammeroper am Fleischmarkt",
     "MMAT": "Μέγαρο Μουσικής Αθηνών",
     "SNF": "Αίθουσα Σταύρος Νιάρχος",
-    "SNF-ES": "(SNF) Εναλλακτική Σκηνή",
+    "SNF-ES": "(ΙΣΝ) Εναλλακτική Σκηνή",
     "OLY": "Θέατρο Oλύμπια",
 }
 
@@ -58,17 +59,38 @@ def convert_short_stage_name_to_long_if_available(short_state_name: str) -> str:
     return SHORT_STAGE_NAME_TO_FULL.get(short_state_name, short_state_name)
 
 
-class Performance(TypedDict):
-    name: str
-    date: str
-    cast: Mapping[str, Sequence[str]]
-    leading_team: Mapping[str, Sequence[str]]
-    stage: str
-    production: str
-    composer: str
+NonEmptyStr = constr(min_length=1)
+NonEmptyStrList = conlist(NonEmptyStr, min_items=1)
+SHA1Str = constr(regex=r"[0-9a-f]{40}")
+
+
+class Performance(BaseModel):
+    name: NonEmptyStr
+    date: datetime
+    cast: Mapping[NonEmptyStr, NonEmptyStrList]
+    leading_team: Mapping[NonEmptyStr, NonEmptyStrList]
+    stage: NonEmptyStr
+    production: NonEmptyStr
+    composer: NonEmptyStr
     comments: str
     is_concertante: bool
-    key: str
+    key: SHA1Str = None
+
+    class Config:
+        validate_assignment = True
+        # allow_reuse = True
+
+    @validator("key", pre=True, always=True, allow_reuse=True)
+    def create_key(cls, key, values, **kwargs):
+
+        computed_key = create_key_for_visited_performance_v2(values)
+
+        if key is not None and computed_key != key:
+            raise ValueError(
+                f"Computed key ({computed_key}) and provided key ({key}) are not the same"
+            )
+
+        return computed_key
 
 
 DB_TYPE = Sequence[Performance]
@@ -127,7 +149,11 @@ def load_deta_project_key() -> str:
     return deta_project_key
 
 
-def create_key_for_visited_performance_v2(performance: Performance) -> str:
+def create_key_for_visited_performance_v2(performance: dict) -> str:
+
+    date = performance["date"]
+    if isinstance(date, datetime):
+        date = date.isoformat()
 
     string = "".join(
         filter(
@@ -142,7 +168,7 @@ def create_key_for_visited_performance_v2(performance: Performance) -> str:
                     ),
                 )
             )
-            + performance["date"],
+            + date,
         )
     )
     return sha1(string.encode()).hexdigest()
@@ -153,14 +179,14 @@ def get_all_names_from_performance(performance: Performance) -> Set[str]:
     return_set = set(
         flatten(
             ChainMap(
-                performance["leading_team"],
-                performance["cast"],
+                performance.leading_team,
+                performance.cast,
             ).values()
         )
     )
 
-    if performance["composer"] != "":
-        return_set.add(performance["composer"])
+    if performance.composer != "":
+        return_set.add(performance.composer)
 
     return return_set
 
@@ -169,7 +195,7 @@ def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
     db_filtered = [
         performance
         for performance in db
-        if (len(performance["cast"]) + len(performance["leading_team"])) > 0
+        if (len(performance.cast) + len(performance.leading_team)) > 0
     ]
 
     return db_filtered
@@ -194,30 +220,39 @@ def create_db_request_base_url_and_headers() -> Tuple[str, Mapping[str, str]]:
     return base_url, headers
 
 
-def fetch_db() -> DB_TYPE:
+def fetch_db(max_elements: Optional[int] = None) -> Sequence[Mapping[str, Any]]:
     base_url, headers = create_db_request_base_url_and_headers()
 
     final_url = base_url + "/query"
 
-    response = requests.post(final_url, data={}, headers=headers)
+    payload = {}
+    if max_elements is not None:
+        payload["limit"] = max_elements
+
+    response = requests.post(final_url, json=payload, headers=headers)
     response.raise_for_status()
     raw_data = response.json()["items"]
 
     return raw_data
 
 
+class DatabasePUTModel(BaseModel):
+    items: Sequence[Performance]
+
+
 def put_db(items_to_put: Union[Performance, Sequence[Performance]]) -> None:
-    if isinstance(items_to_put, dict):
+    if isinstance(items_to_put, Performance):
         items_to_put = [items_to_put]
 
-    assert all("key" in item for item in items_to_put)
+    assert all(item.key is not None for item in items_to_put)
 
     base_url, headers = create_db_request_base_url_and_headers()
 
     final_url = base_url + "/items"
-    final_data = {"items": items_to_put}
 
-    response = requests.put(final_url, json=final_data, headers=headers)
+    final_data = DatabasePUTModel(items=items_to_put).json()
+
+    response = requests.put(final_url, data=final_data, headers=headers)
     response.raise_for_status()
 
     response_json = response.json()
@@ -228,9 +263,12 @@ def put_db(items_to_put: Union[Performance, Sequence[Performance]]) -> None:
         )
 
 
-def delete_item_db(key_to_delete: Union[Performance, str]) -> None:
-    if isinstance(key_to_delete, dict):
-        key_to_delete = key_to_delete["key"]
+def delete_item_db(to_delete: Union[Performance, str]) -> None:
+    if isinstance(to_delete, Performance):
+        assert to_delete.key is not None
+        key_to_delete = to_delete.key
+    else:
+        key_to_delete = to_delete
 
     base_url, headers = create_db_request_base_url_and_headers()
 
@@ -238,3 +276,32 @@ def delete_item_db(key_to_delete: Union[Performance, str]) -> None:
 
     response = requests.delete(final_url, headers=headers)
     response.raise_for_status()
+
+
+if __name__ == "__main__":
+    from icecream import ic
+
+    data = fetch_db()
+
+    # print(repr(data))
+    # print(data["key"])
+    # del data["key"]
+    # # data["key"] = None
+
+    # print(Performance(**data))
+
+    # kwargs = dict(name="hello", date="2013-04-14T00:00:00")
+    # try:
+    #     # db = list(map(lambda kwargs: Performance(**kwargs), fetch_db()))
+    #     for kwargs in fetch_db(1)[0]:
+    #         kwargs["key"] = "hi"
+    #         Performance(**kwargs)
+    # except ValidationError as e:
+    #     print(e)
+    # else:
+    #     pass
+    # ic(db[-10:])
+    # db[0].
+    # print(sorted(set(flatten(tuple(el.key) for el in db))))
+
+# print(PerformanceAlt(**kwargs).json())

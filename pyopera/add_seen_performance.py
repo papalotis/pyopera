@@ -42,8 +42,10 @@ def authenticate() -> Optional[NoReturn]:
             st.session_state["authenticated"] = True
 
 
-def send_new_performance(new_performance: Performance) -> None:
-    assert "key" in new_performance
+def send_new_performance(new_performance: Union[Performance, dict]) -> None:
+    if isinstance(new_performance, dict):
+        new_performance = Performance(**new_performance)
+
     put_db(new_performance)
 
 
@@ -65,12 +67,17 @@ def run():
     db = load_db()
 
     with st.sidebar:
-        entry_to_update: Union[Performance, dict] = st.selectbox(
+        entry_to_update_raw: Optional[Performance] = st.selectbox(
             "Select entry",
-            [{}] + db,
+            [None] + db,
             format_func=format_title,
             on_change=clear_cast_leading_team_from_session_state,
         )
+
+        if isinstance(entry_to_update_raw, Performance):
+            entry_to_update = entry_to_update_raw.dict()
+        else:
+            entry_to_update = {}
 
         if entry_to_update != {}:
             update_existing = not st.checkbox("Use for new entry")
@@ -111,9 +118,7 @@ def run():
     with col2:
 
         default_datetime_object = (
-            datetime.fromisoformat(entry_to_update["date"])
-            if "date" in entry_to_update
-            else datetime.now()
+            entry_to_update["date"] if "date" in entry_to_update else datetime.now()
         )
         default_date = datetime.date(default_datetime_object)
 
@@ -241,33 +246,34 @@ def run():
                     k: list(v) for k, v in st.session_state["leading_team"].items()
                 }
 
+                final_dict = dict(
+                    date=datetime_obj,
+                    production=production,
+                    composer=composer,
+                    name=name,
+                    stage=stage,
+                    comments=comments,
+                    is_concertante=concertante,
+                    cast=cast,
+                    leading_team=leading_team,
+                )
+
                 try:
-                    final_data = Performance(
-                        date=datetime_obj.isoformat(),
-                        production=production,
-                        composer=composer,
-                        name=name,
-                        stage=stage,
-                        comments=comments,
-                        is_concertante=concertante,
-                        cast=cast,
-                        leading_team=leading_team,
-                    )
-                    final_data["key"] = create_key_for_visited_performance_v2(
-                        final_data
-                    )
+                    final_data = Performance(**final_dict)
 
                     if final_data in db:
                         st.error("Uploading same entry")
 
                     else:
+                        final_data_dict = final_data.dict()
+
                         if (
                             update_existing
-                            and entry_to_update["key"] != final_data["key"]
+                            and entry_to_update["key"] != final_data_dict["key"]
                         ):
                             delete_performance_by_key(entry_to_update["key"])
                         try:
-                            send_new_performance(final_data)
+                            send_new_performance(final_data_dict)
                         except Exception:
                             send_new_performance(entry_to_update)
                             raise

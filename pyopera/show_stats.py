@@ -1,9 +1,12 @@
 import calendar
+import functools
 import textwrap
 from copy import deepcopy
 from datetime import datetime
+from operator import itemgetter
 from typing import (
     Any,
+    ChainMap,
     Counter,
     Hashable,
     Mapping,
@@ -17,22 +20,36 @@ from typing import (
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from more_itertools.recipes import flatten
 
-from common import DB_TYPE, convert_short_stage_name_to_long_if_available
+from common import (
+    DB_TYPE,
+    convert_short_stage_name_to_long_if_available,
+    get_all_names_from_performance,
+)
 from streamlit_common import format_iso_date_to_day_month_year_with_dots, load_db
 
 
 def add_split_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
+    return [
+        dict(
+            day=entry.date.day,
+            month=entry.date.month,
+            year=entry.date.year,
+            **entry.dict(),
+        )
+        for entry in db
+    ]
+    # db = deepcopy(db)
 
-    db = deepcopy(db)
-    for entry in db:
-        date = datetime.fromisoformat(entry["date"])
+    # for entry in db:
+    #     date = entry.date
 
-        entry["day"] = date.day
-        entry["month"] = date.month
-        entry["year"] = date.year
+    #     entry["day"] = date.day
+    #     entry["month"] = date.month
+    #     entry["year"] = date.year
 
-    return db
+    # return db
 
 
 def truncate_composer_name(composer: str) -> str:
@@ -104,8 +121,11 @@ def format_column_name(column_name: str) -> str:
     return column_name.replace("is_", "").replace("_", " ").title()
 
 
-def key_sort_opus_by_name(name: str) -> str:
-    return name.replace("A ", "").replace("The ", "").replace("An ", "")
+def key_sort_opus_by_name_and_composer(
+    name_composer_rest: Tuple[str, ...]
+) -> Tuple[str, ...]:
+    name, composer, *a = name_composer_rest
+    return (name.replace("A ", "").replace("The ", "").replace("An ", ""), composer, *a)
 
 
 def run_frequencies():
@@ -161,26 +181,122 @@ def run_frequencies():
 
 
 def run_single_opus():
+
     with st.sidebar:
         all_opus = sorted(
-            {performance["name"] for performance in load_db()},
-            key=key_sort_opus_by_name,
+            {(performance.name, performance.composer) for performance in load_db()},
+            key=key_sort_opus_by_name_and_composer,
         )
 
-        opus = st.selectbox("Opus", all_opus)
+        name, composer = st.selectbox(
+            "Opus",
+            all_opus,
+            format_func=lambda name_composer: f"{name_composer[0]} - {truncate_composer_name(name_composer[1])}",
+        )
 
-    st.title(opus)
+    st.title(name)
+    st.markdown(composer)
     all_entries_of_opus = [
-        performance for performance in load_db() if performance["name"] == opus
+        performance
+        for performance in load_db()
+        if performance.name == name and performance.composer == composer
     ]
     for entry in all_entries_of_opus:
         st.markdown(
-            f"- {format_iso_date_to_day_month_year_with_dots(entry['date'])} - {convert_short_stage_name_to_long_if_available( entry['stage'])}"
+            f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} - {convert_short_stage_name_to_long_if_available(entry.stage)}"
         )
 
 
+def run_single_person():
+
+    with st.sidebar:
+        all_persons = sorted(
+            set(
+                flatten(
+                    get_all_names_from_performance(performance)
+                    for performance in load_db()
+                )
+            )
+        )
+
+        person = st.selectbox(
+            "Person",
+            all_persons,
+            # format_func=lambda name_composer: " - ".join(name_composer),
+        )
+
+    st.title(person)
+    all_entries_of_opus = [
+        performance
+        for performance in load_db()
+        if person in get_all_names_from_performance(performance)
+    ]
+    for entry in all_entries_of_opus:
+
+        all_roles = ChainMap(entry.leading_team, entry.cast)
+        roles = [role for role, persons in all_roles.items() if person in persons]
+
+        to_join = [
+            format_iso_date_to_day_month_year_with_dots(entry.date),
+            convert_short_stage_name_to_long_if_available(entry.stage),
+            entry.name,
+        ]
+        if person == entry.composer and len(roles) == 0:
+            pass
+        else:
+            to_join.extend([entry.composer, ", ".join(roles)])
+        st.markdown("- " + " - ".join(to_join))
+
+
+def run_single_role():
+
+    with st.sidebar:
+        all_opus = sorted(
+            {(performance.name, performance.composer) for performance in load_db()},
+            key=key_sort_opus_by_name_and_composer,
+        )
+
+        name, composer = st.selectbox(
+            "Opus",
+            all_opus,
+            format_func=lambda name_composer: f"{name_composer[0]} - {truncate_composer_name(name_composer[1])}",
+        )
+
+        roles = sorted(
+            {
+                role
+                for entry in load_db()
+                for role in entry.cast
+                if entry.name == name and entry.composer == composer
+            }
+        )
+
+        role = st.selectbox("Role", roles)
+
+    st.title(role)
+    st.markdown(f"{name} - {composer}")
+    all_entries_of_opus = [
+        performance
+        for performance in load_db()
+        if performance.name == name
+        and performance.composer == composer
+        and role in performance.cast
+    ]
+
+    for entry in all_entries_of_opus:
+        date = format_iso_date_to_day_month_year_with_dots(entry.date)
+        stage = convert_short_stage_name_to_long_if_available(entry.stage)
+        persons = ", ".join(entry.cast[role])
+        st.markdown(f"- {date} - {stage} - {persons}")
+
+
 def run():
-    modes = {"Frequencies": run_frequencies, "Opus Info": run_single_opus}
+    modes = {
+        "Frequencies": run_frequencies,
+        "Opus Info": run_single_opus,
+        "Person Info": run_single_person,
+        "Role Info": run_single_role,
+    }
 
     with st.sidebar:
         function = modes.get(st.radio("Stats to show", modes))

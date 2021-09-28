@@ -4,6 +4,7 @@ import streamlit as st
 
 from common import (
     SHORT_STAGE_NAME_TO_FULL,
+    Performance,
     filter_only_full_entries,
     get_all_names_from_performance,
 )
@@ -62,18 +63,18 @@ def run():
 
         # performance_selectbox.selectbox()
 
-        performance = performance_selectbox.selectbox(
+        performance: Performance = performance_selectbox.selectbox(
             "Select Performance", db_filtered, format_func=format_title
         )
 
-    st.markdown(f'# {performance["name"]}')
+    st.markdown(f"# {performance.name}")
 
     stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
-        performance["stage"], performance["stage"]
+        performance.stage, performance.stage
     )
     st.markdown(
-        f"#### **{performance['composer']}**\n{stage_name_to_show}"
-        f"{' - ' + performance['production'] if performance['stage'] != performance['production'] else ''}"
+        f"#### **{performance.composer}**\n{stage_name_to_show}"
+        f"{' - ' + performance.production if performance.stage != performance.production else ''}"
     )
 
     def hightlight_person_if_selected(person: str) -> str:
@@ -85,16 +86,16 @@ def run():
 
     cast_highlighted = {
         role: [hightlight_person_if_selected(person) for person in persons]
-        for role, persons in performance["cast"].items()
+        for role, persons in performance.cast.items()
     }
 
     leading_team_highlighted = {
         role: [hightlight_person_if_selected(person) for person in persons]
-        for role, persons in performance["leading_team"].items()
+        for role, persons in performance.leading_team.items()
     }
 
     write_cast_and_leading_team(cast_highlighted, leading_team_highlighted)
 
-    if performance["comments"] != "":
+    if performance.comments != "":
         st.markdown("---")
-        st.markdown(performance["comments"])
+        st.markdown(performance.comments)

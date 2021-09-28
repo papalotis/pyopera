@@ -1,5 +1,6 @@
 import operator
-from typing import Mapping, Optional, Sequence, Union
+from datetime import datetime
+from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
 
@@ -25,10 +26,30 @@ def hide_hamburger_and_change_footer() -> None:
 
 
 @st.cache(show_spinner=False, suppress_st_warning=True)
-def load_db() -> DB_TYPE:
+def load_data_raw() -> Sequence[Mapping[str, Any]]:
     with st.spinner("Loading data..."):
         raw_data = fetch_db()
-        return sort_entries_by_date(raw_data)
+        return raw_data
+
+
+def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
+
+    return sorted(entries, key=operator.attrgetter("date"))
+
+
+def verify_and_sort_db() -> DB_TYPE:
+    raw_data = load_data_raw()
+    verified_data = [Performance(**data) for data in raw_data]
+    sorted_data = sort_entries_by_date(verified_data)
+
+    return sorted_data
+
+
+_SORTED_DB = verify_and_sort_db()
+
+
+def load_db() -> DB_TYPE:
+    return _SORTED_DB
 
 
 def key_is_exception(key: str) -> bool:
@@ -77,16 +98,18 @@ def write_cast_and_leading_team(
         write_role_with_persons("Leading team", leading_team)
 
 
-def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
+def format_iso_date_to_day_month_year_with_dots(date_iso: Union[datetime, str]) -> str:
 
-    return sorted(entries, key=operator.itemgetter("date"))
+    if isinstance(date_iso, datetime):
+        date_iso = date_iso.isoformat()
 
-
-def format_iso_date_to_day_month_year_with_dots(date_iso: str) -> str:
     return ".".join(date_iso.split("T")[0].split("-")[::-1])
 
 
 def format_title(performance: Optional[Union[Performance, dict]]) -> str:
+    if isinstance(performance, Performance):
+        performance = performance.dict()
+
     if performance in (None, {}):
         return "Add new visit"
 
