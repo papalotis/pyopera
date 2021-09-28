@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from common import (
     GERMAN_MONTH_TO_INT,
+    Performance,
     create_key_for_visited_performance_v2,
     load_deta_project_key,
     normalize_title,
@@ -134,7 +135,7 @@ async def extract_info_from_production_page(
             "td", class_="castrole-col castrole"
         ).text
 
-        for role_or_part_with_date in roles_or_part_with_date.split("/"):
+        for role_or_part_with_date in [roles_or_part_with_date]:
             role_or_part_with_date = role_or_part_with_date.strip()
             match = re.match(r"(.*)((\d{2}\.){2})", role_or_part_with_date)
             if match is not None:
@@ -170,6 +171,8 @@ async def extract_info_from_production_page(
                 if len(split_on_parenthesis) == 3:
                     to_search = split_on_parenthesis[1][1:] + split_on_parenthesis[2]
 
+                    to_search = to_search.replace("Gesangspartie", "")
+
                     *days, month = re.findall("(\w+|\d+)", to_search)
 
                     for day in days:
@@ -196,14 +199,23 @@ async def extract_info_from_production_page(
     return dict(cast=dict(cast), leading_team=dict(leading_team))
 
 
-@memory.cache
+async def extract_info_from_production_page_safe(
+    production_link: Optional[str], date: Union[datetime, str]
+) -> Optional[Performance]:
+    try:
+        return await extract_info_from_production_page(production_link, date)
+    except Exception:
+        return None
+
+
+# @memory.cache
 def get_db():
     from deta import Deta
 
     deta = Deta(load_deta_project_key())
     base = deta.Base("performances")
 
-    return base.fetch({"stage": "TAW"}).items
+    return base.fetch({"stage": "KOaF"}).items
 
 
 async def amain() -> None:
@@ -218,50 +230,52 @@ async def amain() -> None:
 
     db = get_db()
 
-    performances = [(entry["name"], entry["date"]) for entry in db]
+    performances = [
+        (entry["name"], entry["date"])
+        for entry in db
+        if entry["cast"] == {} and entry["leading_team"] == {}
+    ]
 
     links = [
         get_production_link_from_title_and_date(title, date)
         for title, date in tqdm(performances)
     ]
 
-    # ic(links)
+    ic(links)
 
     # ic(list(p for p, l in zip(performances, links) if l is None))
 
     # ic = lambda x: x
 
-    output = ic(
-        await limit_gather(
-            *(
-                extract_info_from_production_page(link, date)
-                for link, (_, date) in zip(links, performances)
-            ),
-            limit=20,
-        )
+    output = await limit_gather(
+        *(
+            extract_info_from_production_page_safe(link, date)
+            for link, (_, date) in zip(links, performances)
+        ),
+        limit=20,
     )
 
-    return output
+    # return output
 
     # del ic
-    # from deta import Deta
+    from deta import Deta
 
-    # deta = Deta(load_deta_project_key())
-    # base = deta.Base("performances")
+    deta = Deta(load_deta_project_key())
+    base = deta.Base("performances")
 
-    # for entry, new_info in tqdm(list(zip(db, output))):
-    #     if new_info is None:
-    #         continue
+    for entry, new_info in tqdm(list(zip(db, output))):
+        if new_info is None:
+            continue
 
-    #     # ic(entry, create_key_for_visited_performance_v2(ent))
-    #     old_key = entry["key"]
-    #     entry.update(new_info)
-    #     entry["key"] = create_key_for_visited_performance_v2(entry)
+        if new_info["cast"] == {} and new_info["leading_team"] == {}:
+            continue
 
-    #     base.delete(old_key)
-    #     base.put(entry)
+        old_key = entry["key"]
+        entry.update(new_info)
+        entry["key"] = create_key_for_visited_performance_v2(entry)
 
-    # break
+        # base.delete(old_key)
+        base.put(entry)
 
     # print(len(output), len(db))
 
