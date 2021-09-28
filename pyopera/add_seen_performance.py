@@ -7,8 +7,13 @@ from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 
-from common import Performance, create_key_for_visited_performance_v2
-from streamlit_common import DB, format_title, load_db, write_cast_and_leading_team
+from common import (
+    Performance,
+    create_key_for_visited_performance_v2,
+    delete_item_db,
+    put_db,
+)
+from streamlit_common import format_title, load_db, write_cast_and_leading_team
 
 
 def authenticate() -> Optional[NoReturn]:
@@ -32,29 +37,26 @@ def authenticate() -> Optional[NoReturn]:
             st.session_state["authenticated"] = True
 
 
+def send_new_performance(new_performance: Performance) -> None:
+    assert "key" in new_performance
+    put_db(new_performance)
+
+
+def delete_performance_by_key(key: str) -> None:
+    return delete_item_db(key)
+
+
+def clear_cast_leading_team_from_session_state():
+    for key in ("cast", "leading_team"):
+        try:
+            del st.session_state[key]
+        except KeyError:
+            pass
+
+
 def run():
-    def send_new_performance(new_performance: dict):
-
-        assert "key" in new_performance
-
-        return DB.put(new_performance)
-
-    def delete_performance_by_key(key: str) -> None:
-        return DB.delete(key)
-
-    def clear_cast_leading_team_from_session_state():
-        try:
-            del st.session_state["cast"]
-        except KeyError:
-            pass
-
-        try:
-            del st.session_state["leading_team"]
-        except KeyError:
-            pass
 
     authenticate()
-
     db = load_db()
 
     with st.sidebar:
@@ -115,7 +117,7 @@ def run():
         )
         datetime_obj = datetime(date_obj.year, date_obj.month, date_obj.day)
 
-    col1, col2, col3, col4 = st.columns([1, 1, 3, 1])
+    col1, col2, col3, col4 = st.columns([1, 2, 3, 1])
 
     with col1:
         production = st.text_input(
@@ -227,15 +229,15 @@ def run():
             st.error("Composer field is empty")
 
         if number_of_form_errors == 0:
-            with st.spinner(text="Contacting DB..."):
-                time.sleep(1.5)
+            with st.spinner(text="Contacting database..."):
+                time.sleep(0.3)
                 cast = {k: list(v) for k, v in st.session_state["cast"].items()}
                 leading_team = {
                     k: list(v) for k, v in st.session_state["leading_team"].items()
                 }
 
                 try:
-                    final_data = dict(
+                    final_data = Performance(
                         date=datetime_obj.isoformat(),
                         production=production,
                         composer=composer,
@@ -258,10 +260,8 @@ def run():
                             update_existing
                             and entry_to_update["key"] != final_data["key"]
                         ):
-                            st.write("deleting entry")
                             delete_performance_by_key(entry_to_update["key"])
                         try:
-                            st.write("sending entry")
                             send_new_performance(final_data)
                         except Exception:
                             send_new_performance(entry_to_update)

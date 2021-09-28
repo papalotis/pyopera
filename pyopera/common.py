@@ -2,8 +2,9 @@ import json
 from datetime import datetime
 from itertools import chain
 from pathlib import Path
-from typing import Any, Mapping, Sequence, Set
+from typing import Any, Mapping, Sequence, Set, Tuple, Union
 
+import requests
 from typing_extensions import TypedDict
 from unidecode import unidecode
 
@@ -120,28 +121,7 @@ def load_deta_project_key() -> str:
     return deta_project_key
 
 
-def create_key_for_visited_performance(performance: dict) -> str:
-    import hashlib
-
-    string = "".join(
-        filter(
-            str.isalnum,
-            "".join(
-                map(
-                    normalize_title,
-                    (
-                        performance["name"],
-                        performance["stage"],
-                    ),
-                )
-            )
-            + performance["date"],
-        )
-    )
-    return hashlib.sha1(string.encode()).hexdigest()[-12:]
-
-
-def create_key_for_visited_performance_v2(performance: dict) -> str:
+def create_key_for_visited_performance_v2(performance: Performance) -> str:
     import hashlib
 
     string = "".join(
@@ -188,3 +168,68 @@ def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
     ]
 
     return db_filtered
+
+
+def get_db_base_url() -> str:
+    project_key = load_deta_project_key()
+    project_key_split = project_key.split("_")
+    assert len(project_key_split) == 2
+    project_id = project_key_split[0]
+    base_name = "performances"
+    base_url = f"https://database.deta.sh/v1/{project_id}/{base_name}"
+    return base_url
+
+
+def create_db_request_base_url_and_headers() -> Tuple[str, Mapping[str, str]]:
+    base_url = get_db_base_url()
+    project_key = load_deta_project_key()
+
+    headers = {"X-API-Key": project_key, "Content-Type": "application/json"}
+
+    return base_url, headers
+
+
+def fetch_db() -> DB_TYPE:
+    base_url, headers = create_db_request_base_url_and_headers()
+
+    final_url = base_url + "/query"
+
+    response = requests.post(final_url, data={}, headers=headers)
+    response.raise_for_status()
+    raw_data = response.json()["items"]
+
+    return raw_data
+
+
+def put_db(items_to_put: Union[Performance, Sequence[Performance]]) -> None:
+    if isinstance(items_to_put, dict):
+        items_to_put = [items_to_put]
+
+    assert all("key" in item for item in items_to_put)
+
+    base_url, headers = create_db_request_base_url_and_headers()
+
+    final_url = base_url + "/items"
+    final_data = {"items": items_to_put}
+
+    response = requests.put(final_url, json=final_data, headers=headers)
+    response.raise_for_status()
+
+    response_json = response.json()
+
+    if "failed" in response_json:
+        raise ValueError(
+            f"The following items could not be PUT in the database:\n{response_json['failed']}"
+        )
+
+
+def delete_item_db(key_to_delete: Union[Performance, str]) -> None:
+    if isinstance(key_to_delete, dict):
+        key_to_delete = key_to_delete["key"]
+
+    base_url, headers = create_db_request_base_url_and_headers()
+
+    final_url = base_url + f"/items/{key_to_delete}"
+
+    response = requests.delete(final_url, headers=headers)
+    response.raise_for_status()

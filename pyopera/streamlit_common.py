@@ -1,22 +1,9 @@
-import http.client
 import operator
-import socket
 from typing import Mapping, Optional, Sequence, Union
 
-import requests
 import streamlit as st
-from deta import Deta
 
-from common import DB_TYPE, Performance, load_deta_project_key
-
-deta = Deta(load_deta_project_key())
-
-DB = deta.Base("performances")
-
-
-def reload_db_instance():
-    global DB
-    DB = deta.Base("performances")
+from common import DB_TYPE, Performance, fetch_db
 
 
 def hide_hamburger_and_change_footer() -> None:
@@ -41,37 +28,15 @@ def hide_hamburger_and_change_footer() -> None:
 @st.cache(show_spinner=False, suppress_st_warning=True)
 def load_db() -> DB_TYPE:
     with st.spinner("Loading data..."):
-        raw_data: DB_TYPE
-        try:
-            raw_data = DB.fetch().items
-        except (http.client.CannotSendRequest, socket.timeout):
-            warning = st.warning(
-                "Using alternative download method. Updating database might not be possible."
-            )
-            project_key = load_deta_project_key()
-            project_id = project_key.split("_")[0]
-            base_name = "performances"
-            base_url = f"https://database.deta.sh/v1/{project_id}/{base_name}"
-            headers = {"X-API-Key": project_key, "Content-Type": "application/json"}
-
-            final_url = base_url + "/query"
-
-            response = requests.post(final_url, data="{}", headers=headers)
-            raw_data = response.json()["items"]
-
-            reload_db_instance()
-
-            warning.empty()
-
+        raw_data = fetch_db()
         return sort_entries_by_date(raw_data)
 
 
 def key_is_exception(key: str) -> bool:
     exceptions = {"orchester", "orchestra", "chor"}
+    key_alpha_lower = "".join(filter(str.isalpha, key.lower()))
 
-    key_alpha = "".join(filter(str.isalpha, key.lower()))
-
-    return key_alpha in exceptions or "ensemble" in key_alpha
+    return key_alpha_lower in exceptions or "ensemble" in key_alpha_lower
 
 
 def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
