@@ -36,12 +36,12 @@ SHORT_STAGE_NAME_TO_FULL = {
     "SUL": "Staatsoper Unter den Linden",
     "GTLF": "Teatro La Fenice",
     "KOaF": "Kammeroper am Fleischmarkt",
-    "MMAT": "Μέγαρο Μουσικής Αθηνών",
-    "SNF": "Αίθουσα Σταύρος Νιάρχος",
+    "MMAT": "(ΜΜΑ) Αίθουσα Αλεξάνδρα Τριάντη",
+    "SNF": "(ΙΣΝ) Αίθουσα Σταύρος Νιάρχος",
     "SNF-ES": "(ΙΣΝ) Εναλλακτική Σκηνή",
     "OLY": "Θέατρο Oλύμπια",
 }
-
+ 
 
 def austria_date_to_datetime(date_str: str) -> datetime:
     """
