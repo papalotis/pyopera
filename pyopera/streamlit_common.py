@@ -53,7 +53,6 @@ def load_db() -> DB_TYPE:
     reset_existing_db()
 
     if "DB" not in st.session_state or st.session_state["DB"] == None:
-        st.write("I AM RUNNING")
         st.session_state["DB"] = verify_and_sort_db()
 
     return st.session_state["DB"]
