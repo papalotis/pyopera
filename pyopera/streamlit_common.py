@@ -33,7 +33,6 @@ def load_data_raw() -> Sequence[Mapping[str, Any]]:
 
 
 def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
-
     return sorted(entries, key=operator.attrgetter("date"))
 
 
@@ -45,11 +44,19 @@ def verify_and_sort_db() -> DB_TYPE:
     return sorted_data
 
 
-_SORTED_DB = verify_and_sort_db()
+@st.cache
+def reset_existing_db():
+    st.session_state["DB"] = None
 
 
 def load_db() -> DB_TYPE:
-    return _SORTED_DB
+    reset_existing_db()
+
+    if "DB" not in st.session_state or st.session_state["DB"] == None:
+        st.write("I AM RUNNING")
+        st.session_state["DB"] = verify_and_sort_db()
+
+    return st.session_state["DB"]
 
 
 def key_is_exception(key: str) -> bool:

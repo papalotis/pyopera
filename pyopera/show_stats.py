@@ -256,6 +256,8 @@ def run_single_role():
             key=key_sort_opus_by_name_and_composer,
         )
 
+        # st.write(all_opus)
+
         name, composer = st.selectbox(
             "Opus",
             all_opus,
