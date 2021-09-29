@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html>
+<script>
+    // this script allows for iframe elements to scale correctly for mobile
+    var viewPortTag = document.createElement('meta');
+    viewPortTag.id = "viewport";
+    viewPortTag.name = "viewport";
+    viewPortTag.content = "width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;";
+    window.parent.document.getElementsByTagName('head')[0].appendChild(viewPortTag);
+</script>
 
 <head>
     <title>Vangelis Opera Archiv</title>
     <link id="favicon" rel="icon" href="https://twemoji.maxcdn.com/2/72x72/1f3bb.png">
+
 </head>
 
 <body>
