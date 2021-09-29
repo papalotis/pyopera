@@ -4,7 +4,8 @@ from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
 
-from common import DB_TYPE, Performance, fetch_db
+from common import DB_TYPE, Performance, load_deta_project_key
+from pyopera.deta_base import DetaBaseInterface
 
 
 def hide_hamburger_and_change_footer() -> None:
@@ -27,8 +28,9 @@ def hide_hamburger_and_change_footer() -> None:
 
 @st.cache(show_spinner=False, suppress_st_warning=True)
 def load_data_raw() -> Sequence[Mapping[str, Any]]:
+    base_interface = DetaBaseInterface(load_deta_project_key())
     with st.spinner("Loading data..."):
-        raw_data = fetch_db()
+        raw_data = base_interface.fetch_db()
         return raw_data
 
 

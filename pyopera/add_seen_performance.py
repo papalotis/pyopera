@@ -7,18 +7,10 @@ from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 
-from common import (
-    Performance,
-    create_key_for_visited_performance_v2,
-    delete_item_db,
-    put_db,
-)
-from streamlit_common import (
-    clear_streamlit_cache,
-    format_title,
-    load_db,
-    write_cast_and_leading_team,
-)
+from common import Performance, load_deta_project_key
+from deta_base import DetaBaseInterface
+from streamlit_common import (clear_streamlit_cache, format_title, load_db,
+                              write_cast_and_leading_team)
 
 
 def authenticate() -> Optional[NoReturn]:
@@ -31,26 +23,25 @@ def authenticate() -> Optional[NoReturn]:
         ):
             if password != "":
                 st.error("Wrong password")
-            try:
-                del st.session_state["cast"]
-                del st.session_state["leading_team"]
-            except KeyError:
-                pass
+            clear_cast_leading_team_from_session_state()
             st.stop()
         else:
             password_widget.empty()
             st.session_state["authenticated"] = True
 
 
+BASE_INTERFACE = DetaBaseInterface(load_deta_project_key())
+
+
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:
     if isinstance(new_performance, dict):
         new_performance = Performance(**new_performance)
 
-    put_db(new_performance)
+    BASE_INTERFACE.put_db(new_performance)
 
 
 def delete_performance_by_key(key: str) -> None:
-    return delete_item_db(key)
+    return BASE_INTERFACE.delete_item_db(key)
 
 
 def clear_cast_leading_team_from_session_state():
