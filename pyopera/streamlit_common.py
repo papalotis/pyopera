@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Sequence, Union
 import streamlit as st
 
 from common import DB_TYPE, Performance, load_deta_project_key
-from pyopera.deta_base import DetaBaseInterface
+from deta_base import DetaBaseInterface
 
 
 def hide_hamburger_and_change_footer() -> None:
