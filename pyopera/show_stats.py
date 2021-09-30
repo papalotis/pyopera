@@ -1,15 +1,15 @@
 import calendar
-import functools
+import re
 import textwrap
-from copy import deepcopy
-from datetime import datetime
-from operator import itemgetter
+from collections import defaultdict
 from typing import (
     Any,
     ChainMap,
     Counter,
+    DefaultDict,
     Hashable,
     Mapping,
+    MutableSequence,
     Optional,
     Sequence,
     Tuple,
@@ -21,13 +21,18 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from more_itertools.recipes import flatten
+from unidecode import unidecode
 
 from common import (
     DB_TYPE,
     convert_short_stage_name_to_long_if_available,
     get_all_names_from_performance,
 )
-from streamlit_common import format_iso_date_to_day_month_year_with_dots, load_db
+from streamlit_common import (
+    format_iso_date_to_day_month_year_with_dots,
+    load_db,
+    remove_singular_prefix_from_role,
+)
 
 
 def add_split_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
@@ -40,16 +45,6 @@ def add_split_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
         )
         for entry in db
     ]
-    # db = deepcopy(db)
-
-    # for entry in db:
-    #     date = entry.date
-
-    #     entry["day"] = date.day
-    #     entry["month"] = date.month
-    #     entry["year"] = date.year
-
-    # return db
 
 
 def truncate_composer_name(composer: str) -> str:
@@ -57,7 +52,6 @@ def truncate_composer_name(composer: str) -> str:
     return " ".join([part[0] + "." for part in parts[:-1]] + [parts[-1]])
 
 
-# @st.cache
 def create_frequency_chart(
     db: Sequence[Mapping[str, Hashable]],
     columns: Union[str, Sequence[str]],
@@ -135,7 +129,7 @@ def run_frequencies():
     db = add_split_date_to_db(load_db())
 
     presets = {
-        ("name",): "Name of opus",
+        ("name", "composer"): "Opus",
         ("composer",): "Composer",
         ("stage",): "Stage",
         ("month",): "Number of performances seen each month",
@@ -219,19 +213,15 @@ def run_single_person():
             )
         )
 
-        person = st.selectbox(
-            "Person",
-            all_persons,
-            # format_func=lambda name_composer: " - ".join(name_composer),
-        )
+        person = st.selectbox("Person", all_persons)
 
     st.title(person)
-    all_entries_of_opus = [
+    all_entries_with_person = [
         performance
         for performance in load_db()
         if person in get_all_names_from_performance(performance)
     ]
-    for entry in all_entries_of_opus:
+    for entry in all_entries_with_person:
 
         all_roles = ChainMap(entry.leading_team, entry.cast)
         roles = [role for role, persons in all_roles.items() if person in persons]
@@ -246,6 +236,11 @@ def run_single_person():
         else:
             to_join.extend([entry.composer, ", ".join(roles)])
         st.markdown("- " + " - ".join(to_join))
+
+
+def normalize_role(role: str) -> str:
+    role_normalized = remove_singular_prefix_from_role(unidecode(role))
+    return role_normalized
 
 
 def run_single_role():
@@ -273,23 +268,51 @@ def run_single_role():
             }
         )
 
-        role = st.selectbox("Role", roles)
+        roles_matched: DefaultDict[str, MutableSequence[str]] = defaultdict(list)
+        for role in roles:
+            role_normalized = normalize_role(role)
+            roles_matched[role_normalized].append(role)
 
-    st.title(role)
+    if len(roles_matched) > 0:
+        with st.sidebar:
+            # prefer role names that contain non-ascii characters that are short
+            format_func = lambda role_normalized: remove_singular_prefix_from_role(
+                min(
+                    roles_matched[role_normalized],
+                    key=lambda role: (role.isascii(), len(role)),
+                )
+            )
+            role = st.selectbox(
+                "Role",
+                roles_matched,
+                format_func=format_func,
+            )
+    else:
+        role = None
+
     st.markdown(f"#### {name} - {composer}")
-    all_entries_of_opus = [
-        performance
-        for performance in load_db()
-        if performance.name == name
-        and performance.composer == composer
-        and role in performance.cast
-    ]
 
-    for entry in all_entries_of_opus:
-        date = format_iso_date_to_day_month_year_with_dots(entry.date)
-        stage = convert_short_stage_name_to_long_if_available(entry.stage)
-        persons = ", ".join(entry.cast[role])
-        st.markdown(f"- {date} - {stage} - {persons}")
+    if role is not None:
+        st.subheader(format_func(role))
+        all_entries_of_opus = [
+            performance
+            for performance in load_db()
+            if performance.name == name
+            and performance.composer == composer
+            and set(roles_matched[role]).intersection(performance.cast) != set()
+        ]
+
+        for entry in all_entries_of_opus:
+            date = format_iso_date_to_day_month_year_with_dots(entry.date)
+            stage = convert_short_stage_name_to_long_if_available(entry.stage)
+            for unique_role_instance in roles_matched[role]:
+                persons_list = entry.cast.get(unique_role_instance)
+                if persons_list is not None:
+                    persons = ", ".join(persons_list)
+                    break
+            st.markdown(f"- {date} - {stage} - {persons}")
+    else:
+        st.warning("No roles available for this entry")
 
 
 def run():

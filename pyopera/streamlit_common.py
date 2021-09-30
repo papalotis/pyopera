@@ -1,5 +1,6 @@
 import operator
 from datetime import datetime
+import re
 from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
@@ -115,18 +116,29 @@ def format_iso_date_to_day_month_year_with_dots(date_iso: Union[datetime, str]) 
 
 
 def format_title(performance: Optional[Union[Performance, dict]]) -> str:
-    if isinstance(performance, Performance):
+    if performance.__class__.__name__ == Performance.__name__:
         performance = performance.dict()
 
     if performance in (None, {}):
         return "Add new visit"
 
-    date = format_iso_date_to_day_month_year_with_dots(performance["date"])
+    date = format_iso_date_to_day_month_year_with_dots(performance["date"]) 
     name = performance["name"]
     stage = performance["stage"]
     new_title = f"{date} - {name} - {stage}"
     return new_title
 
+
+def remove_singular_prefix_from_role(role: str) -> str:
+    """
+    If a role contains a 'ein' or 'eine' at the beginning of the
+    role remove it
+    """
+    return re.sub(r"^[eE]ine?\s", "", role)
+
+
+def format_role(role: str) -> str:
+    return remove_singular_prefix_from_role(role)
 
 def clear_streamlit_cache() -> None:
     import streamlit.legacy_caching
