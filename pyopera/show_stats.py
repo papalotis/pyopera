@@ -273,22 +273,20 @@ def run_single_role():
             role_normalized = normalize_role(role)
             roles_matched[role_normalized].append(role)
 
-    if len(roles_matched) > 0:
-        with st.sidebar:
-            # prefer role names that contain non-ascii characters that are short
-            format_func = lambda role_normalized: remove_singular_prefix_from_role(
-                min(
-                    roles_matched[role_normalized],
-                    key=lambda role: (role.isascii(), len(role)),
-                )
+    with st.sidebar:
+
+        # prefer role names that contain non-ascii characters that are short
+        format_func = lambda role_normalized: remove_singular_prefix_from_role(
+            min(
+                roles_matched[role_normalized],
+                key=lambda role: (role.isascii(), len(role)),
             )
-            role = st.selectbox(
-                "Role",
-                roles_matched,
-                format_func=format_func,
-            )
-    else:
-        role = None
+        )
+        role = st.selectbox(
+            "Role",
+            roles_matched,
+            format_func=format_func,
+        )
 
     st.markdown(f"#### {name} - {composer}")
 
@@ -297,9 +295,8 @@ def run_single_role():
         all_entries_of_opus = [
             performance
             for performance in load_db()
-            if performance.name == name
-            and performance.composer == composer
-            and set(roles_matched[role]).intersection(performance.cast) != set()
+            if performance.name == name and performance.composer == composer
+            # and set(roles_matched[role]).intersection(performance.cast) != set()
         ]
 
         for entry in all_entries_of_opus:
@@ -308,8 +305,12 @@ def run_single_role():
             for unique_role_instance in roles_matched[role]:
                 persons_list = entry.cast.get(unique_role_instance)
                 if persons_list is not None:
-                    persons = ", ".join(persons_list)
+                    persons = ", ".join(
+                        map(lambda person: f"**{person}**", persons_list)
+                    )
                     break
+            else:
+                persons = "No information available"
             st.markdown(f"- {date} - {stage} - {persons}")
     else:
         st.warning("No roles available for this entry")
