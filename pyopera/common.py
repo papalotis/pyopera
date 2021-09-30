@@ -41,7 +41,7 @@ SHORT_STAGE_NAME_TO_FULL = {
     "SNF-ES": "(ΙΣΝ) Εναλλακτική Σκηνή",
     "OLY": "Θέατρο Oλύμπια",
 }
- 
+
 
 def austria_date_to_datetime(date_str: str) -> datetime:
     """
@@ -78,6 +78,7 @@ class Performance(BaseModel):
 
     class Config:
         validate_assignment = True
+        anystr_strip_whitespace = True
         # allow_reuse = True
 
     @validator("key", pre=True, always=True, allow_reuse=True)
@@ -199,3 +200,9 @@ def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
     ]
 
     return db_filtered
+
+
+def is_performance_instance(performance: Performance):
+    # hacky way to check if the type is Performance since
+    # st rerun mechanism does not work with isinstance
+    return performance.__class__.__name__ == Performance.__name__

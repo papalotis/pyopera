@@ -7,10 +7,14 @@ from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 
-from common import Performance, load_deta_project_key
+from common import Performance, is_performance_instance, load_deta_project_key
 from deta_base import DetaBaseInterface
-from streamlit_common import (clear_streamlit_cache, format_title, load_db,
-                              write_cast_and_leading_team)
+from streamlit_common import (
+    clear_streamlit_cache,
+    format_title,
+    load_db,
+    write_cast_and_leading_team,
+)
 
 
 def authenticate() -> Optional[NoReturn]:
@@ -65,7 +69,8 @@ def run():
             on_change=clear_cast_leading_team_from_session_state,
         )
 
-        if isinstance(entry_to_update_raw, Performance):
+        # if isinstance(entry_to_update_raw, Performance):
+        if is_performance_instance(entry_to_update_raw):
             entry_to_update = entry_to_update_raw.dict()
         else:
             entry_to_update = {}

@@ -273,8 +273,6 @@ def run_single_role():
             role_normalized = normalize_role(role)
             roles_matched[role_normalized].append(role)
 
-    with st.sidebar:
-
         # prefer role names that contain non-ascii characters that are short
         format_func = lambda role_normalized: remove_singular_prefix_from_role(
             min(
