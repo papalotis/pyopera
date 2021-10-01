@@ -123,7 +123,7 @@ def run():
         )
         datetime_obj = datetime(date_obj.year, date_obj.month, date_obj.day)
 
-    col1, col2, col3, col4 = st.columns([1, 2, 3, 1])
+    col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
 
     with col1:
         production = st.text_input(
