@@ -148,17 +148,45 @@ def run():
 
     add_to_cast = mode == "Cast"
 
-    with st.form("cast_or_leading_team_member"):
-        col1, col2 = st.columns([1, 1])
-
-        with col1:
-            label = "Role" if add_to_cast else "Part"
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        label = "Role" if add_to_cast else "Part"
+        use_existing_checkbox = st.checkbox(f"Use existing {label.lower()}")
+        if use_existing_checkbox:
+            relevant_works = [
+                entry
+                for entry in db
+                if entry.name == name and entry.composer == composer
+            ]
+            relevant_roles = set(
+                chain.from_iterable(
+                    entry.cast if add_to_cast else entry.leading_team
+                    for entry in relevant_works
+                )
+            )
+            role_or_part = st.selectbox(label, relevant_roles)
+        else:
             role_or_part = st.text_input(label)
-        with col2:
-            label = "Name" + " " * add_to_cast
+    with col2:
+        label = "Name" + " " * add_to_cast
+        use_existing_checkbox = st.checkbox("Use existing person")
+        if use_existing_checkbox:
+            # list_of_persons =
+            all_persons = sorted(
+                set(
+                    person
+                    for entry in db
+                    for persons in (
+                        entry.cast if add_to_cast else entry.leading_team
+                    ).values()
+                    for person in persons
+                )
+            )
+            cast_leading_team_name = st.selectbox(label, all_persons)
+        else:
             cast_leading_team_name = st.text_input(label)
 
-        append_button = st.form_submit_button("Append to " + mode)
+    append_button = st.button("Append to " + mode)
 
     if append_button:
         if cast_leading_team_name != "" or role_or_part != "":
