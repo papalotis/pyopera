@@ -1,8 +1,7 @@
-fastapi==0.68.1
 more-itertools==8.8.0
 Unidecode==1.2.0
 typing-extensions==3.10.0.0
 requests==2.26.0
 fastapi-utils==0.2.1
 plotly==5.3.1
-streamlit==0.89.0
+streamlit==1.0.0
