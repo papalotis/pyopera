@@ -34,17 +34,19 @@ def run():
             "Person filter",
             [value for value, _ in all_names_counter.most_common()],
         )
-
-        checkbox_only_full = st.checkbox("Only show full entries", value=True)
-
         db_filtered_full = filter_only_full_entries(db)
-
         ratio_full = len(db_filtered_full) / len(db)
-        st.markdown(
-            f"<sub>{ratio_full * 100:.0f}% of entries are full</sub>",
-            unsafe_allow_html=True,
-        )
-        st.progress(ratio_full)
+
+        if len(db_filtered_full) < len(db):
+            checkbox_only_full = st.checkbox("Only show full entries", value=True)
+
+            st.markdown(
+                f"<sub>{len(db_filtered_full)}/{len(db)} ({ratio_full * 100:.0f}%) of entries are full</sub>",
+                unsafe_allow_html=True,
+            )
+            st.progress(ratio_full)
+        else:
+            checkbox_only_full = False
 
         db_use_full = db_filtered_full if checkbox_only_full else list(db)
         db_filtered = list(
@@ -54,8 +56,6 @@ def run():
                 db_use_full,
             )
         )
-
-        db = load_db()
 
         if len(db_filtered) == 0:
             st.markdown("## No titles available")

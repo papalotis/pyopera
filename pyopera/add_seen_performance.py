@@ -7,7 +7,12 @@ from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 
-from common import Performance, is_performance_instance, load_deta_project_key
+from common import (
+    Performance,
+    filter_only_full_entries,
+    is_performance_instance,
+    load_deta_project_key,
+)
 from deta_base import DetaBaseInterface
 from streamlit_common import (
     clear_streamlit_cache,
@@ -62,9 +67,25 @@ def run():
     db = load_db()
 
     with st.sidebar:
+
+        if st.checkbox("Only show non-full entries"):
+
+            db_to_use = [
+                performance
+                for performance in db
+                if (len(performance.cast) + len(performance.leading_team)) < 1
+            ]
+
+        else:
+            db_to_use = [None] + db
+
+        if len(db_to_use) < 1:
+            st.error("No entries were found")
+            st.stop()
+
         entry_to_update_raw: Optional[Performance] = st.selectbox(
             "Select entry",
-            [None] + db,
+            db_to_use,
             format_func=format_title,
             on_change=clear_cast_leading_team_from_session_state,
         )
