@@ -1,6 +1,6 @@
 import operator
-from datetime import datetime
 import re
+from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
@@ -109,10 +109,10 @@ def write_cast_and_leading_team(
 
 def format_iso_date_to_day_month_year_with_dots(date_iso: Union[datetime, str]) -> str:
 
-    if isinstance(date_iso, datetime):
-        date_iso = date_iso.isoformat()
+    if isinstance(date_iso, str):
+        date_iso = datetime.fromisoformat(date_iso)
 
-    return ".".join(date_iso.split("T")[0].split("-")[::-1])
+    return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 2000:02}"
 
 
 def format_title(performance: Optional[Union[Performance, dict]]) -> str:
@@ -122,7 +122,7 @@ def format_title(performance: Optional[Union[Performance, dict]]) -> str:
     if performance in (None, {}):
         return "Add new visit"
 
-    date = format_iso_date_to_day_month_year_with_dots(performance["date"]) 
+    date = format_iso_date_to_day_month_year_with_dots(performance["date"])
     name = performance["name"]
     stage = performance["stage"]
     new_title = f"{date} - {name} - {stage}"
@@ -139,6 +139,7 @@ def remove_singular_prefix_from_role(role: str) -> str:
 
 def format_role(role: str) -> str:
     return remove_singular_prefix_from_role(role)
+
 
 def clear_streamlit_cache() -> None:
     import streamlit.legacy_caching
