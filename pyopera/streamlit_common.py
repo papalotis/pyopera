@@ -123,14 +123,14 @@ def format_iso_date_to_day_month_year_with_dots(
                 if earliest.day == latest.day:
                     return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
                 else:
-                    return f"{earliest.day:02}-{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
+                    return f"{earliest.day:02}/{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
             else:
-                return f"{earliest.day:02}.{earliest.month:02}-{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
+                return f"{earliest.day:02}.{earliest.month:02}/{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
         else:
-            return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}-{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"
+            return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}/{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"
 
     elif isinstance(date_iso, datetime):
-        return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 2000:02}"
+        return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 100:02}"
 
 
 def format_title(performance: Optional[Union[Performance, dict]]) -> str:
