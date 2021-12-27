@@ -161,7 +161,10 @@ def run():
                 assert is_exact_date(existing_dates)
 
         dates = st.date_input(
-            label="Date", help="The day of the visit", value=default_date
+            label="Date",
+            help="The day of the visit",
+            value=default_date,
+            min_value=date(1970, 1, 1),
         )
 
         if isinstance(dates, date):
