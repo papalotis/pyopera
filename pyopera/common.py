@@ -1,11 +1,11 @@
 import json
 from collections import ChainMap
-from datetime import datetime
+from datetime import date, datetime
 from hashlib import sha1
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, Set, Tuple, Union
 
-import requests
+from approx_dates.models import ApproxDate
 from more_itertools import flatten
 from pydantic import BaseModel, validator
 from pydantic.types import conlist, constr
@@ -66,7 +66,7 @@ SHA1Str = constr(regex=r"[0-9a-f]{40}")
 
 class Performance(BaseModel):
     name: NonEmptyStr
-    date: datetime
+    date: ApproxDate
     cast: Mapping[NonEmptyStr, NonEmptyStrList]
     leading_team: Mapping[NonEmptyStr, NonEmptyStrList]
     stage: NonEmptyStr
@@ -79,11 +79,46 @@ class Performance(BaseModel):
     class Config:
         validate_assignment = True
         anystr_strip_whitespace = True
+        arbitrary_types_allowed = True
         # allow_reuse = True
+
+    @validator("date", pre=True, always=True, allow_reuse=True)
+    def parse_date(cls, v, **kwargs):
+        # there are three possible formats:
+        # full iso format: "2020-01-01T00:00:00" (handled by datetime module)
+        # partial iso format: "2020-01" (January 2020) (handled by ApproxDate)
+        # short iso to short iso: "2020-01-01 to 2020-01-04" (January 1st to 4th 2020) (handled by manual parsing and ApproxDate)
+
+        # pass on already parsed dates
+        if isinstance(v, ApproxDate):
+            return v
+
+        try:
+
+            exact_date = datetime.fromisoformat(v).date()
+            print("datetime successfull")
+            approx_date = ApproxDate(exact_date, exact_date, source_string=v)
+            return approx_date
+        except ValueError:
+            try:
+                approx_date = ApproxDate.from_iso8601(v)
+                return approx_date
+            except ValueError:
+                # two partial dates split by " to "
+                # short iso to short iso
+                date_strings = v.split(" to ")
+                print(date_strings)
+                if len(date_strings) != 2:
+                    raise ValueError(
+                        f'Could not find two iso dates split by "to" in {v}'
+                    )
+                early_date, late_date = map(date.fromisoformat, date_strings)
+                approx_date = ApproxDate(early_date, late_date, source_string=v)
+                return approx_date
 
     @validator("key", pre=True, always=True, allow_reuse=True)
     def create_key(cls, key, values, **kwargs):
-
+        print("test", key, values)
         computed_key = create_key_for_visited_performance_v2(values)
 
         if key is not None and computed_key != key:
@@ -94,6 +129,10 @@ class Performance(BaseModel):
         return computed_key
 
 
+def is_exact_date(date: ApproxDate) -> bool:
+    return date.earliest_date == date.latest_date
+
+
 DB_TYPE = Sequence[Performance]
 
 
@@ -101,6 +140,9 @@ def export_as_json(performances: Sequence[Performance]) -> str:
     def default(obj: Any) -> str:
         if isinstance(obj, datetime):
             return obj.isoformat()
+
+        if isinstance(obj, ApproxDate):
+            return str(obj)
 
         raise TypeError("Unknown type: ", type(obj))
 
@@ -153,8 +195,13 @@ def load_deta_project_key() -> str:
 def create_key_for_visited_performance_v2(performance: dict) -> str:
 
     date = performance["date"]
+
     if isinstance(date, datetime):
         date = date.isoformat()
+
+    date = str(date)
+
+    print("string for key", date)
 
     string = "".join(
         filter(

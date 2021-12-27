@@ -1,15 +1,17 @@
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from hashlib import sha1
 from itertools import chain
 from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
+from approx_dates.models import ApproxDate
 
 from common import (
     Performance,
     filter_only_full_entries,
+    is_exact_date,
     is_performance_instance,
     load_deta_project_key,
 )
@@ -43,8 +45,12 @@ BASE_INTERFACE = DetaBaseInterface(load_deta_project_key())
 
 
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:
+    print("converting back to performance", new_performance)
+
     if isinstance(new_performance, dict):
         new_performance = Performance(**new_performance)
+
+    print("converted to performance", new_performance)
 
     BASE_INTERFACE.put_db(new_performance)
 
@@ -125,24 +131,46 @@ def run():
     default_comments = entry_to_update.get("comments", "")
     default_concertant = entry_to_update.get("is_concertante", False)
 
-    col1, col2 = st.columns([1, 1])
+    name = st.text_input(label="Name", help="The name of the opera", value=default_name)
+    col1, col2 = st.columns([1, 3])
 
+    existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
+    already_approximate_date = existing_dates is not None and not is_exact_date(
+        existing_dates
+    )
     with col1:
-        name = st.text_input(
-            label="Name", help="The name of the opera", value=default_name
+        approximate_date = st.checkbox(
+            "Approximate date", value=already_approximate_date
         )
 
     with col2:
 
-        default_datetime_object = (
-            entry_to_update["date"] if "date" in entry_to_update else datetime.now()
-        )
-        default_date = datetime.date(default_datetime_object)
+        if approximate_date:
+            if existing_dates is None:
+                default_date = tuple()
+            else:
+                default_date = (
+                    existing_dates.earliest_date,
+                    existing_dates.latest_date,
+                )
+        else:
+            if existing_dates is None:
+                default_date = date.today()
+            else:
+                default_date = existing_dates.earliest_date
+                assert is_exact_date(existing_dates)
 
-        date_obj = st.date_input(
+        dates = st.date_input(
             label="Date", help="The day of the visit", value=default_date
         )
-        datetime_obj = datetime(date_obj.year, date_obj.month, date_obj.day)
+
+        if isinstance(dates, date):
+            dates = (dates, dates)
+
+        if len(dates) < 2:
+            date_range = ApproxDate.PAST
+        else:
+            date_range = ApproxDate(*dates)
 
     col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
 
@@ -267,9 +295,12 @@ def run():
 
     if submit_button:
         number_of_form_errors = 0
-        if datetime_obj > datetime.now():
+        if date_range.latest_date > date.today():
             number_of_form_errors += 1
             st.error("Selected date is in the future")
+        if date_range == ApproxDate.PAST:
+            number_of_form_errors += 1
+            st.error("Date range is not full")
         if name == "":
             number_of_form_errors += 1
             st.error("Name field is empty")
@@ -291,11 +322,13 @@ def run():
                     k: list(v) for k, v in st.session_state["leading_team"].items()
                 }
 
+                print("test to string", str(date_range))
+
                 final_dict = dict(
-                    date=datetime_obj,
+                    name=name,
+                    date=str(date_range),
                     production=production,
                     composer=composer,
-                    name=name,
                     stage=stage,
                     comments=comments,
                     is_concertante=concertante,
@@ -304,12 +337,16 @@ def run():
                 )
 
                 try:
+                    print("creating final instance")
                     final_data = Performance(**final_dict)
+
+                    print("final data", final_data)
 
                     if final_data in db:
                         st.error("Uploading same entry")
 
                     else:
+                        print("creating dict")
                         final_data_dict = final_data.dict()
 
                         if (
@@ -318,9 +355,11 @@ def run():
                         ):
                             delete_performance_by_key(entry_to_update["key"])
                         try:
+                            print("ready to send", final_data_dict)
                             send_new_performance(final_data_dict)
                         except Exception:
-                            send_new_performance(entry_to_update)
+                            if entry_to_update != {}:
+                                send_new_performance(entry_to_update)
                             raise
 
                         st.success("Database updated successfully")

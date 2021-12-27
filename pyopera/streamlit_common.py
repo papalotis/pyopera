@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
+from approx_dates.models import ApproxDate
 
 from common import DB_TYPE, Performance, load_deta_project_key
 from deta_base import DetaBaseInterface
@@ -36,7 +37,7 @@ def load_data_raw() -> Sequence[Mapping[str, Any]]:
 
 
 def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
-    return sorted(entries, key=operator.attrgetter("date"))
+    return sorted(entries, key=lambda x: x.date.earliest_date, reverse=True)
 
 
 def verify_and_sort_db() -> DB_TYPE:
@@ -107,12 +108,29 @@ def write_cast_and_leading_team(
         write_role_with_persons("Leading team", leading_team)
 
 
-def format_iso_date_to_day_month_year_with_dots(date_iso: Union[datetime, str]) -> str:
+def format_iso_date_to_day_month_year_with_dots(
+    date_iso: Union[datetime, str, ApproxDate]
+) -> str:
 
     if isinstance(date_iso, str):
         date_iso = datetime.fromisoformat(date_iso)
 
-    return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 2000:02}"
+    if isinstance(date_iso, ApproxDate):
+
+        earliest, latest = date_iso.earliest_date, date_iso.latest_date
+        if earliest.year == latest.year:
+            if earliest.month == latest.month:
+                if earliest.day == latest.day:
+                    return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
+                else:
+                    return f"{earliest.day:02}-{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
+            else:
+                return f"{earliest.day:02}.{earliest.month:02}-{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
+        else:
+            return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}-{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"
+
+    elif isinstance(date_iso, datetime):
+        return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 2000:02}"
 
 
 def format_title(performance: Optional[Union[Performance, dict]]) -> str:

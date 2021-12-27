@@ -54,7 +54,7 @@ class DetaBaseInterface:
 
         final_url = base_url + "/items"
 
-        final_data = _DatabasePUTModel(items=items_to_put).json()
+        final_data = _DatabasePUTModel(items=items_to_put).json(encoder=str)
 
         response = requests.put(final_url, data=final_data, headers=headers)
         response.raise_for_status()
