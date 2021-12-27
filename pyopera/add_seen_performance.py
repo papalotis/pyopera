@@ -45,12 +45,9 @@ BASE_INTERFACE = DetaBaseInterface(load_deta_project_key())
 
 
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:
-    print("converting back to performance", new_performance)
 
     if isinstance(new_performance, dict):
         new_performance = Performance(**new_performance)
-
-    print("converted to performance", new_performance)
 
     BASE_INTERFACE.put_db(new_performance)
 
@@ -325,8 +322,6 @@ def run():
                     k: list(v) for k, v in st.session_state["leading_team"].items()
                 }
 
-                print("test to string", str(date_range))
-
                 final_dict = dict(
                     name=name,
                     date=str(date_range),
@@ -340,16 +335,12 @@ def run():
                 )
 
                 try:
-                    print("creating final instance")
                     final_data = Performance(**final_dict)
-
-                    print("final data", final_data)
 
                     if final_data in db:
                         st.error("Uploading same entry")
 
                     else:
-                        print("creating dict")
                         final_data_dict = final_data.dict()
 
                         if (
@@ -358,7 +349,6 @@ def run():
                         ):
                             delete_performance_by_key(entry_to_update["key"])
                         try:
-                            print("ready to send", final_data_dict)
                             send_new_performance(final_data_dict)
                         except Exception:
                             if entry_to_update != {}:

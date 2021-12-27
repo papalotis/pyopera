@@ -121,12 +121,16 @@ def format_iso_date_to_day_month_year_with_dots(
         if earliest.year == latest.year:
             if earliest.month == latest.month:
                 if earliest.day == latest.day:
+                    # exact date
                     return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
                 else:
+                    # different day, same month
                     return f"{earliest.day:02}/{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
             else:
+                # same year different month
                 return f"{earliest.day:02}.{earliest.month:02}/{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
         else:
+            # all different
             return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}/{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"
 
     elif isinstance(date_iso, datetime):

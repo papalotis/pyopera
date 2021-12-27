@@ -80,7 +80,6 @@ class Performance(BaseModel):
         validate_assignment = True
         anystr_strip_whitespace = True
         arbitrary_types_allowed = True
-        # allow_reuse = True
 
     @validator("date", pre=True, always=True, allow_reuse=True)
     def parse_date(cls, v, **kwargs):
@@ -96,7 +95,6 @@ class Performance(BaseModel):
         try:
 
             exact_date = datetime.fromisoformat(v).date()
-            print("datetime successfull")
             approx_date = ApproxDate(exact_date, exact_date, source_string=v)
             return approx_date
         except ValueError:
@@ -107,7 +105,6 @@ class Performance(BaseModel):
                 # two partial dates split by " to "
                 # short iso to short iso
                 date_strings = v.split(" to ")
-                print(date_strings)
                 if len(date_strings) != 2:
                     raise ValueError(
                         f'Could not find two iso dates split by "to" in {v}'
@@ -118,7 +115,6 @@ class Performance(BaseModel):
 
     @validator("key", pre=True, always=True, allow_reuse=True)
     def create_key(cls, key, values, **kwargs):
-        print("test", key, values)
         computed_key = create_key_for_visited_performance_v2(values)
 
         if key is not None and computed_key != key:
@@ -200,8 +196,6 @@ def create_key_for_visited_performance_v2(performance: dict) -> str:
         date = date.isoformat()
 
     date = str(date)
-
-    print("string for key", date)
 
     string = "".join(
         filter(

@@ -1,6 +1,7 @@
 from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
 import requests
+from approx_dates.models import ApproxDate
 from pydantic import BaseModel
 
 from common import Performance
@@ -8,6 +9,9 @@ from common import Performance
 
 class _DatabasePUTModel(BaseModel):
     items: Sequence[Performance]
+
+    class Config:
+        json_encoders = {ApproxDate: str}
 
 
 class DetaBaseInterface:
@@ -54,7 +58,7 @@ class DetaBaseInterface:
 
         final_url = base_url + "/items"
 
-        final_data = _DatabasePUTModel(items=items_to_put).json(encoder=str)
+        final_data = _DatabasePUTModel(items=items_to_put).json()
 
         response = requests.put(final_url, data=final_data, headers=headers)
         response.raise_for_status()

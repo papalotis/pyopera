@@ -1,5 +1,4 @@
 import calendar
-import re
 import textwrap
 from collections import defaultdict
 from typing import (
@@ -27,6 +26,7 @@ from common import (
     DB_TYPE,
     convert_short_stage_name_to_long_if_available,
     get_all_names_from_performance,
+    is_exact_date,
 )
 from streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
@@ -35,12 +35,13 @@ from streamlit_common import (
 )
 
 
-def add_split_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
+def add_split_earliest_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
+
     return [
         dict(
-            day=entry.date.day,
-            month=entry.date.month,
-            year=entry.date.year,
+            day=entry.date.earliest_date.day,
+            month=entry.date.earliest_date.month,
+            year=entry.date.earliest_date.year,
             **entry.dict(),
         )
         for entry in db
@@ -65,6 +66,12 @@ def create_frequency_chart(
         columns = cast(Sequence[str], (columns,))
     else:
         columns = tuple(columns)
+
+    date_columns = {"day", "month", "year"}
+    present_date_columns = date_columns.intersection(columns)
+    if len(present_date_columns) > 0:
+        st.warning("Only entries with exact date are considered")
+        db = [entry for entry in db if is_exact_date(entry["date"])]
 
     if column_mapper is None:
         column_mapper = {}
@@ -126,7 +133,7 @@ def run_frequencies():
 
     month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
 
-    db = add_split_date_to_db(load_db())
+    db = add_split_earliest_date_to_db(load_db())
 
     presets = {
         ("name", "composer"): "Opus",
