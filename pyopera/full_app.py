@@ -1,6 +1,7 @@
 import streamlit as st
 
-from streamlit_common import clear_streamlit_cache
+from deta_base import convert_list_of_performances_to_json
+from streamlit_common import clear_streamlit_cache, load_db
 
 NAME = "Vangelis Opera Archiv"
 st.set_page_config(
@@ -11,8 +12,9 @@ st.set_page_config(
 
 # this is a trick so that isort does not put the imports above the set config line
 if True:
-    from add_seen_performance import run as run_add_performance
+    from add_seen_performance import run as run_add_seen_performance
     from show_overview import run as run_overview
+    from show_overview import run as run_overview_performances
     from show_stats import run as run_stats
     from streamlit_common import hide_hamburger_and_change_footer
     from visualize_json import run as run_vis_json
@@ -21,11 +23,23 @@ if True:
 hide_hamburger_and_change_footer()
 
 STRING_TO_FUNCTION = {
-    "Explore visits": run_vis_json,
     "Overview": run_overview,
+    "Explore visits": run_vis_json,
     "Explore statistics": run_stats,
-    "Edit database": run_add_performance,
+    "Edit database": run_add_seen_performance,
 }
+
+
+def download_button() -> None:
+    db = load_db()
+    json_string = convert_list_of_performances_to_json(db)
+    st.download_button(
+        "Download database as JSON",
+        json_string,
+        file_name="database.json",
+        mime="application/json",
+        help="Download the database content as a JSON file",
+    )
 
 
 def get_default_mode() -> int:
@@ -54,4 +68,9 @@ mode_function()
 
 with st.sidebar:
     st.markdown("#")
-    st.button("Clear cache", on_click=clear_streamlit_cache)
+    download_button()
+    st.button(
+        "Clear cache",
+        on_click=clear_streamlit_cache,
+        help="Clear the application cache",
+    )

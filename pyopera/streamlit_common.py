@@ -125,13 +125,13 @@ def format_iso_date_to_day_month_year_with_dots(
                     return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
                 else:
                     # different day, same month
-                    return f"{earliest.day:02}/{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
+                    return f"{earliest.day:02}-{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
             else:
                 # same year different month
-                return f"{earliest.day:02}.{earliest.month:02}/{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
+                return f"{earliest.day:02}.{earliest.month:02}-{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
         else:
             # all different
-            return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}/{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"
+            return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}-{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"
 
     elif isinstance(date_iso, datetime):
         return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 100:02}"

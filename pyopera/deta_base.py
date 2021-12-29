@@ -7,13 +7,6 @@ from pydantic import BaseModel
 from common import Performance
 
 
-class _DatabasePUTModel(BaseModel):
-    items: Sequence[Performance]
-
-    class Config:
-        json_encoders = {ApproxDate: str}
-
-
 class DetaBaseInterface:
     def __init__(self, project_key: str) -> None:
         self._project_key = project_key
@@ -58,7 +51,7 @@ class DetaBaseInterface:
 
         final_url = base_url + "/items"
 
-        final_data = _DatabasePUTModel(items=items_to_put).json()
+        final_data = convert_list_of_performances_to_json(items_to_put)
 
         response = requests.put(final_url, data=final_data, headers=headers)
         response.raise_for_status()
@@ -83,3 +76,14 @@ class DetaBaseInterface:
 
         response = requests.delete(final_url, headers=headers)
         response.raise_for_status()
+
+
+class _DatabasePUTModel(BaseModel):
+    items: Sequence[Performance]
+
+    class Config:
+        json_encoders = {ApproxDate: str}
+
+
+def convert_list_of_performances_to_json(performances: Sequence[Performance]) -> str:
+    return _DatabasePUTModel(items=performances).json()
