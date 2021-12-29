@@ -55,7 +55,7 @@ def get_year(title: str, composer: str) -> int:
 
             return get_year(new_title, composer)
 
-        raise
+        return -1
 
 
 def run_operas() -> None:
