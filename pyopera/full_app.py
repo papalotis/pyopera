@@ -64,9 +64,6 @@ with st.sidebar:
         st.radio("Mode", STRING_TO_FUNCTION, index=get_default_mode())
     )
 
-mode_function()
-
-with st.sidebar:
     st.markdown("#")
     download_button()
     st.button(
@@ -74,3 +71,6 @@ with st.sidebar:
         on_click=clear_streamlit_cache,
         help="Clear the application cache",
     )
+
+
+mode_function()

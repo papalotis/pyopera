@@ -50,9 +50,8 @@ def get_year(title: str, composer: str) -> int:
         return list(TITLE_AND_COMPOSER_TO_DATES[(title, composer)])[0][1]
     except KeyError:
 
-        if "ring-trilogie" in title.lower() or "tristan experiment" in title.lower():
-            new_title = "Das Rheingold"
-
+        if "ring-trilogie" in title.lower():
+            new_title = title.replace(" (Ring-Trilogie)", "")
             return get_year(new_title, composer)
 
         return -1

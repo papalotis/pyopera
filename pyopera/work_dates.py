@@ -125,7 +125,7 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("Orest", "Manfred Trojahn"): {(None, 2011, None)},
     ("Dido and Aeneas", "Henry Purcell"): {(None, 1689, None)},
     ("The epic of Gilgamesh", "Bohuslav Martinů"): {(None, 1955, 1958)},
-    ("Der fliegende Holländer", "Richard Wagner"): {(None, 1841, 1843)},
+    ("Der fliegende Holländer", "Richard Wagner"): {(1841, 1843, None)},
     ("Orlando furioso", "Antonio Vivaldi"): {(None, 1727, None)},
     ("Der Freischütz", "Carl Maria von Weber"): {(None, 1821, None)},
     ("Penthesilea", "Othmar Schoeck"): {(None, 1927, None)},
@@ -167,7 +167,7 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("Jeanne & Gilles", "François-Pierre Descamps"): {(None, 2018, None)},
     ("Julie & Jean", "Gerhard Schedl"): {(None, 2003, None)},
     ("L’italiana in Algeri", "Gioachino Rossini"): {(None, 1813, None)},
-    ("Beatrice Cenci", "Berthold Goldschmidt"): {(1950, 88, 94)},
+    ("Beatrice Cenci", "Berthold Goldschmidt"): {(1950, 1988, 1994)},
     ("Orlando Paladino", "Joseph Haydn"): {(None, 1782, None)},
     ("Die Gezeichneten", "Franz Schreker"): {(None, 1918, None)},
     ("Semele", "Georg Friedrich Händel"): {(None, 1744, None)},
@@ -213,7 +213,6 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("L’Europe galante", "André Campra"): {(None, 1697, None)},
     ("I puritani", "Vincenzo Bellini"): {(None, 1835, None)},
     ("The Mikado", "Arthur Sullivan"): {(None, 1885, None)},
-    ("Siegfried (Ring-Trilogie)", "Richard Wagner"): {(None, 1876, None)},
     ("Lulu", "Alban Berg"): {(None, 1937, None)},
     ("Le Prophète", "Giacomo Meyerbeer"): {(None, 1849, None)},
     ("Tannhäuser und der Sängerkrieg auf Wartburg", "Richard Wagner"): {
@@ -360,9 +359,8 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("Rinaldo", "Georg Friedrich Händel"): {(None, 1711, None)},
     ("Les pêcheurs de perles", "Georges Bizet"): {(None, 1863, None)},
     ("Demofoonte", "Christoph Willibald Gluck"): {(None, 1743, None)},
-    ("Iphigénie en Aulide et Tauride", "Christoph Willibald Gluck"): {
-        (None, 1774, None)
-    },
+    ("Iphigénie en Aulide", "Christoph Willibald Gluck"): {(None, 1774, None)},
+    ("Iphigénie en Tauride", "Christoph Willibald Gluck"): {(None, 1779, None)},
     ("La Stellidaura vendicante", "Francesco Provenzale"): {(None, 1674, None)},
     ("Roberto Devereux", "Gaetano Donizetti"): {(None, 1837, None)},
     ("Onkel Präsident", "Friedrich Cerha"): {(None, 2013, None)},
@@ -377,7 +375,8 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("An Index of Metals", "Fausto Romitelli"): {(None, 2003, None)},
     ("I due Foscari", "Giuseppe Verdi"): {(None, 1844, None)},
     ("Adriano in Siria", "Francesco Maria Veracini"): {(None, 1735, None)},
-    ("Lazarus", "Franz Schubert / Charles Ives"): {(None, 1820, 1863)},
+    ("Lazarus", "Franz Schubert"): {(None, 1820, 1863)},
+    ("Lazarus", "Charles Ives"): {(None, 1820, 1863)},
     ("La Cenerentola", "Gioachino Rossini"): {(None, 1817, None)},
     ("Les Danaïdes", "Antonio Salieri"): {(None, 1784, None)},
     ("Anna Bolena", "Gaetano Donizetti"): {(None, 1830, None)},
@@ -428,7 +427,8 @@ TITLE_AND_COMPOSER_TO_DATES = {
         (None, 2014, None)
     },
     ("Die Fledermaus", "Johann Strauss"): {(None, 1874, None)},
-    ("Semiramide", "Leonardo Vinci / Georg Friedrich Händel"): {(None, 1733, None)},
+    ("Semiramide riconosciuta", "Georg Friedrich Händel"): {(None, 1733, None)},
+    ("Semiramide riconosciuta", "Leonardo Vinci"): {(None, 1733, None)},
     ("Anfang eines Romans (Počátek románu)", "Leoš Janáček"): {(None, 1894, None)},
     ("Die Ausflüge des Herrn Brouček (Výlety páně Broučkovy)", "Leoš Janáček"): {
         (None, 1921, None)
@@ -437,7 +437,7 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("Kátja Kabanová", "Leoš Janáček"): {(None, 1921, None)},
     ("Aus einem Totenhaus (Z mrtvého domu)", "Leoš Janáček"): {(None, 1930, None)},
     ("Der Jahrmarkt von Sorotschinzi", "Modest Mussorgski"): {(None, 1880, 1932)},
-    ("Der goldene Hahn (Solotoi petbuschok)", "Nikolai Rimski-Korsakow"): {
+    ("Der goldene Hahn (Solotoi petuschok)", "Nikolai Rimski-Korsakow"): {
         (None, 1909, None)
     },
     ("Die Zarenbraut (Zarskaja newesta)", "Nikolai Rimski-Korsakow"): {
@@ -467,4 +467,8 @@ TITLE_AND_COMPOSER_TO_DATES = {
     ("Θέλω να δω τον Πάπα", "Θεόφραστος Σακελλαρίδης"): {(None, 1920, None)},
     ("Ο Βαφτιστικός", "Θεόφραστος Σακελλαρίδης"): {(None, 1918, None)},
     ("Η Κρητικοπούλα", "Σπύρος Σαμάρας"): {(None, 1916, None)},
+    ("Tristan Experiment", "Richard Wagner"): {(None, 2021, None)},
+    ("Brünnhilde", "Richard Wagner"): {(None, 2017, None)},
+    ("Siegfried", "Richard Wagner"): {(None, 2017, None)},
+    ("Hagen", "Richard Wagner"): {(None, 2017, None)},
 }

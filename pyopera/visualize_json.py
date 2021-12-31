@@ -8,7 +8,12 @@ from common import (
     filter_only_full_entries,
     get_all_names_from_performance,
 )
-from streamlit_common import format_title, load_db, write_cast_and_leading_team
+from streamlit_common import (
+    format_iso_date_to_day_month_year_with_dots,
+    format_title,
+    load_db,
+    write_cast_and_leading_team,
+)
 
 try:
     from icecream import ic
@@ -68,6 +73,7 @@ def run():
         )
 
     st.markdown(f"# {performance.name}")
+    st.markdown(format_iso_date_to_day_month_year_with_dots(performance.date))
 
     stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
         performance.stage, performance.stage
