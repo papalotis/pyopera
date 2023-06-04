@@ -323,13 +323,13 @@ def run_single_role():
 
 def run():
     modes = {
-        "Frequencies": run_frequencies,
-        "Opus Info": run_single_opus,
-        "Person Info": run_single_person,
-        "Role Info": run_single_role,
+        "Numbers": run_frequencies,
+        "Opera": run_single_opus,
+        "Artist": run_single_person,
+        "Role": run_single_role,
     }
 
     with st.sidebar:
-        function = modes.get(st.radio("Stats to show", modes))
+        function = modes.get(st.radio("Items", modes))
 
     function()
