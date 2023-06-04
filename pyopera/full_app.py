@@ -3,7 +3,7 @@ import streamlit as st
 from deta_base import convert_list_of_performances_to_json
 from streamlit_common import clear_streamlit_cache, load_db
 
-NAME = "Vangelis Opera Archiv"
+NAME = "Vangelis OperArchive"
 st.set_page_config(
     page_title=NAME,
     page_icon=":violin:",
@@ -24,8 +24,8 @@ hide_hamburger_and_change_footer()
 
 STRING_TO_FUNCTION = {
     "Overview": run_overview,
-    "Explore visits": run_vis_json,
-    "Explore statistics": run_stats,
+    "Performances": run_vis_json,
+    "Search": run_stats,
     "Edit database": run_add_seen_performance,
 }
 
