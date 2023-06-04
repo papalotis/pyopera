@@ -72,16 +72,16 @@ def run():
             "Select Performance", db_filtered, format_func=format_title
         )
 
+    stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
+        performance.stage, performance.stage
+    )
     st.markdown(
-        f"### **{performance.composer}**\n## {performance.name}\nformat_iso_date_to_day_month_year_with_dots(performance.date){stage_name_to_show}"
+        f"##### **{performance.composer}**\n### {performance.name}\n{format_iso_date_to_day_month_year_with_dots(performance.date)}\n\n{stage_name_to_show}"
     )
 
     # st.markdown(f"# {performance.name}")
     # st.markdown(format_iso_date_to_day_month_year_with_dots(performance.date))
 
-    stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
-        performance.stage, performance.stage
-    )
     # st.markdown(
     #     f"#### **{performance.composer}**\n{stage_name_to_show}"
     #     f"{' - ' + performance.production if performance.stage != performance.production else ''}"

@@ -69,7 +69,7 @@ def run_operas() -> None:
     for composer in sorted(
         composer_to_titles.keys(), key=lambda composer: composer.split(" ")[-1]
     ):
-        markdown_text.append(f"### {remove_greek_diacritics(composer).upper()}")
+        markdown_text.append(f"#### {remove_greek_diacritics(composer).upper()}")
 
         for title in sorted(
             composer_to_titles[composer],
@@ -87,7 +87,7 @@ def run_operas() -> None:
             stages_string = ", ".join(stages_strings)
 
             markdown_text.append(
-                f"#### {title} ({year})<br><sub>{stages_string}</sub>",
+                f"##### {title} ({year})<br><sub>{stages_string}</sub>",
             )
 
         markdown_text.append("---")
