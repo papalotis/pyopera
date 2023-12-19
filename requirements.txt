@@ -4,5 +4,5 @@ typing-extensions==3.10.0.0
 requests==2.26.0
 fastapi-utils==0.2.1
 plotly==5.3.1
-streamlit
+streamlit==1.27
 approx-dates==0.0.1
