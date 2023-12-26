@@ -164,6 +164,5 @@ def format_role(role: str) -> str:
 
 
 def clear_streamlit_cache() -> None:
-    import streamlit.legacy_caching
-
-    streamlit.legacy_caching.clear_cache()
+    import streamlit
+    streamlit.cache_data.clear()
