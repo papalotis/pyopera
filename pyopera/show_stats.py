@@ -123,7 +123,18 @@ def key_sort_opus_by_name_and_composer(
     name_composer_rest: Tuple[str, ...]
 ) -> Tuple[str, ...]:
     name, composer, *a = name_composer_rest
-    return (name.replace("A ", "").replace("The ", "").replace("An ", ""), composer, *a)
+    name_no_prefix = (
+        name.replace("A ", "")
+        .replace("The ", "")
+        .replace("An ", "")
+        .replace("Der ", "")
+        .replace("Die ", "")
+        .replace("Das ", "")
+        .replace("La ", "")
+        .replace("Le ", "")
+        .replace("L'", "")
+    )
+    return (name_no_prefix, composer, *a)
 
 
 def run_frequencies():
