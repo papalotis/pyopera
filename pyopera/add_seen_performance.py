@@ -289,6 +289,21 @@ def run():
         st.session_state["cast"], st.session_state["leading_team"]
     )
 
+    if update_existing:
+        ### delete entry
+        with st.expander("Delete entry"):
+            st.warning("This action will permanently delete the entry from the database. Make sure that you absolutely want to delete the entry before proceeding.")
+            # ask user text confirmation
+            confirmation_text = f'Yes I want to delete entry "{format_title(entry_to_update)}"'
+            user_delete_text = st.text_input(f"Type '{confirmation_text}' to confirm deletion", value="")
+
+            user_text_confirmation = user_delete_text == confirmation_text
+            delete_button = st.button("Delete entry", disabled=not user_text_confirmation)
+            if delete_button and user_text_confirmation:
+                delete_performance_by_key(entry_to_update["key"])
+                st.success("Entry deleted successfully")
+                clear_streamlit_cache()
+
     st.markdown("---")
 
     submit_button = st.button(label="Submit" + (" update" if update_existing else ""))
