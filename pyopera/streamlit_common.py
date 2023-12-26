@@ -28,7 +28,7 @@ def hide_hamburger_and_change_footer() -> None:
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 
-@st.cache(show_spinner=False, suppress_st_warning=True)
+@st.cache_data(show_spinner=False)
 def load_data_raw() -> Sequence[Mapping[str, Any]]:
     base_interface = DetaBaseInterface(load_deta_project_key())
     with st.spinner("Loading data..."):
@@ -48,7 +48,7 @@ def verify_and_sort_db() -> DB_TYPE:
     return sorted_data
 
 
-@st.cache
+@st.cache_data
 def reset_existing_db():
     st.session_state["DB"] = None
 
