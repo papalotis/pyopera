@@ -5,7 +5,6 @@ from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
 from approx_dates.models import ApproxDate
-
 from common import DB_TYPE, Performance, load_deta_project_key
 from deta_base import DetaBaseInterface
 
@@ -70,7 +69,6 @@ def key_is_exception(key: str) -> bool:
 
 
 def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
-
     d_without_exceptions = {k: v for k, v in d.items() if not key_is_exception(k)}
 
     for role, persons in d_without_exceptions.items():
@@ -88,7 +86,6 @@ def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
 
 
 def write_role_with_persons(title: str, dict_of_roles: dict):
-
     if sum(map(len, dict_of_roles.values())) > 0:
         st.markdown(f"## {title}")
         write_person_with_role(dict_of_roles)
@@ -97,26 +94,22 @@ def write_role_with_persons(title: str, dict_of_roles: dict):
 def write_cast_and_leading_team(
     cast: Mapping[str, Sequence[str]], leading_team: Mapping[str, Sequence[str]]
 ):
-
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
         write_role_with_persons("Cast", cast)
 
     with col_right:
-
         write_role_with_persons("Leading team", leading_team)
 
 
 def format_iso_date_to_day_month_year_with_dots(
     date_iso: Union[datetime, str, ApproxDate]
 ) -> str:
-
     if isinstance(date_iso, str):
         date_iso = datetime.fromisoformat(date_iso)
 
     if isinstance(date_iso, ApproxDate):
-
         earliest, latest = date_iso.earliest_date, date_iso.latest_date
         if earliest.year == latest.year:
             if earliest.month == latest.month:
@@ -165,4 +158,5 @@ def format_role(role: str) -> str:
 
 def clear_streamlit_cache() -> None:
     import streamlit
+
     streamlit.cache_data.clear()

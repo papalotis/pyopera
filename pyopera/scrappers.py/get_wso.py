@@ -7,11 +7,11 @@ from typing import Any, Iterable, Sequence, TypeVar
 
 import requests
 from bs4 import BeautifulSoup
+from common import Performance, austria_date_to_datetime, export_as_json
+from icecream import ic
 from joblib import Memory
 from more_itertools import chunked
 from tqdm import tqdm, trange
-
-from common import Performance, austria_date_to_datetime
 
 base_link = "https://archiv.wiener-staatsoper.at"
 
@@ -238,7 +238,6 @@ Drei vorstellungen müssen gesondert hinzugefügt werden: 2.2.20 Rusalka, 30.11.
 
 
 def fix_known_issues(performances: Sequence[Performance]) -> None:
-
     for performance in performances:
         if (
             performance.date == datetime(2017, 9, 18)
@@ -248,7 +247,6 @@ def fix_known_issues(performances: Sequence[Performance]) -> None:
 
 
 def get_all():
-
     b = json.loads(
         Path(
             "/mnt/c/Users/papal/Documents/fun_stuff/pyopera/db/vangelis_excel_converted.json"
@@ -269,10 +267,6 @@ def get_all():
 
     return all_performances
 
-
-from icecream import ic
-
-from common import export_as_json
 
 if __name__ == "__main__":
     all_performances = get_all()

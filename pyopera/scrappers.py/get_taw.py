@@ -8,10 +8,6 @@ from typing import DefaultDict, MutableSequence, Optional, Union
 import requests
 from aioitertools.asyncio import gather as limit_gather
 from bs4 import BeautifulSoup
-from icecream import ic
-from joblib import Memory
-from tqdm import tqdm
-
 from common import (
     GERMAN_MONTH_TO_INT,
     Performance,
@@ -19,6 +15,9 @@ from common import (
     load_deta_project_key,
     normalize_title,
 )
+from icecream import ic
+from joblib import Memory
+from tqdm import tqdm
 
 memory = Memory(Path(__file__).parent.parent / "cachedir")
 
@@ -42,7 +41,6 @@ main_soup = BeautifulSoup(get_main_archive_page().text, "lxml")
 def get_production_link_from_title_and_date(
     search_title: str, search_date: Union[datetime]
 ) -> Optional[str]:
-
     if isinstance(search_date, str):
         search_date = datetime.fromisoformat(search_date)
 
@@ -77,7 +75,6 @@ def get_production_link_from_title_and_date(
             pass
             # ic(search_title, element_title, search_date, start_date, end_date)
         else:
-
             if normalized_element_title != normalized_search_title:
                 continue
 
@@ -105,7 +102,6 @@ leading_team_roles = {
 async def extract_info_from_production_page(
     production_link: Optional[str], date: Union[datetime, str]
 ) -> Optional[dict]:
-
     if production_link is None:
         return None
 
@@ -139,7 +135,6 @@ async def extract_info_from_production_page(
             role_or_part_with_date = role_or_part_with_date.strip()
             match = re.match(r"(.*)((\d{2}\.){2})", role_or_part_with_date)
             if match is not None:
-
                 role_or_part, single_date_str, _ = match.groups()
                 single_date_day, single_date_month, _ = single_date_str.split(".")
                 single_date = datetime(
@@ -153,7 +148,6 @@ async def extract_info_from_production_page(
                     dict_to_append[role_or_part].append(person)
 
             else:
-
                 split_on_parenthesis = re.split(
                     r"(\(\d+)", role_or_part_with_date, maxsplit=1
                 )
@@ -176,7 +170,6 @@ async def extract_info_from_production_page(
                     *days, month = re.findall("(\w+|\d+)", to_search)
 
                     for day in days:
-
                         try:
                             month = int(month)
                         except ValueError:

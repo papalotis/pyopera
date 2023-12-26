@@ -2,9 +2,8 @@ from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
 import requests
 from approx_dates.models import ApproxDate
-from pydantic import BaseModel
-
 from common import Performance
+from pydantic import BaseModel
 
 
 class DetaBaseInterface:

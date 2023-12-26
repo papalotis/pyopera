@@ -1,7 +1,6 @@
 from typing import Counter, Sequence
 
 import streamlit as st
-
 from common import (
     SHORT_STAGE_NAME_TO_FULL,
     Performance,
@@ -22,7 +21,6 @@ except ImportError:
 
 
 def run():
-
     db = load_db()
 
     all_names_counter: Counter[str] = Counter(
@@ -32,7 +30,6 @@ def run():
     )
 
     with st.sidebar:
-
         performance_selectbox = st.empty()
 
         options = st.multiselect(
@@ -88,7 +85,6 @@ def run():
     # )
 
     def hightlight_person_if_selected(person: str) -> str:
-
         if person in options:
             person = f"**{person}**"
 

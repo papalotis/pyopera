@@ -19,24 +19,22 @@ from typing import (
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from more_itertools.recipes import flatten
-from unidecode import unidecode
-
 from common import (
     DB_TYPE,
     convert_short_stage_name_to_long_if_available,
     get_all_names_from_performance,
     is_exact_date,
 )
+from more_itertools.recipes import flatten
 from streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     load_db,
     remove_singular_prefix_from_role,
 )
+from unidecode import unidecode
 
 
 def add_split_earliest_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
-
     return [
         dict(
             day=entry.date.earliest_date.day,
@@ -61,7 +59,6 @@ def create_frequency_chart(
     column_mapper: Optional[Mapping[str, Mapping[str, str]]] = None,
     column_order: Optional[Sequence[str]] = None,
 ) -> None:
-
     if isinstance(columns, str):
         columns = cast(Sequence[str], (columns,))
     else:
@@ -130,7 +127,6 @@ def key_sort_opus_by_name_and_composer(
 
 
 def run_frequencies():
-
     month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
 
     db = add_split_earliest_date_to_db(load_db())
@@ -182,7 +178,6 @@ def run_frequencies():
 
 
 def run_single_opus():
-
     with st.sidebar:
         all_opus = sorted(
             {(performance.name, performance.composer) for performance in load_db()},
@@ -209,7 +204,6 @@ def run_single_opus():
 
 
 def run_single_person():
-
     with st.sidebar:
         all_persons = sorted(
             set(
@@ -229,7 +223,6 @@ def run_single_person():
         if person in get_all_names_from_performance(performance)
     ]
     for entry in all_entries_with_person:
-
         all_roles = ChainMap(entry.leading_team, entry.cast)
         roles = [role for role, persons in all_roles.items() if person in persons]
 
@@ -251,7 +244,6 @@ def normalize_role(role: str) -> str:
 
 
 def run_single_role():
-
     with st.sidebar:
         all_opus = sorted(
             {(performance.name, performance.composer) for performance in load_db()},

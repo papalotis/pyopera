@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Sequence, Tuple
 
 from deta import Deta
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 if TYPE_CHECKING:
     from pyopera.common import DB_TYPE
@@ -95,9 +97,6 @@ def do_delete_old_files() -> Sequence[str]:
     return list(filenames_to_delete), get_all_backup_filename_list()
 
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-
 try:
     from deta import App
 
@@ -124,7 +123,6 @@ try:
     @app.lib.cron()
     def cron(event) -> None:
         return {**backup(event), **delete_old_files(event)}
-
 
 except ImportError:
     app = FastAPI()

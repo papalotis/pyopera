@@ -175,7 +175,6 @@ class Performance(BaseModel):
             return v
 
         try:
-
             exact_date = datetime.fromisoformat(v).date()
             approx_date = ApproxDate(exact_date, exact_date, source_string=v)
             return approx_date
@@ -271,7 +270,6 @@ def load_deta_project_key() -> str:
 
 
 def create_key_for_visited_performance_v2(performance: dict) -> str:
-
     date = performance["date"]
 
     if isinstance(date, datetime):
@@ -299,7 +297,6 @@ def create_key_for_visited_performance_v2(performance: dict) -> str:
 
 
 def get_all_names_from_performance(performance: Performance) -> Set[str]:
-
     return_set = set(
         flatten(
             ChainMap(

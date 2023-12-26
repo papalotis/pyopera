@@ -61,7 +61,6 @@ async def extract_info_from_link(link: str) -> Performance:
 
 
 async def amain() -> None:
-
     links = ic(get_opera_links_from_season_page(vow_get_main_page(2015)))
 
     ic(links)

@@ -3,7 +3,6 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Set, Tuple
 
 import streamlit as st
-
 from common import DB_TYPE, Performance, convert_short_stage_name_to_long_if_available
 from streamlit_common import format_iso_date_to_day_month_year_with_dots, load_db
 from work_dates import TITLE_AND_COMPOSER_TO_DATES
@@ -45,11 +44,9 @@ def remove_greek_diacritics(text: str) -> str:
 
 
 def get_year(title: str, composer: str) -> int:
-
     try:
         return list(TITLE_AND_COMPOSER_TO_DATES[(title, composer)])[0][1]
     except KeyError:
-
         if "ring-trilogie" in title.lower():
             new_title = title.replace(" (Ring-Trilogie)", "")
             return get_year(new_title, composer)
@@ -103,7 +100,6 @@ def run_performances() -> None:
     markdown_text.append("# Performances")
 
     for entry in db:
-
         stage = convert_short_stage_name_to_long_if_available(entry.stage)
         date = format_iso_date_to_day_month_year_with_dots(entry.date)
         markdown_text.append(f"{date} - {stage} - {entry.composer} - {entry.name}\n")

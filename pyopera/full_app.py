@@ -1,5 +1,4 @@
 import streamlit as st
-
 from deta_base import convert_list_of_performances_to_json
 from streamlit_common import clear_streamlit_cache, load_db
 
@@ -65,9 +64,8 @@ with st.sidebar:
     )
 
 
-
 mode_function()
-    
+
 with st.sidebar:
     st.markdown("#")
     download_button()

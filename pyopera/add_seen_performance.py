@@ -7,7 +7,6 @@ from typing import Mapping, NoReturn, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 from approx_dates.models import ApproxDate
-
 from common import (
     Performance,
     filter_only_full_entries,
@@ -45,7 +44,6 @@ BASE_INTERFACE = DetaBaseInterface(load_deta_project_key())
 
 
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:
-
     if isinstance(new_performance, dict):
         new_performance = Performance(**new_performance)
 
@@ -65,14 +63,11 @@ def clear_cast_leading_team_from_session_state():
 
 
 def run():
-
     authenticate()
     db = load_db()
 
     with st.sidebar:
-
         if st.checkbox("Only show non-full entries"):
-
             db_to_use = [
                 performance
                 for performance in db
@@ -141,7 +136,6 @@ def run():
         )
 
     with col2:
-
         if approximate_date:
             if existing_dates is None:
                 default_date = tuple()
@@ -292,13 +286,21 @@ def run():
     if update_existing:
         ### delete entry
         with st.expander("Delete entry"):
-            st.warning("This action will permanently delete the entry from the database. Make sure that you absolutely want to delete the entry before proceeding.")
+            st.warning(
+                "This action will permanently delete the entry from the database. Make sure that you absolutely want to delete the entry before proceeding."
+            )
             # ask user text confirmation
-            confirmation_text = f'Yes I want to delete entry "{format_title(entry_to_update)}"'
-            user_delete_text = st.text_input(f"Type '{confirmation_text}' to confirm deletion", value="")
+            confirmation_text = (
+                f'Yes I want to delete entry "{format_title(entry_to_update)}"'
+            )
+            user_delete_text = st.text_input(
+                f"Type '{confirmation_text}' to confirm deletion", value=""
+            )
 
             user_text_confirmation = user_delete_text == confirmation_text
-            delete_button = st.button("Delete entry", disabled=not user_text_confirmation)
+            delete_button = st.button(
+                "Delete entry", disabled=not user_text_confirmation
+            )
             if delete_button and user_text_confirmation:
                 delete_performance_by_key(entry_to_update["key"])
                 st.success("Entry deleted successfully")

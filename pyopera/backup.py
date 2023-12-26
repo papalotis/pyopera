@@ -3,10 +3,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from common import load_deta_project_key
 from deta import Deta
 from icecream import ic
-
-from common import load_deta_project_key
 
 deta = Deta(load_deta_project_key())
 
