@@ -133,6 +133,7 @@ def key_sort_opus_by_name_and_composer(
         .replace("La ", "")
         .replace("Le ", "")
         .replace("L'", "")
+        .replace("L’", "")
     )
     return (name_no_prefix, composer, *a)
 
