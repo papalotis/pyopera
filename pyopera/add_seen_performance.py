@@ -36,4 +36,6 @@ def run():
             "Select action", func_to_title, format_func=func_to_title.get
         )
 
+        st.markdown("---")
+
     function()
