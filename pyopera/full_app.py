@@ -1,4 +1,5 @@
 import streamlit as st
+from common import Performance
 from deta_base import convert_list_of_performances_to_json
 from streamlit_common import clear_streamlit_cache, load_db
 
@@ -31,7 +32,7 @@ STRING_TO_FUNCTION = {
 
 def download_button() -> None:
     db = load_db()
-    json_string = convert_list_of_performances_to_json(db)
+    json_string = convert_list_of_performances_to_json(db, Performance)
     st.download_button(
         "Download database as JSON",
         json_string,

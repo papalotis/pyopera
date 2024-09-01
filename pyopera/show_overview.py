@@ -3,9 +3,17 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Set, Tuple
 
 import streamlit as st
-from common import DB_TYPE, Performance, convert_short_stage_name_to_long_if_available
-from streamlit_common import format_iso_date_to_day_month_year_with_dots, load_db
-from work_dates import TITLE_AND_COMPOSER_TO_DATES
+from common import (
+    DB_TYPE,
+    Performance,
+    WorkYearEntryModel,
+    convert_short_stage_name_to_long_if_available,
+)
+from streamlit_common import (
+    format_iso_date_to_day_month_year_with_dots,
+    load_db,
+    load_db_works_year,
+)
 
 
 def group_works_by_composer_and_name(
@@ -43,19 +51,24 @@ def remove_greek_diacritics(text: str) -> str:
     return unicodedata.normalize("NFD", text).translate(d)
 
 
-def get_year(title: str, composer: str) -> int:
+def get_year(
+    title: str,
+    composer: str,
+    title_and_composer_to_dates: dict[tuple[str, str], WorkYearEntryModel],
+) -> int:
     try:
-        return list(TITLE_AND_COMPOSER_TO_DATES[(title, composer)])[0][1]
+        return title_and_composer_to_dates[(title, composer)].year
     except KeyError:
         if "ring-trilogie" in title.lower():
             new_title = title.replace(" (Ring-Trilogie)", "")
-            return get_year(new_title, composer)
+            return get_year(new_title, composer, title_and_composer_to_dates)
 
         return -1
 
 
 def run_operas() -> None:
     db = load_db()
+    title_and_composer_to_dates = load_db_works_year()
     groups = group_works_by_composer_and_name(db)
     composer_to_titles = map_composer_to_names(db)
 
@@ -70,9 +83,9 @@ def run_operas() -> None:
 
         for title in sorted(
             composer_to_titles[composer],
-            key=lambda title: get_year(title, composer),
+            key=lambda title: get_year(title, composer, title_and_composer_to_dates),
         ):
-            year = get_year(title, composer)
+            year = get_year(title, composer, title_and_composer_to_dates)
             visits = groups[composer, title]
 
             stages = Counter(performance.stage for performance in visits)

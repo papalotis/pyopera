@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Sequence, Union
 
 import streamlit as st
 from approx_dates.models import ApproxDate
-from common import DB_TYPE, Performance, load_deta_project_key
+from common import DB_TYPE, Performance, WorkYearEntryModel, load_deta_project_key
 from deta_base import DetaBaseInterface
 
 
@@ -27,12 +27,21 @@ def hide_hamburger_and_change_footer() -> None:
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 
-@st.cache_data(show_spinner=False)
 def load_data_raw() -> Sequence[Mapping[str, Any]]:
     base_interface = DetaBaseInterface(load_deta_project_key())
     with st.spinner("Loading data..."):
         raw_data = base_interface.fetch_db()
         return raw_data
+
+
+def load_works_year_raw() -> Mapping[tuple[str, str], WorkYearEntryModel]:
+    base_interface = DetaBaseInterface(load_deta_project_key(), db_name="works_year")
+    with st.spinner("Loading works year data..."):
+        raw_data = base_interface.fetch_db()
+        return {
+            (data["title"], data["composer"]): WorkYearEntryModel(**data)
+            for data in raw_data
+        }
 
 
 def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
@@ -47,18 +56,34 @@ def verify_and_sort_db() -> DB_TYPE:
     return sorted_data
 
 
-@st.cache_data
 def reset_existing_db():
+    st.session_state["DB"] = None
+    st.session_state["DB_WORKS_YEAR"] = None
+
+
+def clear_db_cache():
     st.session_state["DB"] = None
 
 
-def load_db() -> DB_TYPE:
-    reset_existing_db()
+def clear_works_year_cache():
+    st.session_state["DB_WORKS_YEAR"] = None
 
-    if "DB" not in st.session_state or st.session_state["DB"] == None:
+
+def load_db() -> DB_TYPE:
+    if "DB" not in st.session_state or st.session_state["DB"] is None:
         st.session_state["DB"] = verify_and_sort_db()
 
     return st.session_state["DB"]
+
+
+def load_db_works_year() -> Mapping[tuple[str, str], WorkYearEntryModel]:
+    if (
+        "DB_WORKS_YEAR" not in st.session_state
+        or st.session_state["DB_WORKS_YEAR"] is None
+    ):
+        st.session_state["DB_WORKS_YEAR"] = load_works_year_raw()
+
+    return st.session_state["DB_WORKS_YEAR"]
 
 
 def key_is_exception(key: str) -> bool:
@@ -104,7 +129,7 @@ def write_cast_and_leading_team(
 
 
 def format_iso_date_to_day_month_year_with_dots(
-    date_iso: Union[datetime, str, ApproxDate]
+    date_iso: Union[datetime, str, ApproxDate],
 ) -> str:
     if isinstance(date_iso, str):
         date_iso = datetime.fromisoformat(date_iso)

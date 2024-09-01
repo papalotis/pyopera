@@ -326,3 +326,10 @@ def is_performance_instance(performance: Performance):
     # hacky way to check if the type is Performance since
     # st rerun mechanism does not work with isinstance
     return performance.__class__.__name__ == Performance.__name__
+
+
+class WorkYearEntryModel(BaseModel):
+    composer: NonEmptyStr
+    title: NonEmptyStr
+    year: int
+    key: str = None
