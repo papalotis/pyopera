@@ -1,7 +1,7 @@
 import operator
 import re
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 from approx_dates.models import ApproxDate
@@ -34,7 +34,7 @@ def load_data_raw() -> Sequence[Mapping[str, Any]]:
         return raw_data
 
 
-def load_works_year_raw() -> Mapping[tuple[str, str], WorkYearEntryModel]:
+def load_works_year_raw() -> Mapping[Tuple[str, str], WorkYearEntryModel]:
     base_interface = DetaBaseInterface(load_deta_project_key(), db_name="works_year")
     with st.spinner("Loading works year data..."):
         raw_data = base_interface.fetch_db()
@@ -76,7 +76,7 @@ def load_db() -> DB_TYPE:
     return st.session_state["DB"]
 
 
-def load_db_works_year() -> Mapping[tuple[str, str], WorkYearEntryModel]:
+def load_db_works_year() -> Mapping[Tuple[str, str], WorkYearEntryModel]:
     if (
         "DB_WORKS_YEAR" not in st.session_state
         or st.session_state["DB_WORKS_YEAR"] is None

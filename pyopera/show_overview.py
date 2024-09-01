@@ -54,7 +54,7 @@ def remove_greek_diacritics(text: str) -> str:
 def get_year(
     title: str,
     composer: str,
-    title_and_composer_to_dates: dict[tuple[str, str], WorkYearEntryModel],
+    title_and_composer_to_dates: Dict[Tuple[str, str], WorkYearEntryModel],
 ) -> int:
     try:
         return title_and_composer_to_dates[(title, composer)].year
