@@ -1,98 +1,87 @@
-from typing import Any, Generic, Mapping, Optional, Sequence, Tuple, Type, Union, TypeVar
+from typing import (
+    Any,
+    Generic,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
-import requests
+import boto3
+import streamlit as st
 from approx_dates.models import ApproxDate
+from boto3.resources.factory import ServiceResource
 from common import Performance
 from pydantic import BaseModel
-
 
 EntryType = TypeVar("EntryType", bound=BaseModel)
 
 
+def create_dynamodb_resource() -> ServiceResource:
+    """Create a DynamoDB resource using credentials stored in Streamlit secrets."""
+    aws_access_key_id = st.secrets["aws"]["aws_access_key_id"]
+    aws_secret_access_key = st.secrets["aws"]["aws_secret_access_key"]
+    aws_region = st.secrets["aws"]["aws_region"]
+
+    session = boto3.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name=aws_region,
+    )
+
+    dynamodb = session.resource("dynamodb")
+    return dynamodb
+
 
 class DetaBaseInterface(Generic[EntryType]):
-    def __init__(self, project_key: str, db_name: str = "performances", entry_type: Type[EntryType]=Performance) -> None:
-        self._project_key = project_key
-        self._db_name = db_name
+    def __init__(
+        self,
+        db_name: str = "performances",
+        entry_type: Type[EntryType] = Performance,
+    ) -> None:
+        self.dynamo_db_resource = create_dynamodb_resource()
+        self.table = self.dynamo_db_resource.Table(db_name)
         self._entry_type = entry_type
 
-    def _get_db_base_url(self) -> str:
-        project_key_split = self._project_key.split("_")
-        assert len(project_key_split) == 2
-        project_id = project_key_split[0]
-        base_name = self._db_name
-        base_url = f"https://database.deta.sh/v1/{project_id}/{base_name}"
-        return base_url
+    def fetch_db(self) -> Sequence[EntryType]:
+        response = self.table.scan()
 
-    def _create_db_request_base_url_and_headers(self) -> Tuple[str, Mapping[str, str]]:
-        base_url = self._get_db_base_url()
+        items = response.get("Items", [])
 
-        headers = {"X-API-Key": self._project_key, "Content-Type": "application/json"}
-
-        return base_url, headers
-
-    def fetch_db(
-        self, max_elements: Optional[int] = None
-    ) -> Sequence[EntryType]:
-        base_url, headers = self._create_db_request_base_url_and_headers()
-
-        final_url = base_url + "/query"
-
-        payload = {}
-        if max_elements is not None:
-            payload["limit"] = max_elements
-
-        response = requests.post(final_url, json=payload, headers=headers)
-        response.raise_for_status()
-        raw_data = response.json()["items"]
-
-        return raw_data
+        return [self._entry_type(**item) for item in items]
 
     def put_db(self, items_to_put: Union[EntryType, Sequence[EntryType]]) -> None:
         if isinstance(items_to_put, self._entry_type):
             items_to_put = [items_to_put]
 
-        base_url, headers = self._create_db_request_base_url_and_headers()
+        with self.table.batch_writer() as batch:
+            for item in items_to_put:
+                item_dict = item.dict()
 
-        final_url = base_url + "/items"
+                # Convert ApproxDate to string
+                for key, value in item_dict.items():
+                    if isinstance(value, ApproxDate):
+                        item_dict[key] = str(value)
 
-        final_data = convert_list_of_performances_to_json(items_to_put, self._entry_type)
-
-        response = requests.put(final_url, data=final_data, headers=headers)
-        response.raise_for_status()
-
-        response_json = response.json()
-
-        if "failed" in response_json:
-            raise ValueError(
-                f"The following items could not be PUT in the database:\n{response_json['failed']}"
-            )
+                batch.put_item(Item=item_dict)
 
     def delete_item_db(self, to_delete: Union[EntryType, str]) -> None:
         if isinstance(to_delete, self._entry_type):
-            assert to_delete.key is not None
-            key_to_delete = to_delete.key
-        else:
-            key_to_delete = to_delete
+            to_delete = to_delete.key
 
-        base_url, headers = self._create_db_request_base_url_and_headers()
-
-        final_url = base_url + f"/items/{key_to_delete}"
-
-        response = requests.delete(final_url, headers=headers)
-        response.raise_for_status()
+        self.table.delete_item(Key={"key": to_delete})
 
 
-
-
-def convert_list_of_performances_to_json(performances: Sequence[EntryType], entry_class: Type[EntryType]) -> str:
-
+def convert_list_of_performances_to_json(
+    performances: Sequence[EntryType], entry_class: Type[EntryType]
+) -> str:
     class _DatabasePUTModel(BaseModel):
-        items: Sequence[entry_class]
+        items: Sequence[
+            entry_class
+        ]  # Reference the input `entry_class` correctly using the ellipsis
 
         class Config:
             json_encoders = {ApproxDate: str}
 
-
-
+    # Instantiate _DatabasePUTModel with provided data
     return _DatabasePUTModel(items=performances).json()

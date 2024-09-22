@@ -20,7 +20,7 @@ from streamlit_common import (
     write_cast_and_leading_team,
 )
 
-BASE_INTERFACE = DetaBaseInterface(load_deta_project_key())
+BASE_INTERFACE = DetaBaseInterface()
 
 
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:

@@ -162,6 +162,7 @@ class Performance(BaseModel):
         validate_assignment = True
         anystr_strip_whitespace = True
         arbitrary_types_allowed = True
+        json_encoders = {ApproxDate: str}
 
     @validator("date", pre=True, always=True, allow_reuse=True)
     def parse_date(cls, v, **kwargs):
@@ -270,6 +271,9 @@ def load_deta_project_key() -> str:
 
 
 def create_key_for_visited_performance_v2(performance: dict) -> str:
+    if isinstance(performance, Performance):
+        performance = performance.dict()
+
     date = performance["date"]
 
     if isinstance(date, datetime):

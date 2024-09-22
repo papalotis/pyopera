@@ -6,3 +6,5 @@ fastapi-utils==0.2.1
 plotly==5.3.1
 streamlit==1.27
 approx-dates==0.0.1
+boto3==1.35.24
+boto3-stubs==1.35.24

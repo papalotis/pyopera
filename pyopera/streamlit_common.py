@@ -1,11 +1,12 @@
-import operator
 import re
+import time
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Tuple, Union
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
+import streamlit.components.v1 as components
 from approx_dates.models import ApproxDate
-from common import DB_TYPE, Performance, WorkYearEntryModel, load_deta_project_key
+from common import DB_TYPE, Performance, WorkYearEntryModel
 from deta_base import DetaBaseInterface
 
 
@@ -27,21 +28,20 @@ def hide_hamburger_and_change_footer() -> None:
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 
-def load_data_raw() -> Sequence[Mapping[str, Any]]:
-    base_interface = DetaBaseInterface(load_deta_project_key())
+def load_data_raw() -> Sequence[Performance]:
+    base_interface = DetaBaseInterface()
     with st.spinner("Loading data..."):
         raw_data = base_interface.fetch_db()
         return raw_data
 
 
 def load_works_year_raw() -> Mapping[Tuple[str, str], WorkYearEntryModel]:
-    base_interface = DetaBaseInterface(load_deta_project_key(), db_name="works_year")
+    base_interface = DetaBaseInterface(
+        db_name="works_dates", entry_type=WorkYearEntryModel
+    )
     with st.spinner("Loading works year data..."):
         raw_data = base_interface.fetch_db()
-        return {
-            (data["title"], data["composer"]): WorkYearEntryModel(**data)
-            for data in raw_data
-        }
+        return {(data.title, data.composer): data for data in raw_data}
 
 
 def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
@@ -50,8 +50,7 @@ def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
 
 def verify_and_sort_db() -> DB_TYPE:
     raw_data = load_data_raw()
-    verified_data = [Performance(**data) for data in raw_data]
-    sorted_data = sort_entries_by_date(verified_data)
+    sorted_data = sort_entries_by_date(raw_data)
 
     return sorted_data
 
@@ -185,3 +184,14 @@ def clear_streamlit_cache() -> None:
     import streamlit
 
     streamlit.cache_data.clear()
+
+
+def scroll_to_top_of_page():
+    components.html(
+        """
+    <script>
+        window.parent.postMessage({type: 'scrollToTop'}, "*");
+    </script>
+    """,
+        height=0,  # Set height to 0 since we don't need to display anything
+    )

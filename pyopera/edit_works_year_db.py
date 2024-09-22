@@ -67,9 +67,7 @@ def run() -> None:
 
     year = st.number_input("Year", value=default_year, min_value=0)
 
-    interface = DetaBaseInterface(
-        load_deta_project_key(), db_name="works_year", entry_type=WorkYearEntryModel
-    )
+    interface = DetaBaseInterface(db_name="works_dates", entry_type=WorkYearEntryModel)
 
     new_entry_key = entry.key if entry is not None else None
 

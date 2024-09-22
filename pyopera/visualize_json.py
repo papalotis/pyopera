@@ -72,6 +72,14 @@ def run():
     stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
         performance.stage, performance.stage
     )
+
+    production_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
+        performance.production, performance.production
+    )
+
+    if stage_name_to_show != production_name_to_show:
+        stage_name_to_show += f" - {production_name_to_show}"
+
     st.markdown(
         f"##### **{performance.composer}**\n### {performance.name}\n{format_iso_date_to_day_month_year_with_dots(performance.date)}\n\n{stage_name_to_show}"
     )
