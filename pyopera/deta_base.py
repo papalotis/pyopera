@@ -12,7 +12,7 @@ import streamlit as st
 from approx_dates.models import ApproxDate
 from boto3.resources.factory import ServiceResource
 from common import Performance
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 EntryType = TypeVar("EntryType", bound=BaseModel)
 
@@ -79,9 +79,9 @@ def convert_list_of_performances_to_json(
         items: Sequence[
             entry_class
         ]  # Reference the input `entry_class` correctly using the ellipsis
-
-        class Config:
-            json_encoders = {ApproxDate: str}
+        # TODO[pydantic]: The following keys were removed: `json_encoders`.
+        # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+        model_config = ConfigDict(json_encoders={ApproxDate: str})
 
     # Instantiate _DatabasePUTModel with provided data
     return _DatabasePUTModel(items=performances).json()

@@ -2,7 +2,7 @@ from typing import Sequence
 
 import streamlit as st
 from common import Performance, WorkYearEntryModel
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from streamlit_common import (
     load_db,
     load_db_works_year,
@@ -48,9 +48,9 @@ def download_button() -> None:
     class CombinedModel(BaseModel):
         performances: Sequence[Performance]
         works_dates: Sequence[WorkYearEntryModel]
-
-        class Config:
-            json_encoders = {ApproxDate: str}
+        # TODO[pydantic]: The following keys were removed: `json_encoders`.
+        # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+        model_config = ConfigDict(json_encoders={ApproxDate: str})
 
     combined_model = CombinedModel(performances=db, works_dates=works_dates_db)
     combined_model_json = combined_model.json()

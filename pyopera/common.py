@@ -5,12 +5,13 @@ from collections import ChainMap
 from datetime import date, datetime
 from hashlib import sha1
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from approx_dates.models import ApproxDate
 from more_itertools import flatten
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, validator
 from pydantic.types import conlist, constr
+from typing_extensions import Annotated
 from unidecode import unidecode
 
 GERMAN_MONTH_TO_INT = {
@@ -143,9 +144,9 @@ def convert_short_stage_name_to_long_if_available(short_state_name: str) -> str:
     return SHORT_STAGE_NAME_TO_FULL.get(short_state_name, short_state_name)
 
 
-NonEmptyStr = constr(min_length=1)
-NonEmptyStrList = conlist(NonEmptyStr, min_items=1)
-SHA1Str = constr(regex=r"[0-9a-f]{40}")
+NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
+NonEmptyStrList = Annotated[List[NonEmptyStr], Field(min_items=1)]
+SHA1Str = Annotated[str, StringConstraints(pattern=r"[0-9a-f]{40}")]
 
 
 class Performance(BaseModel):
@@ -159,13 +160,17 @@ class Performance(BaseModel):
     comments: str
     is_concertante: bool
     key: SHA1Str = None
+    # TODO[pydantic]: The following keys were removed: `json_encoders`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(
+        validate_assignment=True,
+        str_strip_whitespace=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ApproxDate: str},
+    )
 
-    class Config:
-        validate_assignment = True
-        anystr_strip_whitespace = True
-        arbitrary_types_allowed = True
-        json_encoders = {ApproxDate: str}
-
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("date", pre=True, always=True, allow_reuse=True)
     def parse_date(cls, v, **kwargs):
         # there are three possible formats:
@@ -197,6 +202,8 @@ class Performance(BaseModel):
                 approx_date = ApproxDate(early_date, late_date, source_string=v)
                 return approx_date
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("key", pre=True, always=True, allow_reuse=True)
     def create_key(cls, key, values, **kwargs):
         computed_key = create_key_for_visited_performance_v2(values)
@@ -340,6 +347,8 @@ class WorkYearEntryModel(BaseModel):
     year: int
     key: Optional[str] = None
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("key", pre=True, always=True, allow_reuse=True)
     def create_key(cls, key, values, **kwargs):
         if key is not None:
