@@ -120,7 +120,7 @@ def format_column_name(column_name: str) -> str:
 
 
 def key_sort_opus_by_name_and_composer(
-    name_composer_rest: Tuple[str, ...]
+    name_composer_rest: Tuple[str, ...],
 ) -> Tuple[str, ...]:
     name, composer, *a = name_composer_rest
     name_no_prefix = (
