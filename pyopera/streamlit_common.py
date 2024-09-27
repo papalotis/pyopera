@@ -10,24 +10,6 @@ from common import DB_TYPE, Performance, WorkYearEntryModel
 from deta_base import DetaBaseInterface
 
 
-def hide_hamburger_and_change_footer() -> None:
-    hide_streamlit_style = """
-            <style>
-            footer {visibility: hidden;}
-            footer:after {
-                content:"Made by Panagiotis"; 
-                visibility: visible;
-                display: block;
-                position: relative;
-                #background-color: red;
-                padding: 5px;
-                top: 2px;
-            }
-            </style>
-            """
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-
 def load_data_raw() -> Sequence[Performance]:
     base_interface = DetaBaseInterface()
     with st.spinner("Loading data..."):

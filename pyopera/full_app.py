@@ -23,8 +23,6 @@ if True:
     from visualize_json import run as run_vis_json
 
 
-# hide_hamburger_and_change_footer()
-
 STRING_TO_FUNCTION = {
     "Overview": run_overview,
     "Performances": run_vis_json,
