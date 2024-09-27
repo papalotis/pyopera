@@ -1,8 +1,7 @@
-more-itertools==8.8.0
-Unidecode==1.2.0
+more-itertools
+Unidecode
 typing-extensions
-requests==2.26.0
-fastapi-utils==0.2.1
+requests
 plotly==5.3.1
 streamlit==1.38
 approx-dates==0.0.1
