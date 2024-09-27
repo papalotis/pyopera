@@ -338,7 +338,7 @@ class WorkYearEntryModel(BaseModel):
     composer: NonEmptyStr
     title: NonEmptyStr
     year: int
-    key: str | None = None
+    key: Optional[str] = None
 
     @validator("key", pre=True, always=True, allow_reuse=True)
     def create_key(cls, key, values, **kwargs):
