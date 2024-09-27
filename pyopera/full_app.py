@@ -37,7 +37,13 @@ STRING_TO_FUNCTION = {
 
 
 def download_button() -> None:
+    import platform
+
     from approx_dates.models import ApproxDate
+
+    if platform.processor() in ("", None):
+        # running on streamlit sharing, so no need to download
+        return
 
     db = load_db()
     works_dates_db = list(load_db_works_year().values())

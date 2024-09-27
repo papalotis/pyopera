@@ -27,7 +27,7 @@ def run():
 
     func_to_title = {
         edit_main_db: "Edit main database",
-        edit_works_year_db: "Edit works year database",
+        edit_works_year_db: "Edit year of first performance",
     }
 
     with st.sidebar:

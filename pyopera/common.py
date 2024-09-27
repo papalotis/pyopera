@@ -1,4 +1,6 @@
 import json
+import random
+import string
 from collections import ChainMap
 from datetime import date, datetime
 from hashlib import sha1
@@ -336,4 +338,15 @@ class WorkYearEntryModel(BaseModel):
     composer: NonEmptyStr
     title: NonEmptyStr
     year: int
-    key: str = None
+    key: str | None = None
+
+    @validator("key", pre=True, always=True, allow_reuse=True)
+    def create_key(cls, key, values, **kwargs):
+        if key is not None:
+            return key
+
+        available_characters = string.ascii_lowercase + string.digits
+        # create a 12 character long random key
+        new_key = "".join(random.choices(available_characters, k=12))
+
+        return new_key
