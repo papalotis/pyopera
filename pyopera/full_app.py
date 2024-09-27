@@ -95,26 +95,3 @@ mode_function()
 with st.sidebar:
     st.markdown("#")
     download_button()
-    # st.button(
-    #     "Clear cache",
-    #     on_click=clear_streamlit_cache,
-    #     help="Clear the application cache",
-    # )
-
-
-if "to_run_once" not in st.session_state:
-    # only show toast until end of september 2024
-    if datetime.now() < datetime(2024, 10, 1):
-        st.toast("New database is being used")
-
-    st.session_state["to_run_once"] = True
-
-    components.html(
-        """
-    <script>
-        var element = window.parent.document.getElementById("operas");
-        element.scrollIntoView({behavior: 'smooth'});
-    </script>
-    """,
-        height=0,  # Set height to 0 since we don't need to display anything
-    )
