@@ -10,7 +10,6 @@ from common import (
     Performance,
     is_exact_date,
     is_performance_instance,
-    load_deta_project_key,
 )
 from deta_base import DetaBaseInterface
 from streamlit_common import (

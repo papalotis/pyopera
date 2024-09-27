@@ -69,6 +69,12 @@ def get_year(
 def run_operas() -> None:
     db = load_db()
     title_and_composer_to_dates = load_db_works_year()
+    markdown_string = create_markdown_string(db, title_and_composer_to_dates)
+
+    st.markdown(markdown_string, unsafe_allow_html=True)
+
+
+def create_markdown_string(db, title_and_composer_to_dates):
     groups = group_works_by_composer_and_name(db)
     composer_to_titles = map_composer_to_names(db)
 
@@ -102,12 +108,19 @@ def run_operas() -> None:
 
         markdown_text.append("---")
 
-    st.markdown("\n".join(markdown_text), unsafe_allow_html=True)
+    final_markdown = "\n".join(markdown_text)
+    return final_markdown
 
 
 def run_performances() -> None:
     db = load_db()
 
+    markdown_string = create_performances_markdown_string(db)
+
+    st.markdown(markdown_string, unsafe_allow_html=True)
+
+
+def create_performances_markdown_string(db):
     markdown_text = []
 
     markdown_text.append("# Performances")
@@ -117,7 +130,7 @@ def run_performances() -> None:
         date = format_iso_date_to_day_month_year_with_dots(entry.date)
         markdown_text.append(f"{date} - {stage} - {entry.composer} - {entry.name}\n")
 
-    st.markdown("\n".join(markdown_text), unsafe_allow_html=True)
+    return "\n".join(markdown_text)
 
 
 def run() -> None:

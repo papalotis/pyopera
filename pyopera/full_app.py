@@ -1,8 +1,6 @@
-from datetime import datetime
 from typing import Sequence
 
 import streamlit as st
-import streamlit.components.v1 as components
 from common import Performance, WorkYearEntryModel
 from pydantic import BaseModel
 from streamlit_common import (
@@ -22,11 +20,10 @@ if True:
     from add_seen_performance import run as run_add_seen_performance
     from show_overview import run as run_overview
     from show_stats import run as run_stats
-    from streamlit_common import hide_hamburger_and_change_footer
     from visualize_json import run as run_vis_json
 
 
-hide_hamburger_and_change_footer()
+# hide_hamburger_and_change_footer()
 
 STRING_TO_FUNCTION = {
     "Overview": run_overview,
@@ -69,7 +66,7 @@ def download_button() -> None:
 
 def get_default_mode() -> int:
     try:
-        params = st.experimental_get_query_params()
+        params = st.query_params
         mode_params = params["mode"][0]
         try:
             default_index = list(STRING_TO_FUNCTION).index(mode_params)
