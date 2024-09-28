@@ -4,9 +4,14 @@ from typing import NoReturn, Optional
 import streamlit as st
 from edit_main_db import run as edit_main_db
 from edit_works_year_db import run as edit_works_year_db
+from streamlit_common import runs_on_streamlit_sharing
 
 
 def authenticate() -> Optional[NoReturn]:
+    if not runs_on_streamlit_sharing():
+        # running locally, no need to authenticate
+        return
+
     if "authenticated" not in st.session_state:
         password_widget = st.empty()
         password = password_widget.text_input("Enter password", type="password")
@@ -26,14 +31,15 @@ def run():
     authenticate()
 
     func_to_title = {
-        edit_main_db: "Edit main database",
-        edit_works_year_db: "Edit year of first performance",
+        edit_main_db: ":material/storage: Main database",
+        edit_works_year_db: ":material/edit_calendar: Year of first performance",
     }
 
     with st.sidebar:
-        st.title("Admin panel")
         function = st.radio(
-            "Select action", func_to_title, format_func=func_to_title.get
+            "Select database :material/database:",
+            func_to_title,
+            format_func=func_to_title.get,
         )
 
         st.markdown("---")

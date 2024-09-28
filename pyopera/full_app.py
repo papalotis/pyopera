@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Callable, Sequence
 
 import streamlit as st
 from common import Performance, WorkYearEntryModel
@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from streamlit_common import (
     load_db,
     load_db_works_year,
+    runs_on_streamlit_sharing,
 )
 
 NAME = "Vangelis OperArchive"
@@ -23,20 +24,28 @@ if True:
     from visualize_json import run as run_vis_json
 
 
-STRING_TO_FUNCTION = {
-    "Overview": run_overview,
-    "Performances": run_vis_json,
-    "Search": run_stats,
-    "Edit database": run_add_seen_performance,
-}
+CALLABLE_TITLE_ICON: list[tuple[Callable[[], None], str, str]] = [
+    (run_overview, "Overview", ":material/bar_chart:"),
+    (run_vis_json, "Performances", ":material/theater_comedy:"),
+    (run_stats, "Search", ":material/search:"),
+    (run_add_seen_performance, "Edit database", ":material/build:"),
+]
+
+
+def create_pages():
+    return [
+        st.Page(
+            kallable, title=title, icon=icon, url_path=title.lower().replace(" ", "_")
+        )
+        for kallable, title, icon in CALLABLE_TITLE_ICON
+    ]
 
 
 def download_button() -> None:
-    import platform
-
+    return
     from approx_dates.models import ApproxDate
 
-    if platform.processor() in ("", None):
+    if runs_on_streamlit_sharing():
         # running on streamlit sharing, so no need to download
         return
 
@@ -46,8 +55,7 @@ def download_button() -> None:
     class CombinedModel(BaseModel):
         performances: Sequence[Performance]
         works_dates: Sequence[WorkYearEntryModel]
-        # TODO[pydantic]: The following keys were removed: `json_encoders`.
-        # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+
         model_config = ConfigDict(json_encoders={ApproxDate: str})
 
     combined_model = CombinedModel(performances=db, works_dates=works_dates_db)
@@ -62,30 +70,9 @@ def download_button() -> None:
     )
 
 
-def get_default_mode() -> int:
-    try:
-        params = st.query_params
-        mode_params = params["mode"][0]
-        try:
-            default_index = list(STRING_TO_FUNCTION).index(mode_params)
-        except ValueError:
-            st.warning(f"Mode {mode_params} could not be found.")
-            default_index = 0
-    except KeyError:
-        default_index = 0
+page = st.navigation(create_pages())
+page.run()
 
-    return default_index
-
-
-with st.sidebar:
-    st.title(NAME)
-
-    mode_function = STRING_TO_FUNCTION.get(
-        st.radio("Mode", STRING_TO_FUNCTION, index=get_default_mode())
-    )
-
-
-mode_function()
 
 with st.sidebar:
     st.markdown("#")

@@ -1,3 +1,4 @@
+import platform
 import re
 import time
 from datetime import datetime
@@ -75,7 +76,11 @@ def key_is_exception(key: str) -> bool:
 
 
 def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
-    d_without_exceptions = {k: v for k, v in d.items() if not key_is_exception(k)}
+    d_sorted = dict(sorted(d.items()))
+
+    d_without_exceptions = {
+        k: v for k, v in d_sorted.items() if not key_is_exception(k)
+    }
 
     for role, persons in d_without_exceptions.items():
         if len(persons) > 0:
@@ -177,3 +182,7 @@ def scroll_to_top_of_page():
     """,
         height=0,  # Set height to 0 since we don't need to display anything
     )
+
+
+def runs_on_streamlit_sharing() -> bool:
+    return platform.processor() in ("", None)

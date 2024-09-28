@@ -135,12 +135,12 @@ def create_performances_markdown_string(db):
 
 def run() -> None:
     modes = {
-        "Operas": run_operas,
-        "Performances": run_performances,
+        ":material/music_note: Operas": run_operas,
+        ":material/local_activity: Performances": run_performances,
     }
 
-    with st.sidebar:
-        mode = st.radio("Overview mode", modes)
-        mode_function = modes[mode]
+    tabs = st.tabs(modes.keys())
 
-    mode_function()
+    for tab, mode_function in zip(tabs, modes.values()):
+        with tab:
+            mode_function()

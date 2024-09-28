@@ -328,10 +328,10 @@ def run_single_role():
 
 def run():
     modes = {
-        "Numbers": run_frequencies,
-        "Opera": run_single_opus,
-        "Artist": run_single_person,
-        "Role": run_single_role,
+        ":material/monitoring: Numbers": run_frequencies,
+        ":material/music_note: Opera": run_single_opus,
+        ":material/person_search: Artist": run_single_person,
+        ":material/person_pin: Role": run_single_role,
     }
 
     with st.sidebar:

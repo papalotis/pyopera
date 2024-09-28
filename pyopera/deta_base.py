@@ -44,11 +44,23 @@ class DetaBaseInterface(Generic[EntryType]):
         self._entry_type = entry_type
 
     def fetch_db(self) -> Sequence[EntryType]:
-        response = self.table.scan()
+        final_items = []
 
-        items = response.get("Items", [])
+        kwargs = {}
 
-        return [self._entry_type(**item) for item in items]
+        while True:
+            response = self.table.scan(**kwargs)
+
+            items = response.get("Items", [])
+            final_items.extend(items)
+
+            # If there are no more items to fetch, break the loop
+            if response.get("LastEvaluatedKey") is None:
+                break
+
+            kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]
+
+        return [self._entry_type(**item) for item in final_items]
 
     def put_db(self, items_to_put: Union[EntryType, Sequence[EntryType]]) -> None:
         if isinstance(items_to_put, self._entry_type):
@@ -56,7 +68,7 @@ class DetaBaseInterface(Generic[EntryType]):
 
         with self.table.batch_writer() as batch:
             for item in items_to_put:
-                item_dict = item.dict()
+                item_dict = item.model_dump()
 
                 # Convert ApproxDate to string
                 for key, value in item_dict.items():

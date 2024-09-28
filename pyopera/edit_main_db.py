@@ -232,10 +232,17 @@ def run() -> None:
     cast_flat = all_persons_with_role(st.session_state["cast"])
     leading_team_flat = all_persons_with_role(st.session_state["leading_team"])
 
+    # st.write(cast_flat)
+    # st.write(leading_team_flat)
+
+    def format_func(role_name: Tuple[str, str]) -> str:
+        role, name = role_name
+        return f"{role} - {name}"
+
     remove = st.selectbox(
         "Remove",
-        chain(cast_flat, leading_team_flat),
-        format_func=lambda role_name,: " - ".join(role_name),
+        [*cast_flat, *leading_team_flat],
+        format_func=format_func,
     )
 
     do_remove = st.button("Remove")
