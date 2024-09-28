@@ -2,6 +2,7 @@ from typing import Callable, Sequence
 
 import streamlit as st
 from common import Performance, WorkYearEntryModel
+from generate_logo import generate_logo
 from pydantic import BaseModel, ConfigDict
 from streamlit_common import (
     load_db,
@@ -70,6 +71,7 @@ def download_button() -> None:
     )
 
 
+st.logo(generate_logo())
 page = st.navigation(create_pages())
 page.run()
 
