@@ -1,35 +1,14 @@
-import json
 import random
 import string
 from collections import ChainMap
 from datetime import date, datetime
-from hashlib import sha1
-from pathlib import Path
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import List, Mapping, Optional, Sequence
 
 from approx_dates.models import ApproxDate
 from more_itertools import flatten
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, validator
-from pydantic.types import conlist, constr
 from typing_extensions import Annotated
 from unidecode import unidecode
-
-GERMAN_MONTH_TO_INT = {
-    "Januar": 1,
-    "Jänner": 1,
-    "Februar": 2,
-    "März": 3,
-    "April": 4,
-    "Mai": 5,
-    "Juni": 6,
-    "Juli": 7,
-    "August": 8,
-    "September": 9,
-    "Oktober": 10,
-    "November": 11,
-    "Dezember": 12,
-}
-
 
 SHORT_STAGE_NAME_TO_FULL = {
     "WSO": "Wiener Staatsoper",
@@ -39,40 +18,40 @@ SHORT_STAGE_NAME_TO_FULL = {
     "KOaF": "Kammeroper am Fleischmarkt",
     "KOB": "Komische Oper Berlin",
     "SUL": "Staatsoper unter den Linden",
-    "MMAT": "Μέγαρο Μουσικής, Αίθουσα Αλεξάνδρα Τριάντη ",
-    "OF": "Oper Frankfurt ",
+    "MMAT": "Μέγαρο Μουσικής, Αίθουσα Αλεξάνδρα Τριάντη",
+    "OF": "Oper Frankfurt",
     "MTL": "Musiktheater Linz",
-    "WKH": "Wiener Konzerthaus, Großer Saal ",
+    "WKH": "Wiener Konzerthaus, Großer Saal",
     "OG": "Oper Graz",
-    "OLY": "Θέατρο Ολύμπια ",
+    "OLY": "Θέατρο Ολύμπια",
     "HER": "Ωδείο Ηρώδου Αττικού",
     "MQE": "Museumsquartier Halle E",
     "NTM": "Nationaltheater München",
     "ND": "Národní Divadlo",
-    "BSK": "Badisches Staatstheater Karlsruhe ",
+    "BSK": "Badisches Staatstheater Karlsruhe",
     "HfM": "Haus für Mozart",
     "OH": "Oper Halle",
-    "SND-N": "Slovenské Národné Divadlo, Nová budova ",
+    "SND-N": "Slovenské Národné Divadlo, Nová budova",
     "SNF": "Ίδρυμα Σταύρος Νιάρχος (Λυρική Σκηνή)",
     "WMV": "Wiener Musikverein",
     "OZ": "Oper Zürich",
     "MTL-BB": "Musiktheater Linz, Black Box",
     "PRT": "Prinzregententheater",
     "JAN": "Janáčkovo Divadlo",
-    "KAS": "Kasino ",
+    "KAS": "Kasino",
     "FEL": "Felsenreitschule",
     "HSW": "Hessisches Staatstheater Wiesbaden",
     "SND-I": "Slovenské Národné Divadlo, Historická budova",
     "LTS": "Landestheater Salzburg",
-    "AKZ": "Theater Akzent ",
+    "AKZ": "Theater Akzent",
     "BPh": "Berliner Philharmonie",
     "HEB": "Hebbel-Theater",
     "ALT": "Stift Altenburg",
     "StKNB": "Stift Klosterneuburg Kaiserhof",
     "MAN": "Nationaltheater Mannheim",
-    "ERK": "Erkel Színház ",
-    "BREF": "Festspielhaus Bregenz ",
-    "SEM": "Semperdepot ",
+    "ERK": "Erkel Színház",
+    "BREF": "Festspielhaus Bregenz",
+    "SEM": "Semperdepot",
     "BERN": "Konzert Theater Bern",
     "CAS": "Casino Baden – Festsaal",
     "TRI": "Trinkhalle Bad Wildbad",
@@ -127,17 +106,7 @@ SHORT_STAGE_NAME_TO_FULL = {
     "HDM": "Haus der Musik, Innsbruck",
 }
 
-
-def austria_date_to_datetime(date_str: str) -> datetime:
-    """
-    Convert "Samstag, 28. August 2021" to datetime(2021, 08, 28)
-    """
-
-    day_name, day, month_name, year = date_str.split(" ")
-    day_int = int(day.replace(".", ""))
-    month_int = GERMAN_MONTH_TO_INT[month_name]
-    year_int = int(year)
-    return datetime(year_int, month_int, day_int)
+SHORT_STAGE_NAME_TO_FULL = {k: v.strip() for k, v in SHORT_STAGE_NAME_TO_FULL.items()}
 
 
 def convert_short_stage_name_to_long_if_available(short_state_name: str) -> str:
@@ -206,14 +175,11 @@ class Performance(BaseModel):
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("key", pre=True, always=True, allow_reuse=True)
     def create_key(cls, key, values, **kwargs):
-        computed_key = create_key_for_visited_performance_v2(values)
+        if key is not None:
+            return key
 
-        if key is not None and computed_key != key:
-            raise ValueError(
-                f"Computed key ({computed_key}) and provided key ({key}) are not the same"
-            )
-
-        return computed_key
+        # create random key
+        return create_key_for_visited_performance_v3()
 
 
 def is_exact_date(date: ApproxDate) -> bool:
@@ -221,24 +187,6 @@ def is_exact_date(date: ApproxDate) -> bool:
 
 
 DB_TYPE = Sequence[Performance]
-
-
-def export_as_json(performances: Sequence[Performance]) -> str:
-    def default(obj: Any) -> str:
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-
-        if isinstance(obj, ApproxDate):
-            return str(obj)
-
-        raise TypeError("Unknown type: ", type(obj))
-
-    to_save = {
-        "$schema": "https://raw.githubusercontent.com/papalotis/pyopera/main/schemas/performance_schema.json",
-        "data": performances,
-    }
-
-    return json.dumps(to_save, default=default)
 
 
 def normalize_title(title: str) -> str:
@@ -255,61 +203,14 @@ def normalize_title(title: str) -> str:
     )
 
 
-def load_deta_project_key() -> str:
-    try:
-        import os
+def create_key_for_visited_performance_v3() -> str:
+    available_characters = "abcdef" + string.digits
 
-        return os.environ["project_key"]
-    except KeyError:
-        try:
-            deta_project_key: str = json.loads(
-                (Path(__file__).parent.parent / "deta_project_data.json").read_text()
-            )["Project Key"]
-        except (FileNotFoundError, KeyError) as error:
-            try:
-                import streamlit as st
-            except ImportError:
-                raise error
-
-            st.error(
-                "Cannot find database key. Cannot continue! Please reload the page."
-            )
-            st.stop()
-
-    return deta_project_key
+    # create a 40 character long random string (like a sha1 hash)
+    return "".join(random.choices(available_characters, k=40))
 
 
-def create_key_for_visited_performance_v2(performance: dict) -> str:
-    if isinstance(performance, Performance):
-        performance = performance.dict()
-
-    date = performance["date"]
-
-    if isinstance(date, datetime):
-        date = date.isoformat()
-
-    date = str(date)
-
-    string = "".join(
-        filter(
-            str.isalnum,
-            "".join(
-                map(
-                    normalize_title,
-                    (
-                        performance["name"],
-                        performance["stage"],
-                        performance["composer"],
-                    ),
-                )
-            )
-            + date,
-        )
-    )
-    return sha1(string.encode()).hexdigest()
-
-
-def get_all_names_from_performance(performance: Performance) -> Set[str]:
+def get_all_names_from_performance(performance: Performance) -> set[str]:
     return_set = set(
         flatten(
             ChainMap(
@@ -341,6 +242,12 @@ def is_performance_instance(performance: Performance):
     return performance.__class__.__name__ == Performance.__name__
 
 
+def create_deta_style_key() -> str:
+    available_characters = string.ascii_lowercase + string.digits
+    # create a 12 character long random
+    return "".join(random.choices(available_characters, k=12))
+
+
 class WorkYearEntryModel(BaseModel):
     composer: NonEmptyStr
     title: NonEmptyStr
@@ -354,8 +261,4 @@ class WorkYearEntryModel(BaseModel):
         if key is not None:
             return key
 
-        available_characters = string.ascii_lowercase + string.digits
-        # create a 12 character long random key
-        new_key = "".join(random.choices(available_characters, k=12))
-
-        return new_key
+        return create_deta_style_key()

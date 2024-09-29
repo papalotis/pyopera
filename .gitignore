@@ -144,3 +144,6 @@ backups
 notes.md
 
 .streamlit/secrets.toml
+
+
+.ruff_cache/

@@ -6,13 +6,14 @@ from typing import Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 from approx_dates.models import ApproxDate
-from common import (
+
+from pyopera.common import (
     Performance,
     is_exact_date,
     is_performance_instance,
 )
-from deta_base import DetaBaseInterface
-from streamlit_common import (
+from pyopera.deta_base import DetaBaseInterface
+from pyopera.streamlit_common import (
     clear_db_cache,
     format_title,
     load_db,
@@ -165,7 +166,9 @@ def run() -> None:
         value=default_comments,
     )
 
-    mode = st.radio("Cast or Leading team mode", ["Cast", "Leading team"])
+    mode = st.radio(
+        "Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True
+    )
 
     add_to_cast = mode == "Cast"
 

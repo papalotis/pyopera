@@ -1,14 +1,13 @@
 import platform
 import re
-import time
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
-import streamlit.components.v1 as components
 from approx_dates.models import ApproxDate
-from common import DB_TYPE, Performance, WorkYearEntryModel
-from deta_base import DetaBaseInterface
+
+from pyopera.common import DB_TYPE, Performance, WorkYearEntryModel
+from pyopera.deta_base import DetaBaseInterface
 
 
 def load_data_raw() -> Sequence[Performance]:
@@ -171,17 +170,6 @@ def clear_streamlit_cache() -> None:
     import streamlit
 
     streamlit.cache_data.clear()
-
-
-def scroll_to_top_of_page():
-    components.html(
-        """
-    <script>
-        window.parent.postMessage({type: 'scrollToTop'}, "*");
-    </script>
-    """,
-        height=0,  # Set height to 0 since we don't need to display anything
-    )
 
 
 def runs_on_streamlit_sharing() -> bool:

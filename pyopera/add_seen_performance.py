@@ -1,16 +1,16 @@
 from hashlib import sha1
-from typing import NoReturn, Optional
 
 import streamlit as st
-from edit_main_db import run as edit_main_db
-from edit_works_year_db import run as edit_works_year_db
-from streamlit_common import runs_on_streamlit_sharing
+
+from pyopera.edit_main_db import run as edit_main_db
+from pyopera.edit_works_year_db import run as edit_works_year_db
+from pyopera.streamlit_common import runs_on_streamlit_sharing
 
 
-def authenticate() -> Optional[NoReturn]:
+def authenticate() -> bool:
     if not runs_on_streamlit_sharing():
         # running locally, no need to authenticate
-        return
+        return True
 
     if "authenticated" not in st.session_state:
         password_widget = st.empty()
@@ -21,14 +21,17 @@ def authenticate() -> Optional[NoReturn]:
         ):
             if password != "":
                 st.error("Wrong password")
-            st.stop()
+            return False
         else:
             password_widget.empty()
             st.session_state["authenticated"] = True
 
+    return True
+
 
 def run():
-    authenticate()
+    if not authenticate():
+        return
 
     func_to_title = {
         edit_main_db: ":material/storage: Main database",

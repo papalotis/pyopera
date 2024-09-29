@@ -3,13 +3,14 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Set, Tuple
 
 import streamlit as st
-from common import (
+
+from pyopera.common import (
     DB_TYPE,
     Performance,
     WorkYearEntryModel,
     convert_short_stage_name_to_long_if_available,
 )
-from streamlit_common import (
+from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     load_db,
     load_db_works_year,

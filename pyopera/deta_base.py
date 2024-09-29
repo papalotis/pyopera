@@ -1,18 +1,12 @@
-from typing import (
-    Any,
-    Generic,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Generic, Sequence, Type, TypeVar, Union
 
 import boto3
 import streamlit as st
 from approx_dates.models import ApproxDate
 from boto3.resources.factory import ServiceResource
-from common import Performance
 from pydantic import BaseModel, ConfigDict
+
+from pyopera.common import Performance
 
 EntryType = TypeVar("EntryType", bound=BaseModel)
 

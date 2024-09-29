@@ -19,19 +19,20 @@ from typing import (
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from common import (
+from more_itertools.recipes import flatten
+from unidecode import unidecode
+
+from pyopera.common import (
     DB_TYPE,
     convert_short_stage_name_to_long_if_available,
     get_all_names_from_performance,
     is_exact_date,
 )
-from more_itertools.recipes import flatten
-from streamlit_common import (
+from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     load_db,
     remove_singular_prefix_from_role,
 )
-from unidecode import unidecode
 
 
 def add_split_earliest_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:

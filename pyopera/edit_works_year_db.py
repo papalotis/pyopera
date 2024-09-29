@@ -1,9 +1,10 @@
 import time
 
 import streamlit as st
-from common import WorkYearEntryModel, load_deta_project_key
-from deta_base import DetaBaseInterface
-from streamlit_common import (
+
+from pyopera.common import WorkYearEntryModel
+from pyopera.deta_base import DetaBaseInterface
+from pyopera.streamlit_common import (
     clear_works_year_cache,
     load_db,
     load_db_works_year,

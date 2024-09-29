@@ -1,13 +1,14 @@
-from typing import Counter, Sequence
+from typing import Counter
 
 import streamlit as st
-from common import (
+
+from pyopera.common import (
     SHORT_STAGE_NAME_TO_FULL,
     Performance,
     filter_only_full_entries,
     get_all_names_from_performance,
 )
-from streamlit_common import (
+from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     format_title,
     load_db,
@@ -17,7 +18,9 @@ from streamlit_common import (
 try:
     from icecream import ic
 except ImportError:
-    ic = lambda *a: a
+
+    def ic(*args, **kwargs):
+        pass
 
 
 def run():
