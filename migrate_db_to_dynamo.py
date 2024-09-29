@@ -116,18 +116,48 @@ def process_table(table_name, table_data):
         ]
 
         insert_data_to_table(table, formatted_data)
+    elif table_name == "venues":
+        # Handling the "venues" table
+        key_schema = [{"AttributeName": "key", "KeyType": "HASH"}]
+        attribute_definitions = [{"AttributeName": "key", "AttributeType": "S"}]
+        provisioned_throughput = {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+
+        table = create_table(
+            table_name, key_schema, attribute_definitions, provisioned_throughput
+        )
+
+        # Formatting the data for insertion
+        formatted_data = [
+            {
+                "key": entry.key,
+                "name": entry.name,
+                "short_name": entry.short_name,
+            }
+            for entry in table_data
+        ]
+
+        insert_data_to_table(table, formatted_data)
 
     # Add more `elif` blocks if you have additional tables with different schemas
 
 
-def main():
-    # Load your JSON data file
-    path_to_json = Path("/mnt/c/Users/papal/Downloads/database (13).json")
-    data = json.loads(path_to_json.read_text())
+from pyopera.common import SHORT_STAGE_NAME_TO_FULL, VenueModel
 
-    # Process each table in the JSON data
-    for table_name, table_data in data.items():
-        process_table(table_name, table_data)
+
+def main():
+    # # Load your JSON data file
+    # path_to_json = Path("/mnt/c/Users/papal/Downloads/database (13).json")
+    # data = json.loads(path_to_json.read_text())
+
+    # # Process each table in the JSON data
+    # for table_name, table_data in data.items():
+    #     process_table(table_name, table_data)
+    venues = [
+        VenueModel(name=value, short_name=key)
+        for key, value in SHORT_STAGE_NAME_TO_FULL.items()
+    ]
+
+    process_table("venues", venues)
 
 
 if __name__ == "__main__":

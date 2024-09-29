@@ -1,6 +1,6 @@
 import unicodedata
 from collections import Counter, defaultdict
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Sequence, Set, Tuple
 
 import streamlit as st
 
@@ -8,11 +8,11 @@ from pyopera.common import (
     DB_TYPE,
     Performance,
     WorkYearEntryModel,
-    convert_short_stage_name_to_long_if_available,
 )
 from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     load_db,
+    load_db_venues,
     load_db_works_year,
 )
 
@@ -67,12 +67,19 @@ def get_year(
         return -1
 
 
+def create_markdown_element(
+    db: DB_TYPE,
+    title_and_composer_to_dates: dict[tuple[str, str], WorkYearEntryModel],
+) -> None:
+    markdown_string = create_markdown_string(db, title_and_composer_to_dates)
+    st.markdown(markdown_string, unsafe_allow_html=True)
+
+
 def run_operas() -> None:
     db = load_db()
     title_and_composer_to_dates = load_db_works_year()
-    markdown_string = create_markdown_string(db, title_and_composer_to_dates)
 
-    st.markdown(markdown_string, unsafe_allow_html=True)
+    create_markdown_element(db, title_and_composer_to_dates)
 
 
 def create_markdown_string(db, title_and_composer_to_dates):
@@ -110,24 +117,29 @@ def create_markdown_string(db, title_and_composer_to_dates):
         markdown_text.append("---")
 
     final_markdown = "\n".join(markdown_text)
+
     return final_markdown
 
 
 def run_performances() -> None:
     db = load_db()
 
-    markdown_string = create_performances_markdown_string(db)
+    venues_db = load_db_venues()
+
+    markdown_string = create_performances_markdown_string(db, venues_db)
 
     st.markdown(markdown_string, unsafe_allow_html=True)
 
 
-def create_performances_markdown_string(db):
+def create_performances_markdown_string(
+    db: Sequence[Performance], venues_db: dict[str, str]
+):
     markdown_text = []
 
     markdown_text.append("# Performances")
 
     for entry in db:
-        stage = convert_short_stage_name_to_long_if_available(entry.stage)
+        stage = venues_db.get(entry.stage, entry.stage)
         date = format_iso_date_to_day_month_year_with_dots(entry.date)
         markdown_text.append(f"{date} - {stage} - {entry.composer} - {entry.name}\n")
 

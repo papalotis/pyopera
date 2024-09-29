@@ -3,6 +3,7 @@ from hashlib import sha1
 import streamlit as st
 
 from pyopera.edit_main_db import run as edit_main_db
+from pyopera.edit_venues_db import run as edit_venues_db
 from pyopera.edit_works_year_db import run as edit_works_year_db
 from pyopera.streamlit_common import runs_on_streamlit_sharing
 
@@ -36,6 +37,7 @@ def run():
     func_to_title = {
         edit_main_db: ":material/storage: Main database",
         edit_works_year_db: ":material/edit_calendar: Year of first performance",
+        edit_venues_db: ":material/home: Venues",
     }
 
     with st.sidebar:

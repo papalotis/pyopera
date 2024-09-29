@@ -1,12 +1,15 @@
-from typing import Generic, Sequence, Type, TypeVar, Union
+from __future__ import annotations
+
+from enum import Enum
+from typing import Generic, Sequence, TypeVar
 
 import boto3
 import streamlit as st
 from approx_dates.models import ApproxDate
 from boto3.resources.factory import ServiceResource
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
-from pyopera.common import Performance
+from pyopera.common import Performance, VenueModel, WorkYearEntryModel, soft_isinstance
 
 EntryType = TypeVar("EntryType", bound=BaseModel)
 
@@ -27,23 +30,58 @@ def create_dynamodb_resource() -> ServiceResource:
     return dynamodb
 
 
-class DetaBaseInterface(Generic[EntryType]):
+def sort_entries_by_date(entries: Sequence[Performance]) -> list[Performance]:
+    return sorted(entries, key=lambda x: x.date.earliest_date, reverse=True)
+
+
+class DatabaseName(str, Enum):
+    performances = "performances"
+    works_dates = "works_dates"
+    venues = "venues"
+
+
+ModelToEnum = {
+    Performance: DatabaseName.performances,
+    WorkYearEntryModel: DatabaseName.works_dates,
+    VenueModel: DatabaseName.venues,
+}
+
+EnumToLoadText = {
+    DatabaseName.performances: "Loading data ...",
+    DatabaseName.works_dates: "Loading work year data...",
+    DatabaseName.venues: "Loading venue data...",
+}
+
+EnumToPostProcess = {
+    DatabaseName.performances: sort_entries_by_date,
+}
+
+
+DYNAMO_DB_RESOURCE = create_dynamodb_resource()
+
+
+class DatabaseInterface(Generic[EntryType]):
+    """
+    Interface to interact with a database.
+
+    This class is a singleton, meaning that only one instance of this class can be created per database name.
+    """
+
     def __init__(
         self,
-        db_name: str = "performances",
-        entry_type: Type[EntryType] = Performance,
+        entry_type: type[EntryType],
     ) -> None:
-        self.dynamo_db_resource = create_dynamodb_resource()
-        self.table = self.dynamo_db_resource.Table(db_name)
         self._entry_type = entry_type
+        self._db_name = ModelToEnum[entry_type]
+        self._table = DYNAMO_DB_RESOURCE.Table(self._db_name)
 
-    def fetch_db(self) -> Sequence[EntryType]:
+    def _fetch_db(self) -> Sequence[EntryType]:
+        # The actual fetching of the database
         final_items = []
-
         kwargs = {}
 
         while True:
-            response = self.table.scan(**kwargs)
+            response = self._table.scan(**kwargs)
 
             items = response.get("Items", [])
             final_items.extend(items)
@@ -56,11 +94,14 @@ class DetaBaseInterface(Generic[EntryType]):
 
         return [self._entry_type(**item) for item in final_items]
 
-    def put_db(self, items_to_put: Union[EntryType, Sequence[EntryType]]) -> None:
-        if isinstance(items_to_put, self._entry_type):
+    def fetch_db(self) -> list[EntryType]:
+        return fetch_all_cached(self).copy()
+
+    def put_db(self, items_to_put: EntryType | Sequence[EntryType]) -> None:
+        if soft_isinstance(items_to_put, self._entry_type):
             items_to_put = [items_to_put]
 
-        with self.table.batch_writer() as batch:
+        with self._table.batch_writer() as batch:
             for item in items_to_put:
                 item_dict = item.model_dump()
 
@@ -71,23 +112,35 @@ class DetaBaseInterface(Generic[EntryType]):
 
                 batch.put_item(Item=item_dict)
 
-    def delete_item_db(self, to_delete: Union[EntryType, str]) -> None:
-        if isinstance(to_delete, self._entry_type):
+        fetch_all_cached.clear(self)
+
+    def delete_item_db(self, to_delete: EntryType | str) -> None:
+        if soft_isinstance(to_delete, self._entry_type):
             to_delete = to_delete.key
 
-        self.table.delete_item(Key={"key": to_delete})
+        self._table.delete_item(Key={"key": to_delete})
+
+        fetch_all_cached.clear(self)
+
+    def __hash__(self) -> int:
+        return hash(self._db_name.value)
 
 
-def convert_list_of_performances_to_json(
-    performances: Sequence[EntryType], entry_class: Type[EntryType]
-) -> str:
-    class _DatabasePUTModel(BaseModel):
-        items: Sequence[
-            entry_class
-        ]  # Reference the input `entry_class` correctly using the ellipsis
-        # TODO[pydantic]: The following keys were removed: `json_encoders`.
-        # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
-        model_config = ConfigDict(json_encoders={ApproxDate: str})
+@st.cache_resource(
+    show_spinner=False,
+    hash_funcs={DatabaseInterface: lambda interface: interface._db_name},
+)
+def fetch_all_cached(interface: DatabaseInterface[EntryType]) -> list[EntryType]:
+    table_name_to_print = interface._db_name.value.replace("_", " ").title()
+    text_for_spinner = EnumToLoadText.get(
+        interface._db_name, f"Loading table {table_name_to_print} ..."
+    )
 
-    # Instantiate _DatabasePUTModel with provided data
-    return _DatabasePUTModel(items=performances).json()
+    with st.spinner(text_for_spinner):
+        raw_data = interface._fetch_db()
+
+        post_process = EnumToPostProcess.get(interface._db_name)
+        if post_process is not None:
+            raw_data = post_process(raw_data)
+
+    return raw_data

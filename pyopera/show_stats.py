@@ -24,13 +24,13 @@ from unidecode import unidecode
 
 from pyopera.common import (
     DB_TYPE,
-    convert_short_stage_name_to_long_if_available,
     get_all_names_from_performance,
     is_exact_date,
 )
 from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     load_db,
+    load_db_venues,
     remove_singular_prefix_from_role,
 )
 
@@ -192,6 +192,8 @@ def run_frequencies():
 
 
 def run_single_opus():
+    venues_db = load_db_venues()
+
     with st.sidebar:
         all_opus = sorted(
             {(performance.name, performance.composer) for performance in load_db()},
@@ -211,13 +213,16 @@ def run_single_opus():
         for performance in load_db()
         if performance.name == name and performance.composer == composer
     ]
+
     for entry in all_entries_of_opus:
         st.markdown(
-            f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} - {convert_short_stage_name_to_long_if_available(entry.stage)}"
+            f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} - {venues_db.get(entry.stage, entry.stage)}"
         )
 
 
 def run_single_person():
+    venues_db = load_db_venues()
+
     with st.sidebar:
         all_persons = sorted(
             set(
@@ -242,7 +247,7 @@ def run_single_person():
 
         to_join = [
             format_iso_date_to_day_month_year_with_dots(entry.date),
-            convert_short_stage_name_to_long_if_available(entry.stage),
+            venues_db.get(entry.stage, entry.stage),
             entry.name,
         ]
         if person == entry.composer and len(roles) == 0:
@@ -258,6 +263,8 @@ def normalize_role(role: str) -> str:
 
 
 def run_single_role():
+    venues_db = load_db_venues()
+
     with st.sidebar:
         all_opus = sorted(
             {(performance.name, performance.composer) for performance in load_db()},
@@ -312,7 +319,7 @@ def run_single_role():
 
         for entry in all_entries_of_opus:
             date = format_iso_date_to_day_month_year_with_dots(entry.date)
-            stage = convert_short_stage_name_to_long_if_available(entry.stage)
+            stage = venues_db.get(entry.stage, entry.stage)
             for unique_role_instance in roles_matched[role]:
                 persons_list = entry.cast.get(unique_role_instance)
                 if persons_list is not None:

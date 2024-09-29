@@ -1,70 +1,46 @@
 import platform
 import re
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Tuple, Union
+from typing import Mapping, Sequence
 
 import streamlit as st
 from approx_dates.models import ApproxDate
 
-from pyopera.common import DB_TYPE, Performance, WorkYearEntryModel
-from pyopera.deta_base import DetaBaseInterface
+from pyopera.common import (
+    DB_TYPE,
+    Performance,
+    VenueModel,
+    WorkYearEntryModel,
+    soft_isinstance,
+)
+from pyopera.deta_base import DatabaseInterface
+
+WORKS_DATES_INTERFACE = DatabaseInterface(WorkYearEntryModel)
 
 
-def load_data_raw() -> Sequence[Performance]:
-    base_interface = DetaBaseInterface()
-    with st.spinner("Loading data..."):
-        raw_data = base_interface.fetch_db()
-        return raw_data
+def load_db_works_year() -> dict[tuple[str, str], WorkYearEntryModel]:
+    raw_data = WORKS_DATES_INTERFACE.fetch_db()
+    return {(data.title, data.composer): data for data in raw_data}
 
 
-def load_works_year_raw() -> Mapping[Tuple[str, str], WorkYearEntryModel]:
-    base_interface = DetaBaseInterface(
-        db_name="works_dates", entry_type=WorkYearEntryModel
-    )
-    with st.spinner("Loading works year data..."):
-        raw_data = base_interface.fetch_db()
-        return {(data.title, data.composer): data for data in raw_data}
-
-
-def sort_entries_by_date(entries: DB_TYPE) -> DB_TYPE:
-    return sorted(entries, key=lambda x: x.date.earliest_date, reverse=True)
-
-
-def verify_and_sort_db() -> DB_TYPE:
-    raw_data = load_data_raw()
-    sorted_data = sort_entries_by_date(raw_data)
-
-    return sorted_data
-
-
-def reset_existing_db():
-    st.session_state["DB"] = None
-    st.session_state["DB_WORKS_YEAR"] = None
-
-
-def clear_db_cache():
-    st.session_state["DB"] = None
-
-
-def clear_works_year_cache():
-    st.session_state["DB_WORKS_YEAR"] = None
+PERFORMANCES_INTERFACE = DatabaseInterface(Performance)
 
 
 def load_db() -> DB_TYPE:
-    if "DB" not in st.session_state or st.session_state["DB"] is None:
-        st.session_state["DB"] = verify_and_sort_db()
-
-    return st.session_state["DB"]
+    raw_data = PERFORMANCES_INTERFACE.fetch_db()
+    return raw_data
 
 
-def load_db_works_year() -> Mapping[Tuple[str, str], WorkYearEntryModel]:
-    if (
-        "DB_WORKS_YEAR" not in st.session_state
-        or st.session_state["DB_WORKS_YEAR"] is None
-    ):
-        st.session_state["DB_WORKS_YEAR"] = load_works_year_raw()
+VENUES_INTERFACE = DatabaseInterface(VenueModel)
 
-    return st.session_state["DB_WORKS_YEAR"]
+
+def load_db_venues(list_of_entries: bool = False) -> dict[str, str] | list[VenueModel]:
+    raw_data = VENUES_INTERFACE.fetch_db()
+
+    if list_of_entries:
+        return raw_data
+
+    return {data.short_name: data.name for data in raw_data}
 
 
 def key_is_exception(key: str) -> bool:
@@ -114,7 +90,7 @@ def write_cast_and_leading_team(
 
 
 def format_iso_date_to_day_month_year_with_dots(
-    date_iso: Union[datetime, str, ApproxDate],
+    date_iso: datetime | str | ApproxDate,
 ) -> str:
     if isinstance(date_iso, str):
         date_iso = datetime.fromisoformat(date_iso)
@@ -140,9 +116,9 @@ def format_iso_date_to_day_month_year_with_dots(
         return f"{date_iso.day:02}.{date_iso.month:02}.{date_iso.year % 100:02}"
 
 
-def format_title(performance: Optional[Union[Performance, dict]]) -> str:
-    if performance.__class__.__name__ == Performance.__name__:
-        performance = performance.dict()
+def format_title(performance: Performance | dict | None) -> str:
+    if soft_isinstance(performance, Performance):
+        performance = performance.model_dump()
 
     if performance in (None, {}):
         return "Add new visit"
@@ -156,20 +132,14 @@ def format_title(performance: Optional[Union[Performance, dict]]) -> str:
 
 def remove_singular_prefix_from_role(role: str) -> str:
     """
-    If a role contains a 'ein' or 'eine' at the beginning of the
-    role remove it
+    If a role contains a 'ein', 'eine', 'un', 'une', 'a' at the beginning of the
+    role (first character can be uppercase), remove it.
     """
-    return re.sub(r"^[eE]ine?\s", "", role)
+    return re.sub(r"^(ein|eine|un|une|a) ", "", role, flags=re.IGNORECASE)
 
 
 def format_role(role: str) -> str:
     return remove_singular_prefix_from_role(role)
-
-
-def clear_streamlit_cache() -> None:
-    import streamlit
-
-    streamlit.cache_data.clear()
 
 
 def runs_on_streamlit_sharing() -> bool:

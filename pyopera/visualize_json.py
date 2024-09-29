@@ -3,8 +3,6 @@ from typing import Counter
 import streamlit as st
 
 from pyopera.common import (
-    SHORT_STAGE_NAME_TO_FULL,
-    Performance,
     filter_only_full_entries,
     get_all_names_from_performance,
 )
@@ -12,6 +10,7 @@ from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     format_title,
     load_db,
+    load_db_venues,
     write_cast_and_leading_team,
 )
 
@@ -25,6 +24,7 @@ except ImportError:
 
 def run():
     db = load_db()
+    venues_db = load_db_venues()
 
     all_names_counter: Counter[str] = Counter(
         name
@@ -68,15 +68,13 @@ def run():
 
         # performance_selectbox.selectbox()
 
-        performance: Performance = performance_selectbox.selectbox(
+        performance = performance_selectbox.selectbox(
             "Select Performance", db_filtered, format_func=format_title
         )
 
-    stage_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
-        performance.stage, performance.stage
-    )
+    stage_name_to_show = venues_db.get(performance.stage, performance.stage)
 
-    production_name_to_show = SHORT_STAGE_NAME_TO_FULL.get(
+    production_name_to_show = venues_db.get(
         performance.production, performance.production
     )
 
@@ -86,14 +84,6 @@ def run():
     st.markdown(
         f"##### **{performance.composer}**\n### {performance.name}\n{format_iso_date_to_day_month_year_with_dots(performance.date)}\n\n{stage_name_to_show}"
     )
-
-    # st.markdown(f"# {performance.name}")
-    # st.markdown(format_iso_date_to_day_month_year_with_dots(performance.date))
-
-    # st.markdown(
-    #     f"#### **{performance.composer}**\n{stage_name_to_show}"
-    #     f"{' - ' + performance.production if performance.stage != performance.production else ''}"
-    # )
 
     def hightlight_person_if_selected(person: str) -> str:
         if person in options:

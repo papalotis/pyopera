@@ -1,4 +1,3 @@
-import time
 from collections import defaultdict
 from datetime import date
 from itertools import chain
@@ -12,15 +11,14 @@ from pyopera.common import (
     is_exact_date,
     is_performance_instance,
 )
-from pyopera.deta_base import DetaBaseInterface
+from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
-    clear_db_cache,
     format_title,
     load_db,
     write_cast_and_leading_team,
 )
 
-BASE_INTERFACE = DetaBaseInterface()
+BASE_INTERFACE = DatabaseInterface(Performance)
 
 
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:
@@ -286,83 +284,110 @@ def run() -> None:
             )
 
             user_text_confirmation = user_delete_text == confirmation_text
-            delete_button = st.button(
-                "Delete entry", disabled=not user_text_confirmation
+            st.button(
+                "Delete entry",
+                disabled=not user_text_confirmation,
+                on_click=do_deletion,
+                args=[
+                    entry_to_update,
+                    user_text_confirmation,
+                ],
             )
-            if delete_button and user_text_confirmation:
-                delete_performance_by_key(entry_to_update["key"])
-                st.success("Entry deleted successfully")
-                clear_db_cache()
 
     st.markdown("---")
 
-    submit_button = st.button(label="Submit" + (" update" if update_existing else ""))
+    st.button(
+        label="Submit" + (" update" if update_existing else ""),
+        on_click=do_submission,
+        args=[
+            entry_to_update,
+            update_existing,
+            name,
+            date_range,
+            production,
+            stage,
+            composer,
+            concertante,
+            comments,
+        ],
+    )
 
-    if submit_button:
-        number_of_form_errors = 0
-        if date_range.latest_date > date.today():
-            number_of_form_errors += 1
-            st.error("Selected date is in the future")
-        if date_range == ApproxDate.PAST:
-            number_of_form_errors += 1
-            st.error("Date range is not full")
-        if name == "":
-            number_of_form_errors += 1
-            st.error("Name field is empty")
-        if production == "":
-            number_of_form_errors += 1
-            st.error("Production field is empty")
-        if stage == "":
-            number_of_form_errors += 1
-            st.error("Stage field is empty")
-        if composer == "":
-            number_of_form_errors += 1
-            st.error("Composer field is empty")
 
-        if number_of_form_errors == 0:
-            with st.spinner(text="Contacting database..."):
-                time.sleep(0.3)
-                cast = {k: list(v) for k, v in st.session_state["cast"].items()}
-                leading_team = {
-                    k: list(v) for k, v in st.session_state["leading_team"].items()
-                }
+def do_deletion(entry_to_update, user_text_confirmation):
+    if user_text_confirmation:
+        delete_performance_by_key(entry_to_update["key"])
+        st.toast("Deleted entry", icon=":material/delete:")
 
-                final_dict = dict(
-                    name=name,
-                    date=str(date_range),
-                    production=production,
-                    composer=composer,
-                    stage=stage,
-                    comments=comments,
-                    is_concertante=concertante,
-                    cast=cast,
-                    leading_team=leading_team,
-                )
 
-                try:
-                    final_data = Performance(**final_dict)
+def do_submission(
+    entry_to_update,
+    update_existing,
+    name,
+    date_range,
+    production,
+    stage,
+    composer,
+    concertante,
+    comments,
+):
+    number_of_form_errors = 0
+    if date_range.latest_date > date.today():
+        number_of_form_errors += 1
+        st.error("Selected date is in the future")
+    if date_range == ApproxDate.PAST:
+        number_of_form_errors += 1
+        st.error("Date range is not full")
+    if name == "":
+        number_of_form_errors += 1
+        st.error("Name field is empty")
+    if production == "":
+        number_of_form_errors += 1
+        st.error("Production field is empty")
+    if stage == "":
+        number_of_form_errors += 1
+        st.error("Stage field is empty")
+    if composer == "":
+        number_of_form_errors += 1
+        st.error("Composer field is empty")
 
-                    if final_data in db:
-                        st.error("Uploading same entry")
+    if number_of_form_errors > 0:
+        st.toast("Missing fields", icon=":material/error:")
+        return
 
-                    else:
-                        final_data_dict = final_data.dict()
+    with st.spinner(text="Contacting database..."):
+        cast = {k: list(v) for k, v in st.session_state["cast"].items()}
+        leading_team = {k: list(v) for k, v in st.session_state["leading_team"].items()}
 
-                        if (
-                            update_existing
-                            and entry_to_update["key"] != final_data_dict["key"]
-                        ):
-                            delete_performance_by_key(entry_to_update["key"])
-                        try:
-                            send_new_performance(final_data_dict)
-                        except Exception:
-                            if entry_to_update != {}:
-                                send_new_performance(entry_to_update)
-                            raise
+        final_dict = dict(
+            name=name,
+            date=str(date_range),
+            production=production,
+            composer=composer,
+            stage=stage,
+            comments=comments,
+            is_concertante=concertante,
+            cast=cast,
+            leading_team=leading_team,
+        )
 
-                        st.success("Database updated successfully")
-                        clear_db_cache()
+        try:
+            final_data = Performance(**final_dict)
 
-                except Exception as e:
-                    st.write(e)
-                    st.error("Could not add new entry to database")
+            final_data_dict = final_data.model_dump()
+
+            if update_existing and entry_to_update["key"] != final_data_dict["key"]:
+                delete_performance_by_key(entry_to_update["key"])
+            try:
+                send_new_performance(final_data_dict)
+            except Exception:
+                if entry_to_update != {}:
+                    send_new_performance(entry_to_update)
+                raise
+
+            st.toast("Updated database", icon=":material/cloud_sync:")
+
+        except Exception as e:
+            st.write(e)
+            st.toast(
+                "An error occured when uploading the entry", icon=":material/error:"
+            )

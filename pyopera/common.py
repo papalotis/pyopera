@@ -2,116 +2,13 @@ import random
 import string
 from collections import ChainMap
 from datetime import date, datetime
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Sequence, TypeGuard, TypeVar
 
 from approx_dates.models import ApproxDate
 from more_itertools import flatten
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, validator
 from typing_extensions import Annotated
 from unidecode import unidecode
-
-SHORT_STAGE_NAME_TO_FULL = {
-    "WSO": "Wiener Staatsoper",
-    "TAW": "Theater an der Wien",
-    "DOB": "Deutsche Oper Berlin",
-    "VOW": "Volksoper Wien",
-    "KOaF": "Kammeroper am Fleischmarkt",
-    "KOB": "Komische Oper Berlin",
-    "SUL": "Staatsoper unter den Linden",
-    "MMAT": "Μέγαρο Μουσικής, Αίθουσα Αλεξάνδρα Τριάντη",
-    "OF": "Oper Frankfurt",
-    "MTL": "Musiktheater Linz",
-    "WKH": "Wiener Konzerthaus, Großer Saal",
-    "OG": "Oper Graz",
-    "OLY": "Θέατρο Ολύμπια",
-    "HER": "Ωδείο Ηρώδου Αττικού",
-    "MQE": "Museumsquartier Halle E",
-    "NTM": "Nationaltheater München",
-    "ND": "Národní Divadlo",
-    "BSK": "Badisches Staatstheater Karlsruhe",
-    "HfM": "Haus für Mozart",
-    "OH": "Oper Halle",
-    "SND-N": "Slovenské Národné Divadlo, Nová budova",
-    "SNF": "Ίδρυμα Σταύρος Νιάρχος (Λυρική Σκηνή)",
-    "WMV": "Wiener Musikverein",
-    "OZ": "Oper Zürich",
-    "MTL-BB": "Musiktheater Linz, Black Box",
-    "PRT": "Prinzregententheater",
-    "JAN": "Janáčkovo Divadlo",
-    "KAS": "Kasino",
-    "FEL": "Felsenreitschule",
-    "HSW": "Hessisches Staatstheater Wiesbaden",
-    "SND-I": "Slovenské Národné Divadlo, Historická budova",
-    "LTS": "Landestheater Salzburg",
-    "AKZ": "Theater Akzent",
-    "BPh": "Berliner Philharmonie",
-    "HEB": "Hebbel-Theater",
-    "ALT": "Stift Altenburg",
-    "StKNB": "Stift Klosterneuburg Kaiserhof",
-    "MAN": "Nationaltheater Mannheim",
-    "ERK": "Erkel Színház",
-    "BREF": "Festspielhaus Bregenz",
-    "SEM": "Semperdepot",
-    "BERN": "Konzert Theater Bern",
-    "CAS": "Casino Baden – Festsaal",
-    "TRI": "Trinkhalle Bad Wildbad",
-    "BAYF": "Festspielhaus Bayreuth",
-    "BOD": "Bockenheimer Depot",
-    "PLZ": "Divadlo Josefa Kajetána Tyla Plzni, Velké Divadlo",
-    "GFH": "Großes Festspielhaus",
-    "WKH-M2": "Konzerthaus, Mozartsaal",
-    "HdK": "Universität der Künste, Konzertsaal Hardenbergstraße",
-    "ICC": "International Congress Center",
-    "NO": "Neuköllner Oper",
-    "KHB": "Konzerthaus Berlin",
-    "BPh-KM": "Berliner Philharmonie, Kammermusiksaal",
-    "SUL-AS": "Staatsoper unter den Linden, Apollo-Saal",
-    "OE": "Oper Erfurt",
-    "MT": "Metropol-Theater",
-    "ROCG": "Royal Opera House Convent Garden",
-    "UJ": "Universität Jena",
-    "MMNS": "Μέγαρο Μουσικής, Αίθουσα Νίκος Σκαλκώτας",
-    "SGT": "Στέγη Γραμμάτων και Τεχνών",
-    "GTLF": "Gran Teatro La Fenice",
-    "SchT-W": "Schillertheater Werkstatt",
-    "EMS": "EMS-Lounge",
-    "ThT": "Θέατρο Τέχνης, Πλάκα",
-    "SchT": "Schillertheater",
-    "RTSZ": "Rokoko-Theater Schwetzingen",
-    "MTL-FB": "Musiktheater Linz, FoyerBühne",
-    "ULR": "Ulrichskirche",
-    "KNB-BH": "Babenberger Halle",
-    "MSH(kl)": "Meistersingerhalle, Kleiner Saal",
-    "FSHE": "Festspielhaus Erl",
-    "HSW-F": "Hessisches Staatstheater, Foyer",
-    "SCH": "Theater Schloss Schönbrunn",
-    "BRES": "Seebühne Bregenz",
-    "BAD": "Theater Baden",
-    "STD": "Stahovské Divadlo, Ständetheater",
-    "TER": "Stadthalle Ternitz",
-    "FRST": "Franckesche Stifungen, Frylinghausen-Saal",
-    "GOE": "Goethe-Theater Bad Lauchstädt",
-    "REA": "Reaktor",
-    "SNF-ES": "Ίδρυμα Σταύρος Νιάρχος (Λυρική Σκηνή) Εναλλακτική Σκηνή",
-    "RED": "Divadlo Reduta Brno",
-    "MAH": "Mahenovo Divadlo",
-    "MOZ": "Mozarteum, Großer Saal",
-    "HLH": "Helmut-List-Halle Graz",
-    "KUR": "Königliches Kurtheater Bad Wildbad",
-    "TLT": "Tiroler Landestheater",
-    "VER": "Opera Royal du Chateau de Versailles",
-    "ELY": "Théâtre des Champs Elysées",
-    "COM": "Opéra Comique",
-    "GEN": "Koninklijke Opera van Gent",
-    "HDM": "Haus der Musik, Innsbruck",
-}
-
-SHORT_STAGE_NAME_TO_FULL = {k: v.strip() for k, v in SHORT_STAGE_NAME_TO_FULL.items()}
-
-
-def convert_short_stage_name_to_long_if_available(short_state_name: str) -> str:
-    return SHORT_STAGE_NAME_TO_FULL.get(short_state_name, short_state_name)
-
 
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 NonEmptyStrList = Annotated[List[NonEmptyStr], Field(min_items=1)]
@@ -129,13 +26,13 @@ class Performance(BaseModel):
     comments: str
     is_concertante: bool
     key: SHA1Str = None
-    # TODO[pydantic]: The following keys were removed: `json_encoders`.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+
     model_config = ConfigDict(
         validate_assignment=True,
         str_strip_whitespace=True,
         arbitrary_types_allowed=True,
         json_encoders={ApproxDate: str},
+        frozen=True,
     )
 
     # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
@@ -236,10 +133,19 @@ def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
     return db_filtered
 
 
-def is_performance_instance(performance: Performance):
-    # hacky way to check if the type is Performance since
+T = TypeVar("T")
+
+
+def soft_isinstance(obj: Any, type_: type[T]) -> TypeGuard[T]:
+    # hacky way to check if the type is type_ since
     # st rerun mechanism does not work with isinstance
-    return performance.__class__.__name__ == Performance.__name__
+    # of pydantic models
+
+    return obj.__class__.__name__ == type_.__name__
+
+
+def is_performance_instance(obj: Any) -> TypeGuard[Performance]:
+    return soft_isinstance(obj, Performance)
 
 
 def create_deta_style_key() -> str:
@@ -252,7 +158,26 @@ class WorkYearEntryModel(BaseModel):
     composer: NonEmptyStr
     title: NonEmptyStr
     year: int
-    key: Optional[str] = None
+    key: str = None
+
+    model_config = ConfigDict(frozen=True)
+
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
+    @validator("key", pre=True, always=True, allow_reuse=True)
+    def create_key(cls, key, values, **kwargs):
+        if key is not None:
+            return key
+
+        return create_deta_style_key()
+
+
+class VenueModel(BaseModel):
+    name: NonEmptyStr
+    short_name: NonEmptyStr
+    key: str = None
+
+    model_config = ConfigDict(frozen=True)
 
     # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.

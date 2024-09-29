@@ -1,11 +1,9 @@
-import time
-
 import streamlit as st
+from pydantic import ValidationError
 
 from pyopera.common import WorkYearEntryModel
-from pyopera.deta_base import DetaBaseInterface
+from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
-    clear_works_year_cache,
     load_db,
     load_db_works_year,
 )
@@ -26,6 +24,26 @@ def extract_all_existing_composers_and_titles() -> dict:
         composer_to_titles[composer].add(title)
 
     return composer_to_titles
+
+
+def delete_from_db(to_delete: str) -> None:
+    assert isinstance(st.session_state.interface, DatabaseInterface)
+    st.session_state.interface.delete_item_db(to_delete)
+    st.toast("Deleted entry", icon=":material/delete:")
+
+
+def upload_to_db(**kwargs) -> None:
+    try:
+        new_entry = WorkYearEntryModel(**kwargs)
+    except ValidationError as e:
+        st.toast(f"Error: {e}", icon=":material/error:")
+        return
+
+    INTERFACE.put_db(new_entry)
+    st.toast("Updated database", icon=":material/cloud_sync:")
+
+
+INTERFACE = DatabaseInterface(WorkYearEntryModel)
 
 
 def run() -> None:
@@ -68,16 +86,20 @@ def run() -> None:
 
     year = st.number_input("Year", value=default_year, min_value=0)
 
-    interface = DetaBaseInterface(db_name="works_dates", entry_type=WorkYearEntryModel)
-
     new_entry_key = entry.key if entry is not None else None
 
-    if st.button("Save"):
-        new_entry = WorkYearEntryModel(
-            title=title, composer=composer, year=year, key=new_entry_key
+    button_text_start = "Update" if entry is not None else "Add"
+    button_text = f"{button_text_start} work year of first performance"
+
+    st.button(
+        button_text,
+        on_click=upload_to_db,
+        kwargs=dict(key=new_entry_key, composer=composer, title=title, year=year),
+    )
+
+    if new_entry_key is not None:
+        st.button(
+            "Delete work year",
+            on_click=delete_from_db,
+            kwargs=dict(to_delete=new_entry_key),
         )
-        interface.put_db(new_entry)
-        clear_works_year_cache()
-        st.toast("Updated database")
-        time.sleep(2.0)
-        st.rerun()
