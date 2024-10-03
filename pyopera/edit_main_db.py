@@ -246,24 +246,18 @@ def run() -> None:
         format_func=format_func,
     )
 
-    do_remove = st.button("Remove")
+    st.button(
+        "Remove",
+        on_click=remove_person_from_performance,
+        args=[remove],
+        disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
+    )
 
-    if do_remove and (len(cast_flat) > 0 or len(leading_team_flat) > 0):
-        role, person = remove
+    # if do_remove and (len(cast_flat) > 0 or len(leading_team_flat) > 0):
+    #     remove_person_from_performance(remove)
 
-        st.session_state["cast"][role] = st.session_state["cast"][role] - {person}
-        if len(st.session_state["cast"][role]) == 0:
-            del st.session_state["cast"][role]
-
-        st.session_state["leading_team"][role] = st.session_state["leading_team"][
-            role
-        ] - {person}
-
-        if len(st.session_state["leading_team"][role]) == 0:
-            del st.session_state["leading_team"][role]
-
-        # st.experimental_rerun()
-        st.experimental_rerun()
+    #     # st.experimental_rerun()
+    #     st.rerun()
 
     write_cast_and_leading_team(
         st.session_state["cast"], st.session_state["leading_team"]
@@ -311,6 +305,21 @@ def run() -> None:
             comments,
         ],
     )
+
+
+def remove_person_from_performance(remove: tuple[str, str]):
+    role, person = remove
+
+    st.session_state["cast"][role] = st.session_state["cast"][role] - {person}
+    if len(st.session_state["cast"][role]) == 0:
+        del st.session_state["cast"][role]
+
+    st.session_state["leading_team"][role] = st.session_state["leading_team"][role] - {
+        person
+    }
+
+    if len(st.session_state["leading_team"][role]) == 0:
+        del st.session_state["leading_team"][role]
 
 
 def do_deletion(entry_to_update, user_text_confirmation):
