@@ -2,17 +2,53 @@ import random
 import string
 from collections import ChainMap
 from datetime import date, datetime
-from typing import Any, List, Mapping, Sequence, TypeGuard, TypeVar
+from typing import Annotated, Any, Callable, List, Mapping, Sequence, TypeGuard, TypeVar
 
 from approx_dates.models import ApproxDate
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from more_itertools import flatten
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, validator
-from typing_extensions import Annotated
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    validator,
+)
 from unidecode import unidecode
 
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 NonEmptyStrList = Annotated[List[NonEmptyStr], Field(min_items=1)]
 SHA1Str = Annotated[str, StringConstraints(pattern=r"[0-9a-f]{40}")]
+
+
+def key_create_creator(key_creator: Callable[[], str]) -> Callable[[str | None], str]:
+    def create_key_if_needed(key: str | None) -> str:
+        if key is not None:
+            return key
+        value = key_creator()
+        return value
+
+    return create_key_if_needed
+
+
+def create_key_for_visited_performance_v3() -> str:
+    available_characters = "abcdef" + string.digits
+    # create a 40 character long random string (like a sha1 hash)
+    return "".join(random.choices(available_characters, k=40))
+
+
+def create_deta_style_key() -> str:
+    available_characters = string.ascii_lowercase + string.digits
+    # create a 12 character long random
+    return "".join(random.choices(available_characters, k=12))
+
+
+PerformanceKey = Annotated[
+    SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))
+]
+DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
 
 
 class Performance(BaseModel):
@@ -25,10 +61,11 @@ class Performance(BaseModel):
     composer: NonEmptyStr
     comments: str
     is_concertante: bool
-    key: SHA1Str = None
+    key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
 
     model_config = ConfigDict(
         validate_assignment=True,
+        validate_default=True,
         str_strip_whitespace=True,
         arbitrary_types_allowed=True,
         json_encoders={ApproxDate: str},
@@ -68,16 +105,6 @@ class Performance(BaseModel):
                 approx_date = ApproxDate(early_date, late_date, source_string=v)
                 return approx_date
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("key", pre=True, always=True, allow_reuse=True)
-    def create_key(cls, key, values, **kwargs):
-        if key is not None:
-            return key
-
-        # create random key
-        return create_key_for_visited_performance_v3()
-
 
 def is_exact_date(date: ApproxDate) -> bool:
     return date.earliest_date == date.latest_date
@@ -98,13 +125,6 @@ def normalize_title(title: str) -> str:
             .strip(),
         )
     )
-
-
-def create_key_for_visited_performance_v3() -> str:
-    available_characters = "abcdef" + string.digits
-
-    # create a 40 character long random string (like a sha1 hash)
-    return "".join(random.choices(available_characters, k=40))
 
 
 def get_all_names_from_performance(performance: Performance) -> set[str]:
@@ -148,42 +168,47 @@ def is_performance_instance(obj: Any) -> TypeGuard[Performance]:
     return soft_isinstance(obj, Performance)
 
 
-def create_deta_style_key() -> str:
-    available_characters = string.ascii_lowercase + string.digits
-    # create a 12 character long random
-    return "".join(random.choices(available_characters, k=12))
-
-
 class WorkYearEntryModel(BaseModel):
     composer: NonEmptyStr
     title: NonEmptyStr
     year: int
-    key: str = None
+    key: DetaKey = Field(default_factory=create_deta_style_key)
 
-    model_config = ConfigDict(frozen=True)
-
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("key", pre=True, always=True, allow_reuse=True)
-    def create_key(cls, key, values, **kwargs):
-        if key is not None:
-            return key
-
-        return create_deta_style_key()
+    model_config = ConfigDict(frozen=True, validate_default=True)
 
 
 class VenueModel(BaseModel):
     name: NonEmptyStr
     short_name: NonEmptyStr
-    key: str = None
+    key: DetaKey = Field(default_factory=create_deta_style_key)
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, validate_default=True)
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("key", pre=True, always=True, allow_reuse=True)
-    def create_key(cls, key, values, **kwargs):
-        if key is not None:
-            return key
 
-        return create_deta_style_key()
+PASS_HASH = PasswordHasher()
+
+
+def hash_password_if_needed(password: str) -> str:
+    if password.startswith("$argon2"):
+        # already hashed
+        return password
+
+    return PASS_HASH.hash(password)
+
+
+class PasswordModel(BaseModel):
+    key: DetaKey = Field(default_factory=create_deta_style_key)
+    password: Annotated[str, AfterValidator(hash_password_if_needed)]
+
+    model_config = ConfigDict(frozen=True, validate_default=True)
+
+    def verify_password(self, password: str):
+        try:
+            return PASS_HASH.verify(self.password, password)
+        except VerifyMismatchError:
+            return False
+
+
+if __name__ == "__main__":
+    # test the key creation
+    print(PasswordModel(password="password"))

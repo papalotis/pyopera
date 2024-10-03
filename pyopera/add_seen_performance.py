@@ -1,11 +1,13 @@
-from hashlib import sha1
-
 import streamlit as st
 
+from pyopera.common import PasswordModel
+from pyopera.deta_base import DatabaseInterface
 from pyopera.edit_main_db import run as edit_main_db
 from pyopera.edit_venues_db import run as edit_venues_db
 from pyopera.edit_works_year_db import run as edit_works_year_db
 from pyopera.streamlit_common import runs_on_streamlit_sharing
+
+PASS_INTERFACE = DatabaseInterface(PasswordModel)
 
 
 def authenticate() -> bool:
@@ -13,13 +15,19 @@ def authenticate() -> bool:
         # running locally, no need to authenticate
         return True
 
+    passwords = PASS_INTERFACE.fetch_db()
+    if len(passwords) == 0:
+        raise ValueError("No password found in the database")
+
+    if len(passwords) > 1:
+        raise ValueError("More than one password found in the database")
+
+    password_entry = passwords[0]
+
     if "authenticated" not in st.session_state:
         password_widget = st.empty()
         password = password_widget.text_input("Enter password", type="password")
-        if (
-            sha1(password.encode()).hexdigest()
-            != "ac2e1249ad3cbbe5908d15e5b1da6f0a603aaaf4"
-        ):
+        if not password_entry.verify_password(password):
             if password != "":
                 st.error("Wrong password")
             return False

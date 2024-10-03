@@ -46,7 +46,7 @@ def run():
             checkbox_only_full = st.checkbox("Only show full entries", value=True)
 
             st.markdown(
-                f"<sub>{len(db_filtered_full)}/{len(db)} ({ratio_full * 100:.0f}%) of entries are full</sub>",
+                f"<sub>{len(db_filtered_full)}/{len(db)} ({ratio_full:.1%}) of entries are full</sub>",
                 unsafe_allow_html=True,
             )
             st.progress(ratio_full)

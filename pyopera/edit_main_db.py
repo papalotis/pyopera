@@ -184,13 +184,8 @@ def run() -> None:
         )
 
         label = "Role" if add_to_cast else "Part"
-        # use_existing_checkbox = st.checkbox(f"Use existing {label.lower()}")
         role_or_part = st_free_text_select(label, list(relevant_roles))
 
-        # if use_existing_checkbox:
-
-        # else:
-        #     role_or_part = st.text_input(label)
     with col2:
         label = "Name" + " " * add_to_cast
 
@@ -206,14 +201,6 @@ def run() -> None:
         )
 
         cast_leading_team_name = st_free_text_select(label, all_persons)
-
-        # use_existing_checkbox = st.checkbox("Use existing person")
-        # if use_existing_checkbox:
-        #     # list_of_persons =
-
-        #     cast_leading_team_name = st.selectbox(label, all_persons)
-        # else:
-        #     cast_leading_team_name = st.text_input(label)
 
     append_button = st.button(
         "Append to " + mode,
@@ -243,9 +230,6 @@ def run() -> None:
     cast_flat = all_persons_with_role(st.session_state["cast"])
     leading_team_flat = all_persons_with_role(st.session_state["leading_team"])
 
-    # st.write(cast_flat)
-    # st.write(leading_team_flat)
-
     def format_func(role_name: Tuple[str, str]) -> str:
         role, name = role_name
         return f"{role} - {name}"
@@ -262,12 +246,6 @@ def run() -> None:
         args=[remove],
         disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
     )
-
-    # if do_remove and (len(cast_flat) > 0 or len(leading_team_flat) > 0):
-    #     remove_person_from_performance(remove)
-
-    #     # st.experimental_rerun()
-    #     st.rerun()
 
     write_cast_and_leading_team(
         st.session_state["cast"], st.session_state["leading_team"]
