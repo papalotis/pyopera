@@ -1,6 +1,5 @@
 import streamlit as st
 from pydantic import ValidationError
-from icecream import ic
 
 from pyopera.common import WorkYearEntryModel
 from pyopera.deta_base import DatabaseInterface
@@ -8,6 +7,11 @@ from pyopera.streamlit_common import (
     load_db,
     load_db_works_year,
 )
+
+try:
+    from icecream import ic
+except ImportError:
+    ic = lambda *args: None
 
 
 def extract_all_existing_composers_and_titles() -> dict:
@@ -28,7 +32,7 @@ def extract_all_existing_composers_and_titles() -> dict:
 
 
 def delete_from_db(to_delete: str) -> None:
-    assert isinstance(st.session_state.interface, DatabaseInterface) 
+    assert isinstance(st.session_state.interface, DatabaseInterface)
     st.session_state.interface.delete_item_db(to_delete)
     st.toast("Deleted entry", icon=":material/delete:")
 
