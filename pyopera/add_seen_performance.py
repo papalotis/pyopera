@@ -10,11 +10,7 @@ from pyopera.streamlit_common import runs_on_streamlit_sharing
 PASS_INTERFACE = DatabaseInterface(PasswordModel)
 
 
-def authenticate() -> bool:
-    if not runs_on_streamlit_sharing():
-        # running locally, no need to authenticate
-        return True
-
+def fetch_password() -> PasswordModel:
     passwords = PASS_INTERFACE.fetch_db()
     if len(passwords) == 0:
         raise ValueError("No password found in the database")
@@ -23,6 +19,16 @@ def authenticate() -> bool:
         raise ValueError("More than one password found in the database")
 
     password_entry = passwords[0]
+
+    return password_entry
+
+
+def authenticate() -> bool:
+    if not runs_on_streamlit_sharing():
+        # running locally, no need to authenticate
+        return True
+
+    password_entry = fetch_password()
 
     if "authenticated" not in st.session_state:
         password_widget = st.empty()
