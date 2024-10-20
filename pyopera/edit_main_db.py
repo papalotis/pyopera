@@ -5,7 +5,6 @@ from typing import Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
 from approx_dates.models import ApproxDate
-from streamlit_free_text_select import st_free_text_select
 
 from pyopera.common import (
     Performance,
@@ -184,7 +183,16 @@ def run() -> None:
         )
 
         label = "Role" if add_to_cast else "Part"
-        role_or_part = st_free_text_select(label, list(relevant_roles))
+        use_existing_checkbox = st.checkbox(f"Use existing {label.lower()}")
+
+        if use_existing_checkbox:
+            role_or_part = st.selectbox(
+                label,
+                list(relevant_roles),
+                format_func=lambda x: x,
+            )
+        else:
+            role_or_part = st.text_input(label)
 
     with col2:
         label = "Name" + " " * add_to_cast
@@ -200,7 +208,16 @@ def run() -> None:
             )
         )
 
-        cast_leading_team_name = st_free_text_select(label, all_persons)
+        use_existing_checkbox = st.checkbox("Use existing person")
+
+        if use_existing_checkbox:
+            cast_leading_team_name = st.selectbox(
+                label,
+                all_persons,
+                format_func=lambda x: x,
+            )
+        else:
+            cast_leading_team_name = st.text_input(label)
 
     append_button = st.button(
         "Append to " + mode,
