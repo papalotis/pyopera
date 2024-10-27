@@ -1,5 +1,4 @@
 from collections import defaultdict
-from contextlib import nullcontext
 from datetime import date
 from itertools import chain
 from typing import Mapping, Optional, Sequence, Tuple, Union
@@ -41,13 +40,147 @@ def clear_cast_leading_team_from_session_state():
             pass
 
 
-def add_person_to_performance_dialog(
-    db: list[Performance],
-    name: str,
-    composer: str,
-    add_to_cast: bool,
-):
-    mode = "Cast" if add_to_cast else "Leading team"
+def run() -> None:
+    db = load_db()
+
+    with st.sidebar:
+        if st.checkbox("Only show non-full entries"):
+            db_to_use = [
+                performance
+                for performance in db
+                if (len(performance.cast) + len(performance.leading_team)) < 1
+            ]
+
+        else:
+            db_to_use = [None] + db
+
+        if len(db_to_use) < 1:
+            st.error("No entries were found")
+            st.stop()
+
+        entry_to_update_raw: Optional[Performance] = st.selectbox(
+            "Select entry",
+            db_to_use,
+            format_func=format_title,
+            on_change=clear_cast_leading_team_from_session_state,
+        )
+
+        # if isinstance(entry_to_update_raw, Performance):
+        if is_performance_instance(entry_to_update_raw):
+            entry_to_update = entry_to_update_raw.dict()
+        else:
+            entry_to_update = {}
+
+        if entry_to_update != {}:
+            update_existing = not st.checkbox("Use for new entry")
+        else:
+            update_existing = False
+
+    if __file__ not in st.session_state:
+        st.session_state[__file__] = {}
+        st.session_state[__file__]["last_run_counter"] = int(
+            st.session_state.run_counter
+        )
+
+    coming_from_different_page = (
+        st.session_state.run_counter - st.session_state[__file__]["last_run_counter"]
+        > 1
+    )
+
+    if "cast" not in st.session_state or coming_from_different_page:
+        st.session_state["cast"] = defaultdict(set)
+        st.session_state["leading_team"] = defaultdict(set)
+
+        if update_existing:
+            st.session_state["cast"].update(
+                {k: set(v) for k, v in entry_to_update["cast"].items()}
+            )
+            st.session_state["leading_team"].update(
+                {k: set(v) for k, v in entry_to_update["leading_team"].items()}
+            )
+
+    st.title(
+        ("Update an existing" if update_existing else "Add a new visited")
+        + " performance"
+    )
+
+    default_name = entry_to_update.get("name", "")
+    default_production = entry_to_update.get("production", "")
+    default_stage = entry_to_update.get("stage", "")
+    default_composer = entry_to_update.get("composer", "")
+    default_comments = entry_to_update.get("comments", "")
+    default_concertant = entry_to_update.get("is_concertante", False)
+
+    name = st.text_input(label="Name", help="The name of the opera", value=default_name)
+    col1, col2 = st.columns([1, 3])
+
+    existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
+    already_approximate_date = existing_dates is not None and not is_exact_date(
+        existing_dates
+    )
+    with col1:
+        approximate_date = st.checkbox(
+            "Approximate date", value=already_approximate_date
+        )
+
+    with col2:
+        if approximate_date:
+            if existing_dates is None:
+                default_date = tuple()
+            else:
+                default_date = (
+                    existing_dates.earliest_date,
+                    existing_dates.latest_date,
+                )
+        else:
+            if existing_dates is None:
+                default_date = date.today()
+            else:
+                default_date = existing_dates.earliest_date
+                assert is_exact_date(existing_dates)
+
+        dates = st.date_input(
+            label="Date",
+            help="The day of the visit",
+            value=default_date,
+            min_value=date(1970, 1, 1),
+        )
+
+        if isinstance(dates, date):
+            dates = (dates, dates)
+
+        if len(dates) < 2:
+            date_range = ApproxDate.PAST
+        else:
+            date_range = ApproxDate(*dates)
+
+    col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
+
+    with col1:
+        production = st.text_input(
+            label="Production", help="The production company", value=default_production
+        )
+    with col2:
+        stage = st.text_input(label="Stage", value=default_stage)
+
+    with col3:
+        composer = st.text_input(label="Composer", value=default_composer)
+
+    with col4:
+        concertante = st.checkbox(label="Concertante", value=default_concertant)
+
+    comments = st.text_area(
+        label="Notes",
+        help="Notes regarding the performance",
+        value=default_comments,
+    )
+
+    mode = st.radio(
+        "Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True
+    )
+
+    add_to_cast = mode == "Cast"
+
     col1, col2 = st.columns([1, 1])
     with col1:
         relevant_works = [
@@ -112,21 +245,6 @@ def add_person_to_performance_dialog(
         else:
             st.error("At least one field is empty")
 
-        st.rerun()
-
-
-@st.dialog("Add to cast")
-def add_person_to_cast_dialog(db: list[Performance], name: str, composer: str):
-    add_person_to_performance_dialog(db, name, composer, add_to_cast=True)
-
-
-@st.dialog("Add to leading team")
-def add_person_to_leading_team_dialog(db: list[Performance], name: str, composer: str):
-    add_person_to_performance_dialog(db, name, composer, add_to_cast=False)
-
-
-@st.dialog("Remove from performance")
-def remove_person_from_performance_dialog():
     def all_persons_with_role(
         dol: Mapping[str, Sequence[str]],
     ) -> Sequence[Tuple[str, str]]:
@@ -150,235 +268,61 @@ def remove_person_from_performance_dialog():
         format_func=format_func,
     )
 
-    if st.button(
+    st.button(
         "Remove",
         on_click=remove_person_from_performance,
         args=[remove],
         disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
-    ):
-        st.rerun()
-
-
-def run() -> None:
-    db = load_db()
-
-    with st.sidebar:
-        if st.checkbox("Only show non-full entries"):
-            db_to_use = [
-                performance
-                for performance in db
-                if (len(performance.cast) + len(performance.leading_team)) < 1
-            ]
-
-        else:
-            db_to_use = [None] + db
-
-        if len(db_to_use) < 1:
-            st.error("No entries were found")
-            st.stop()
-
-        entry_to_update_raw: Optional[Performance] = st.selectbox(
-            "Select entry",
-            db_to_use,
-            format_func=format_title,
-            on_change=clear_cast_leading_team_from_session_state,
-        )
-
-        # if isinstance(entry_to_update_raw, Performance):
-        if is_performance_instance(entry_to_update_raw):
-            entry_to_update = entry_to_update_raw.dict()
-        else:
-            entry_to_update = {}
-
-        if entry_to_update != {}:
-            update_existing = not st.checkbox("Use for new entry")
-        else:
-            update_existing = False
-
-    if __file__ not in st.session_state:
-        st.session_state[__file__] = {}
-        st.session_state[__file__]["last_run_counter"] = int(
-            st.session_state.run_counter
-        )
-
-    coming_from_different_page = (
-        st.session_state.run_counter - st.session_state[__file__]["last_run_counter"]
     )
 
-    if "cast" not in st.session_state or coming_from_different_page:
-        st.session_state["cast"] = defaultdict(set)
-        st.session_state["leading_team"] = defaultdict(set)
+    write_cast_and_leading_team(
+        st.session_state["cast"], st.session_state["leading_team"]
+    )
 
-        if update_existing:
-            st.session_state["cast"].update(
-                {k: set(v) for k, v in entry_to_update["cast"].items()}
+    if update_existing:
+        ### delete entry
+        with st.expander("Delete entry"):
+            st.warning(
+                "This action will permanently delete the entry from the database. Make sure that you absolutely want to delete the entry before proceeding."
             )
-            st.session_state["leading_team"].update(
-                {k: set(v) for k, v in entry_to_update["leading_team"].items()}
+            # ask user text confirmation
+            confirmation_text = (
+                f'Yes I want to delete entry "{format_title(entry_to_update)}"'
             )
-
-    st.title(("Update existing" if update_existing else "Add a new") + " performance")
-
-    with st.container(border=True):
-        name, date_range, production, stage, composer, concertante, comments = (
-            gather_core_performance_information(entry_to_update)
-        )
-
-    with st.expander("Manage Cast and Team", expanded=True, icon=":material/people:"):
-        gather_cast_and_leading_team(db, name, composer)
-
-    if len(st.session_state["cast"]) > 0 or len(st.session_state["leading_team"]) > 0:
-        with st.container(border=True):
-            write_cast_and_leading_team(
-                st.session_state["cast"], st.session_state["leading_team"]
+            user_delete_text = st.text_input(
+                f"Type '{confirmation_text}' to confirm deletion", value=""
             )
 
-    with st.container(border=True):
-        if update_existing:
-            ### delete entry
-            with st.expander("Delete entry"):
-                st.warning(
-                    "This action will permanently delete the entry from the database. Make sure that you absolutely want to delete the entry before proceeding. **This action cannot be undone**."
-                )
-                # ask user text confirmation
-                confirmation_text = (
-                    f'Yes I want to delete entry "{format_title(entry_to_update)}"'
-                )
-                user_delete_text = st.text_input(
-                    f"Type '{confirmation_text}' to confirm deletion", value=""
-                )
+            user_text_confirmation = user_delete_text == confirmation_text
+            st.button(
+                "Delete entry",
+                disabled=not user_text_confirmation,
+                on_click=do_deletion,
+                args=[
+                    entry_to_update,
+                    user_text_confirmation,
+                ],
+            )
 
-                user_text_confirmation = user_delete_text == confirmation_text
-                st.button(
-                    "Delete entry",
-                    disabled=not user_text_confirmation,
-                    on_click=do_deletion,
-                    args=[
-                        entry_to_update,
-                        user_text_confirmation,
-                    ],
-                )
+    st.markdown("---")
 
-        st.button(
-            label="Submit" + (" update" if update_existing else ""),
-            on_click=do_submission,
-            args=[
-                entry_to_update,
-                update_existing,
-                name,
-                date_range,
-                production,
-                stage,
-                composer,
-                concertante,
-                comments,
-            ],
-            icon=":material/cloud_upload:",
-        )
+    st.button(
+        label="Submit" + (" update" if update_existing else ""),
+        on_click=do_submission,
+        args=[
+            entry_to_update,
+            update_existing,
+            name,
+            date_range,
+            production,
+            stage,
+            composer,
+            concertante,
+            comments,
+        ],
+    )
 
     st.session_state[__file__]["last_run_counter"] = int(st.session_state.run_counter)
-
-
-def gather_cast_and_leading_team(db, name, composer):
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        if st.button(
-            "Add to cast", icon=":material/person_add:", use_container_width=True
-        ):
-            add_person_to_cast_dialog(db, name, composer)
-
-    with col2:
-        if st.button(
-            "Add to leading team",
-            icon=":material/people_alt:",
-            use_container_width=True,
-        ):
-            add_person_to_leading_team_dialog(db, name, composer)
-    st.divider()
-    if st.button(
-        "Remove from performance",
-        icon=":material/person_remove:",
-        use_container_width=True,
-    ):
-        remove_person_from_performance_dialog()
-
-
-def gather_core_performance_information(entry_to_update):
-    default_name = entry_to_update.get("name", "")
-    default_production = entry_to_update.get("production", "")
-    default_stage = entry_to_update.get("stage", "")
-    default_composer = entry_to_update.get("composer", "")
-    default_comments = entry_to_update.get("comments", "")
-    default_concertant = entry_to_update.get("is_concertante", False)
-
-    name = st.text_input(label="Name", help="The name of the opera", value=default_name)
-    col1, col2 = st.columns([1, 3])
-
-    existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
-    already_approximate_date = existing_dates is not None and not is_exact_date(
-        existing_dates
-    )
-    with col1:
-        approximate_date = st.checkbox(
-            "Approximate date", value=already_approximate_date
-        )
-
-    with col2:
-        if approximate_date:
-            if existing_dates is None:
-                default_date = tuple()
-            else:
-                default_date = (
-                    existing_dates.earliest_date,
-                    existing_dates.latest_date,
-                )
-        else:
-            if existing_dates is None:
-                default_date = date.today()
-            else:
-                default_date = existing_dates.earliest_date
-                assert is_exact_date(existing_dates)
-
-        dates = st.date_input(
-            label="Date",
-            help="The day of the visit",
-            value=default_date,
-            min_value=date(1970, 1, 1),
-        )
-
-        if isinstance(dates, date):
-            dates = (dates, dates)
-
-        if len(dates) < 2:
-            date_range = ApproxDate.PAST
-        else:
-            date_range = ApproxDate(*dates)
-
-    col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
-
-    with col1:
-        production = st.text_input(
-            label="Production",
-            help="The production company",
-            value=default_production,
-        )
-    with col2:
-        stage = st.text_input(label="Stage", value=default_stage)
-
-    with col3:
-        composer = st.text_input(label="Composer", value=default_composer)
-
-    with col4:
-        concertante = st.checkbox(label="Concertante", value=default_concertant)
-
-    comments = st.text_area(
-        label="Notes",
-        help="Notes regarding the performance",
-        value=default_comments,
-    )
-
-    return name, date_range, production, stage, composer, concertante, comments
 
 
 def remove_person_from_performance(remove: tuple[str, str]):
