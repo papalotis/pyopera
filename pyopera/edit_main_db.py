@@ -286,9 +286,7 @@ def run() -> None:
                 "This action will permanently delete the entry from the database. Make sure that you absolutely want to delete the entry before proceeding."
             )
             # ask user text confirmation
-            confirmation_text = (
-                f'Yes I want to delete entry "{format_title(entry_to_update)}"'
-            )
+            confirmation_text = "delete"
             user_delete_text = st.text_input(
                 f"Type '{confirmation_text}' to confirm deletion", value=""
             )
