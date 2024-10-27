@@ -11,10 +11,10 @@ from more_itertools import flatten
 from pydantic import (
     AfterValidator,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     StringConstraints,
-    validator,
 )
 from unidecode import unidecode
 
@@ -51,9 +51,38 @@ PerformanceKey = Annotated[
 DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
 
 
+def parse_date(v: Any) -> ApproxDate:
+    # there are three possible formats:
+    # full iso format: "2020-01-01T00:00:00" (handled by datetime module)
+    # partial iso format: "2020-01" (January 2020) (handled by ApproxDate)
+    # short iso to short iso: "2020-01-01 to 2020-01-04" (January 1st to 4th 2020) (handled by manual parsing and ApproxDate)
+
+    # pass on already parsed dates
+    if isinstance(v, ApproxDate):
+        return v
+
+    try:
+        exact_date = datetime.fromisoformat(v).date()
+        approx_date = ApproxDate(exact_date, exact_date, source_string=v)
+        return approx_date
+    except ValueError:
+        try:
+            approx_date = ApproxDate.from_iso8601(v)
+            return approx_date
+        except ValueError:
+            # two partial dates split by " to "
+            # short iso to short iso
+            date_strings = v.split(" to ")
+            if len(date_strings) != 2:
+                raise ValueError(f'Could not find two iso dates split by "to" in {v}')
+            early_date, late_date = map(date.fromisoformat, date_strings)
+            approx_date = ApproxDate(early_date, late_date, source_string=v)
+            return approx_date
+
+
 class Performance(BaseModel):
     name: NonEmptyStr
-    date: ApproxDate
+    date: Annotated[ApproxDate, BeforeValidator(parse_date)]
     cast: Mapping[NonEmptyStr, NonEmptyStrList]
     leading_team: Mapping[NonEmptyStr, NonEmptyStrList]
     stage: NonEmptyStr
@@ -71,39 +100,6 @@ class Performance(BaseModel):
         json_encoders={ApproxDate: str},
         frozen=True,
     )
-
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("date", pre=True, always=True, allow_reuse=True)
-    def parse_date(cls, v, **kwargs):
-        # there are three possible formats:
-        # full iso format: "2020-01-01T00:00:00" (handled by datetime module)
-        # partial iso format: "2020-01" (January 2020) (handled by ApproxDate)
-        # short iso to short iso: "2020-01-01 to 2020-01-04" (January 1st to 4th 2020) (handled by manual parsing and ApproxDate)
-
-        # pass on already parsed dates
-        if isinstance(v, ApproxDate):
-            return v
-
-        try:
-            exact_date = datetime.fromisoformat(v).date()
-            approx_date = ApproxDate(exact_date, exact_date, source_string=v)
-            return approx_date
-        except ValueError:
-            try:
-                approx_date = ApproxDate.from_iso8601(v)
-                return approx_date
-            except ValueError:
-                # two partial dates split by " to "
-                # short iso to short iso
-                date_strings = v.split(" to ")
-                if len(date_strings) != 2:
-                    raise ValueError(
-                        f'Could not find two iso dates split by "to" in {v}'
-                    )
-                early_date, late_date = map(date.fromisoformat, date_strings)
-                approx_date = ApproxDate(early_date, late_date, source_string=v)
-                return approx_date
 
 
 def is_exact_date(date: ApproxDate) -> bool:

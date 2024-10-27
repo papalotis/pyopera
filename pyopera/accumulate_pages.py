@@ -26,6 +26,11 @@ def create_pages():
 
 
 def main():
+    if "run_counter" not in st.session_state:
+        st.session_state.run_counter = 0
+
+    st.session_state.run_counter += 1
+
     st.logo(generate_logo(), size="large")
     page = st.navigation(create_pages())
     page.run()
