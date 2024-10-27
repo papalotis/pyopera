@@ -26,6 +26,6 @@ def create_pages():
 
 
 def main():
-    st.logo(generate_logo())
+    st.logo(generate_logo(), size="large")
     page = st.navigation(create_pages())
     page.run()

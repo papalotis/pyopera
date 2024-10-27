@@ -147,3 +147,5 @@ notes.md
 
 
 .ruff_cache/
+
+t.py
