@@ -138,10 +138,20 @@ def create_performances_markdown_string(
 
     markdown_text.append("# Performances")
 
+    have_added_following_works_no_dates = False
+
     for entry in db:
         stage = venues_db.get(entry.stage, entry.stage)
-        date = format_iso_date_to_day_month_year_with_dots(entry.date)
-        markdown_text.append(f"{date} - {stage} - {entry.composer} - {entry.name}\n")
+
+        base_string = f"{stage} - {entry.composer} - {entry.name}\n"
+        if entry.date is not None:
+            date = format_iso_date_to_day_month_year_with_dots(entry.date)
+            base_string = f"{date} - {base_string}"
+        elif not have_added_following_works_no_dates:
+            markdown_text.append("---")
+            have_added_following_works_no_dates = True
+
+        markdown_text.append(base_string)
 
     return "\n".join(markdown_text)
 

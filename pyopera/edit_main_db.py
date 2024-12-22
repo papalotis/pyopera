@@ -112,19 +112,28 @@ def run() -> None:
     default_concertant = entry_to_update.get("is_concertante", False)
 
     name = st.text_input(label="Name", help="The name of the opera", value=default_name)
-    col1, col2 = st.columns([1, 3])
+    col1, col2 = st.columns([1, 2])
 
     existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
     already_approximate_date = existing_dates is not None and not is_exact_date(
         existing_dates
     )
+    no_date = existing_dates is None
     with col1:
-        approximate_date = st.checkbox(
-            "Approximate date", value=already_approximate_date
+        date_type = st.pills(
+            "Date type",
+            ["Exact", "Approximate", "None"],
+            default=(
+                "Approximate"
+                if already_approximate_date
+                else "None"
+                if no_date
+                else "Exact"
+            ),
         )
 
     with col2:
-        if approximate_date:
+        if date_type == "Approximate":
             if existing_dates is None:
                 default_date = tuple()
             else:
@@ -132,27 +141,35 @@ def run() -> None:
                     existing_dates.earliest_date,
                     existing_dates.latest_date,
                 )
-        else:
+        elif date_type == "Exact":
             if existing_dates is None:
                 default_date = date.today()
             else:
                 default_date = existing_dates.earliest_date
-                assert is_exact_date(existing_dates)
+                if is_exact_date(existing_dates):
+                    st.error("Trying to treat an approximate date as an exact date")
+                    return
 
-        dates = st.date_input(
-            label="Date",
-            help="The day of the visit",
-            value=default_date,
-            min_value=date(1970, 1, 1),
-        )
-
-        if isinstance(dates, date):
-            dates = (dates, dates)
-
-        if len(dates) < 2:
-            date_range = ApproxDate.PAST
         else:
-            date_range = ApproxDate(*dates)
+            default_date = None
+
+        if default_date is None:
+            date_range = None
+        else:
+            dates = st.date_input(
+                label="Date",
+                help="The day of the visit",
+                value=default_date,
+                min_value=date(1970, 1, 1),
+            )
+
+            if isinstance(dates, date):
+                dates = (dates, dates)
+
+            if len(dates) < 2:
+                date_range = ApproxDate.PAST
+            else:
+                date_range = ApproxDate(*dates)
 
     col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
 
@@ -348,7 +365,7 @@ def do_submission(
     entry_to_update,
     update_existing,
     name,
-    date_range,
+    date_range: Optional[ApproxDate],
     production,
     stage,
     composer,
@@ -356,12 +373,14 @@ def do_submission(
     comments,
 ):
     number_of_form_errors = 0
-    if date_range.latest_date > date.today():
-        number_of_form_errors += 1
-        st.error("Selected date is in the future")
-    if date_range == ApproxDate.PAST:
-        number_of_form_errors += 1
-        st.error("Date range is not full")
+
+    if date_range is not None:
+        if date_range.latest_date > date.today():
+            number_of_form_errors += 1
+            st.error("Selected date is in the future")
+        if date_range == ApproxDate.PAST:
+            number_of_form_errors += 1
+            st.error("Date range is not full")
     if name == "":
         number_of_form_errors += 1
         st.error("Name field is empty")
@@ -385,7 +404,7 @@ def do_submission(
 
         final_dict = dict(
             name=name,
-            date=str(date_range),
+            date=str(date_range) if date_range is not None else None,
             production=production,
             composer=composer,
             stage=stage,

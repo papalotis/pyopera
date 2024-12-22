@@ -123,10 +123,15 @@ def format_title(performance: Performance | dict | None) -> str:
     if performance in (None, {}):
         return "Add new visit"
 
-    date = format_iso_date_to_day_month_year_with_dots(performance["date"])
     name = performance["name"]
     stage = performance["stage"]
-    new_title = f"{date} - {name} - {stage}"
+
+    base_string = f"{name} - {stage}"
+    if performance["date"] is None:
+        return base_string
+
+    date = format_iso_date_to_day_month_year_with_dots(performance["date"])
+    new_title = f"{date} - {base_string}"
     return new_title
 
 
