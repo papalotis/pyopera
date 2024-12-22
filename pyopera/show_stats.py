@@ -216,10 +216,12 @@ def run_single_opus():
     ]
 
     for entry in all_entries_of_opus:
-        date_string = "" if entry.date is None else f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} "
-        st.markdown(
-            f"{date_string} - {venues_db.get(entry.stage, entry.stage)}"
+        date_string = (
+            ""
+            if entry.date is None
+            else f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} "
         )
+        st.markdown(f"{date_string} - {venues_db.get(entry.stage, entry.stage)}")
 
 
 def run_single_person():
@@ -247,12 +249,18 @@ def run_single_person():
         all_roles = ChainMap(entry.leading_team, entry.cast)
         roles = [role for role, persons in all_roles.items() if person in persons]
 
-        to_join = [] if entry.date is None else [format_iso_date_to_day_month_year_with_dots(entry.date)]
+        to_join = (
+            []
+            if entry.date is None
+            else [format_iso_date_to_day_month_year_with_dots(entry.date)]
+        )
 
-        to_join.extend([
-            venues_db.get(entry.stage, entry.stage),
-            entry.name,
-        ])
+        to_join.extend(
+            [
+                venues_db.get(entry.stage, entry.stage),
+                entry.name,
+            ]
+        )
         if person == entry.composer and len(roles) == 0:
             pass
         else:

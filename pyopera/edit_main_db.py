@@ -118,7 +118,7 @@ def run() -> None:
     already_approximate_date = existing_dates is not None and not is_exact_date(
         existing_dates
     )
-    no_date = existing_dates is None
+    no_date = existing_dates is None and update_existing
     with col1:
         date_type = st.pills(
             "Date type",
@@ -146,23 +146,22 @@ def run() -> None:
                 default_date = date.today()
             else:
                 default_date = existing_dates.earliest_date
-                if is_exact_date(existing_dates):
+                if not is_exact_date(existing_dates):
                     st.error("Trying to treat an approximate date as an exact date")
                     return
 
         else:
             default_date = None
 
-        if default_date is None:
-            date_range = None
-        else:
-            dates = st.date_input(
-                label="Date",
-                help="The day of the visit",
-                value=default_date,
-                min_value=date(1970, 1, 1),
-            )
+        dates = st.date_input(
+            label="Date",
+            help="The day of the visit",
+            value=default_date,
+            min_value=date(1970, 1, 1),
+            disabled=date_type is "None",
+        )
 
+        if default_date is not None:
             if isinstance(dates, date):
                 dates = (dates, dates)
 
