@@ -169,6 +169,8 @@ def run() -> None:
                 date_range = ApproxDate.PAST
             else:
                 date_range = ApproxDate(*dates)
+        else:
+            date_range = None
 
     col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
 
