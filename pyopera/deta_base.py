@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Generic, Sequence, TypeVar
+from typing import Generic, Optional, Sequence, TypeVar
 
 import streamlit as st
 from approx_dates.models import ApproxDate
@@ -20,8 +21,18 @@ from pyopera.create_table import make_deta_style_table
 EntryType = TypeVar("EntryType", bound=BaseModel)
 
 
+DEFAULT_DATE = datetime.fromtimestamp(0.0, timezone.utc).date()
+
+
+def get_earliest_date(date: Optional[ApproxDate]) -> datetime:
+    if date is None:
+        return DEFAULT_DATE
+
+    return date.earliest_date or DEFAULT_DATE
+
+
 def sort_entries_by_date(entries: Sequence[Performance]) -> list[Performance]:
-    return sorted(entries, key=lambda x: x.date.earliest_date, reverse=True)
+    return sorted(entries, key=lambda x: get_earliest_date(x.date), reverse=True)
 
 
 class DatabaseName(str, Enum):

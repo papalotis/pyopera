@@ -42,8 +42,12 @@ def run():
         db_filtered_full = filter_only_full_entries(db)
         ratio_full = len(db_filtered_full) / len(db)
 
+        col1, col2 = st.columns(2)
+        with col1:
+            filter_works_without_date = st.checkbox("Only works with date", value=False)
         if len(db_filtered_full) < len(db):
-            checkbox_only_full = st.checkbox("Only show full entries", value=True)
+            with col2:
+                checkbox_only_full = st.checkbox("Only full entries", value=True)
 
             st.markdown(
                 f"<sub>{len(db_filtered_full)}/{len(db)} ({ratio_full:.1%}) of entries are full</sub>",
@@ -54,6 +58,12 @@ def run():
             checkbox_only_full = False
 
         db_use_full = db_filtered_full if checkbox_only_full else list(db)
+
+        if filter_works_without_date:
+            db_use_full = list(
+                filter(lambda performance: performance.date is not None, db_use_full)
+            )
+
         db_filtered = list(
             filter(
                 lambda performance: set(options)
@@ -81,8 +91,13 @@ def run():
     if stage_name_to_show != production_name_to_show:
         stage_name_to_show += f" - {production_name_to_show}"
 
+    date_str = (
+        format_iso_date_to_day_month_year_with_dots(performance.date)
+        if performance.date
+        else ""
+    )
     st.markdown(
-        f"##### **{performance.composer}**\n### {performance.name}\n{format_iso_date_to_day_month_year_with_dots(performance.date)}\n\n{stage_name_to_show}"
+        f"##### **{performance.composer}**\n### {performance.name}\n{date_str}\n\n{stage_name_to_show}"
     )
 
     def hightlight_person_if_selected(person: str) -> str:

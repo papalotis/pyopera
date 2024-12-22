@@ -2,7 +2,17 @@ import random
 import string
 from collections import ChainMap
 from datetime import date, datetime
-from typing import Annotated, Any, Callable, List, Mapping, Sequence, TypeGuard, TypeVar
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    TypeGuard,
+    TypeVar,
+)
 
 from approx_dates.models import ApproxDate
 from argon2 import PasswordHasher
@@ -51,7 +61,7 @@ PerformanceKey = Annotated[
 DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
 
 
-def parse_date(v: Any) -> ApproxDate:
+def parse_date(v: Any) -> Optional[ApproxDate]:
     # there are three possible formats:
     # full iso format: "2020-01-01T00:00:00" (handled by datetime module)
     # partial iso format: "2020-01" (January 2020) (handled by ApproxDate)
@@ -60,6 +70,9 @@ def parse_date(v: Any) -> ApproxDate:
     # pass on already parsed dates
     if isinstance(v, ApproxDate):
         return v
+
+    if v is None:
+        return None
 
     try:
         exact_date = datetime.fromisoformat(v).date()
@@ -82,7 +95,7 @@ def parse_date(v: Any) -> ApproxDate:
 
 class Performance(BaseModel):
     name: NonEmptyStr
-    date: Annotated[ApproxDate, BeforeValidator(parse_date)]
+    date: Annotated[Optional[ApproxDate], BeforeValidator(parse_date)]
     cast: Mapping[NonEmptyStr, NonEmptyStrList]
     leading_team: Mapping[NonEmptyStr, NonEmptyStrList]
     stage: NonEmptyStr
@@ -102,8 +115,8 @@ class Performance(BaseModel):
     )
 
 
-def is_exact_date(date: ApproxDate) -> bool:
-    return date.earliest_date == date.latest_date
+def is_exact_date(date: ApproxDate | None) -> bool:
+    return date is not None and date.earliest_date == date.latest_date
 
 
 DB_TYPE = Sequence[Performance]
