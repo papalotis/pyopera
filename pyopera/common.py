@@ -1,3 +1,4 @@
+import json
 import random
 import string
 from collections import ChainMap
@@ -9,12 +10,12 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Self,
     Sequence,
     TypeGuard,
     TypeVar,
 )
 
-from approx_dates.models import ApproxDate
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from more_itertools import flatten
@@ -25,6 +26,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    model_serializer,
 )
 from unidecode import unidecode
 
@@ -55,6 +57,29 @@ def create_deta_style_key() -> str:
     return "".join(random.choices(available_characters, k=12))
 
 
+class ApproxDate(BaseModel):
+    earliest_date: date
+    latest_date: date
+
+    @model_serializer
+    def model_dump(self) -> dict:
+        return f"{self.earliest_date.isoformat()} to {self.latest_date.isoformat()}"
+
+    @classmethod
+    def from_iso8601(cls, iso_string: str) -> Self:
+        try:
+            date_obj = datetime.fromisoformat(iso_string).date()
+            return cls(date_obj, date_obj)
+        except ValueError:
+            date_strings = iso_string.split(" to ")
+            if len(date_strings) != 2:
+                raise ValueError(
+                    f'Could not find two iso dates split by "to" in {iso_string}'
+                )
+            early_date, late_date = map(date.fromisoformat, date_strings)
+            return cls(earliest_date=early_date, latest_date=late_date)
+
+
 PerformanceKey = Annotated[
     SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))
 ]
@@ -67,30 +92,45 @@ def parse_date(v: Any) -> Optional[ApproxDate]:
     # partial iso format: "2020-01" (January 2020) (handled by ApproxDate)
     # short iso to short iso: "2020-01-01 to 2020-01-04" (January 1st to 4th 2020) (handled by manual parsing and ApproxDate)
 
+    print(v, type(v))
+
     # pass on already parsed dates
-    if isinstance(v, ApproxDate):
-        return v
+    if soft_isinstance(v, ApproxDate):
+        return ApproxDate(earliest_date=v.earliest_date, latest_date=v.latest_date)
 
     if v is None:
         return None
 
+    if isinstance(v, dict):
+        return ApproxDate(**v)
+
+
+    
     try:
         exact_date = datetime.fromisoformat(v).date()
-        approx_date = ApproxDate(exact_date, exact_date, source_string=v)
+        approx_date = ApproxDate(earliest_date=exact_date, latest_date=exact_date)
         return approx_date
     except ValueError:
         try:
             approx_date = ApproxDate.from_iso8601(v)
             return approx_date
         except ValueError:
+            assert isinstance(v, str)
             # two partial dates split by " to "
             # short iso to short iso
             date_strings = v.split(" to ")
-            if len(date_strings) != 2:
-                raise ValueError(f'Could not find two iso dates split by "to" in {v}')
-            early_date, late_date = map(date.fromisoformat, date_strings)
-            approx_date = ApproxDate(early_date, late_date, source_string=v)
-            return approx_date
+            if len(date_strings) == 2:
+                early_date, late_date = map(date.fromisoformat, date_strings)
+                approx_date = ApproxDate(early_date, late_date, source_string=v)
+                return approx_date
+
+            # if v.startswith("earliest_date="):
+            #     # the string version of the ApproxDate instance has been passed
+            #     # we split by the equal sign and then by the comma
+            #     _, earlisten_date_with_latest_date_name, latest_date = v.split("=")
+            #     earliest_date, _ = earlisten_date_with_latest_date_name.split(")")[0] + ")"
+
+    raise ValueError(f"Could not parse date from {v}")
 
 
 class Performance(BaseModel):
@@ -116,8 +156,17 @@ class Performance(BaseModel):
     )
 
 
-def is_exact_date(date: ApproxDate | None) -> bool:
-    return date is not None and date.earliest_date == date.latest_date
+def is_exact_date(date: ApproxDate | None | dict | str) -> bool:
+    if date is None:
+        return False
+
+    if isinstance(date, dict):
+        date = ApproxDate(**date)
+
+    if isinstance(date, str):
+        date = ApproxDate.from_iso8601(date)
+
+    return date.earliest_date == date.latest_date
 
 
 DB_TYPE = Sequence[Performance]

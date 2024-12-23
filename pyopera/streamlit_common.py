@@ -1,13 +1,13 @@
 import platform
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import Mapping, Sequence
 
 import streamlit as st
-from approx_dates.models import ApproxDate
 
 from pyopera.common import (
     DB_TYPE,
+    ApproxDate,
     Performance,
     VenueModel,
     WorkYearEntryModel,
@@ -92,14 +92,21 @@ def write_cast_and_leading_team(
 def format_iso_date_to_day_month_year_with_dots(
     date_iso: datetime | str | ApproxDate | None,
 ) -> str:
-    
     if date_iso is None:
         return "Unknown date"
 
     if isinstance(date_iso, str):
-        date_iso = datetime.fromisoformat(date_iso)
+        try:
+            date_iso = datetime.fromisoformat(date_iso)
+            return date_iso
+        except ValueError:
+            if "to" in date_iso:
+                date_iso = ApproxDate.from_iso8601(date_iso)
 
-    if isinstance(date_iso, ApproxDate):
+    if isinstance(date_iso, dict):
+        date_iso = ApproxDate(**date_iso)
+
+    if soft_isinstance(date_iso, ApproxDate):
         earliest, latest = date_iso.earliest_date, date_iso.latest_date
         if earliest.year == latest.year:
             if earliest.month == latest.month:

@@ -1,13 +1,13 @@
+import random
 from collections import defaultdict
 from datetime import date
 from itertools import chain
-import random
 from typing import Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
-from approx_dates.models import ApproxDate
 
 from pyopera.common import (
+    ApproxDate,
     Performance,
     is_exact_date,
     is_performance_instance,
@@ -25,6 +25,7 @@ BASE_INTERFACE = DatabaseInterface(Performance)
 
 def send_new_performance(new_performance: Union[Performance, dict]) -> None:
     if isinstance(new_performance, dict):
+        print(new_performance)
         new_performance = Performance(**new_performance)
 
     BASE_INTERFACE.put_db(new_performance)
@@ -140,15 +141,16 @@ def run() -> None:
             if existing_dates is None:
                 default_date = tuple()
             else:
+                approx_date = ApproxDate.from_iso8601(existing_dates)
                 default_date = (
-                    existing_dates.earliest_date,
-                    existing_dates.latest_date,
+                    approx_date.earliest_date,
+                    approx_date.latest_date,
                 )
         elif date_type == "Exact":
             if existing_dates is None:
                 default_date = date.today()
             else:
-                default_date = existing_dates.earliest_date
+                default_date = ApproxDate.from_iso8601(existing_dates).earliest_date
                 if not is_exact_date(existing_dates):
                     st.error("Trying to treat an approximate date as an exact date")
                     return
@@ -161,7 +163,7 @@ def run() -> None:
             help="The day of the visit",
             value=default_date,
             min_value=date(1970, 1, 1),
-            disabled=date_type is "None",
+            disabled=date_type == "None",
         )
 
         if default_date is not None:
@@ -169,9 +171,9 @@ def run() -> None:
                 dates = (dates, dates)
 
             if len(dates) < 2:
-                date_range = ApproxDate.PAST
+                date_range = None
             else:
-                date_range = ApproxDate(*dates)
+                date_range = ApproxDate(earliest_date=dates[0], latest_date=dates[1])
         else:
             date_range = None
 
@@ -219,7 +221,12 @@ def run() -> None:
                     entry.production == production
                     and entry.name == name
                     and entry.production_id == selected_production_id
-                    and (entry.date is None or entry.date.earliest_date != date_range.earliest_date or entry.date.latest_date != date_range.latest_date)
+                    and (
+                        entry.date is None
+                        or date_range is None
+                        or entry.date.earliest_date != date_range.earliest_date
+                        or entry.date.latest_date != date_range.latest_date
+                    )
                 )
             ]
 
@@ -227,7 +234,7 @@ def run() -> None:
                 with st.popover("Dates of other production visits"):
                     for date_range_text in possible_dates:
                         st.write(date_range_text)
-        else: 
+        else:
             selected_production_id = None
     with col2:
         stage = st.text_input(label="Stage", value=default_stage)
@@ -386,7 +393,7 @@ def run() -> None:
             composer,
             concertante,
             comments,
-            selected_production_id
+            selected_production_id,
         ],
     )
 
@@ -434,9 +441,9 @@ def do_submission(
         if date_range.latest_date > date.today():
             number_of_form_errors += 1
             st.error("Selected date is in the future")
-        if date_range == ApproxDate.PAST:
-            number_of_form_errors += 1
-            st.error("Date range is not full")
+        # if date_range == ApproxDate.PAST:
+        #     number_of_form_errors += 1
+        #     st.error("Date range is not full")
     if name == "":
         number_of_form_errors += 1
         st.error("Name field is empty")
@@ -453,7 +460,7 @@ def do_submission(
     if number_of_form_errors > 0:
         st.toast("Missing fields", icon=":material/error:")
         return
-    
+
     if selected_production_id is None:
         # generate a new production id that is not in use
         production_ids = {entry.production_id for entry in load_db()}
@@ -472,7 +479,7 @@ def do_submission(
 
         final_dict = dict(
             name=name,
-            date=str(date_range) if date_range is not None else None,
+            date=date_range,
             production=production,
             composer=composer,
             stage=stage,
@@ -496,6 +503,9 @@ def do_submission(
                 if entry_to_update != {}:
                     send_new_performance(entry_to_update)
                 raise
+
+            # clear the leading team and cast
+            clear_cast_leading_team_from_session_state()
 
             st.toast("Updated database", icon=":material/cloud_sync:")
 

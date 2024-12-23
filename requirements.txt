@@ -5,7 +5,6 @@ pydantic
 requests
 plotly
 streamlit==1.41
-approx-dates==0.0.1
 boto3==1.35.24
 boto3-stubs==1.35.24
 argon2-cffi

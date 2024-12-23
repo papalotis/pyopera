@@ -6,10 +6,10 @@ from enum import Enum
 from typing import Generic, Optional, Sequence, TypeVar
 
 import streamlit as st
-from approx_dates.models import ApproxDate
 from pydantic import BaseModel
 
 from pyopera.common import (
+    ApproxDate,
     PasswordModel,
     Performance,
     VenueModel,
@@ -99,14 +99,11 @@ class DatabaseInterface(Generic[EntryType]):
         if soft_isinstance(items_to_put, self._entry_type):
             items_to_put = [items_to_put]
 
+        assert isinstance(items_to_put, Sequence)
         with self._table.batch_writer() as batch:
             for item in items_to_put:
                 item_dict = item.model_dump()
 
-                # Convert ApproxDate to string
-                for key, value in item_dict.items():
-                    if isinstance(value, ApproxDate):
-                        item_dict[key] = str(value)
 
                 batch.put_item(Item=item_dict)
 
