@@ -103,6 +103,7 @@ class Performance(BaseModel):
     composer: NonEmptyStr
     comments: str
     is_concertante: bool
+    production_id: Optional[int] = Field(default=None)
     key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
 
     model_config = ConfigDict(
