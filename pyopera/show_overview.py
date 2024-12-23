@@ -102,10 +102,10 @@ def create_markdown_string(db, title_and_composer_to_dates):
             year = get_year(title, composer, title_and_composer_to_dates)
             visits = groups[composer, title]
 
-            stages = Counter(performance.stage for performance in visits)
+            stages_and_production_ids = Counter((performance.stage, performance.production_id) for performance in visits)
 
             stages_strings = []
-            for stage, count in stages.most_common():
+            for (stage, _), count in stages_and_production_ids.most_common():
                 stages_strings.append(f"{stage} ({count})")
 
             stages_string = ", ".join(stages_strings)
@@ -156,10 +156,53 @@ def create_performances_markdown_string(
     return "\n".join(markdown_text)
 
 
+
+def create_productions_markdown_string(db: Sequence[Performance]) -> str:
+    markdown_text = []
+
+    markdown_text.append("# Productions")
+
+    # group by production id
+    production_id_to_performances: defaultdict[int, list[Performance]] = defaultdict(list)
+    for performance in db:
+        production_id = performance.production_id
+        production_id_to_performances[production_id].append(performance)
+
+    last_production_str = ""
+
+    for production_id, performances in sorted(production_id_to_performances.items(), key=lambda production_id_performances: (production_id_performances[1][0].production, production_id_performances[1][0].composer)):
+        
+        first_performance = performances[0]
+        if first_performance.production != last_production_str:
+            if last_production_str != "":
+                # new line is needed the last date is rendered in bold and large
+                markdown_text.append("\n---")
+            markdown_text.append(f"### {first_performance.production}")
+            last_production_str = first_performance.production
+
+
+        markdown_text.append(f"###### {first_performance.composer} - {first_performance.name}\n")
+
+        markdown_text.append(", ".join([format_iso_date_to_day_month_year_with_dots(performance.date) for performance in performances]))
+        
+        
+
+    return "\n".join(markdown_text)
+
+def run_productions() -> None:
+    db = load_db()
+
+    markdown_string = create_productions_markdown_string(db)
+
+    print(markdown_string)
+
+    st.markdown(markdown_string, unsafe_allow_html=True)
+
 def run() -> None:
     modes = {
         ":material/music_note: Operas": run_operas,
         ":material/local_activity: Performances": run_performances,
+        ":material/theaters: Productions": run_productions,
     }
 
     tabs = st.tabs(modes.keys())
