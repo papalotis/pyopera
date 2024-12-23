@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import date
 from itertools import chain
+import random
 from typing import Mapping, Optional, Sequence, Tuple, Union
 
 import streamlit as st
@@ -13,6 +14,7 @@ from pyopera.common import (
 )
 from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
+    format_iso_date_to_day_month_year_with_dots,
     format_title,
     load_db,
     write_cast_and_leading_team,
@@ -67,7 +69,7 @@ def run() -> None:
 
         # if isinstance(entry_to_update_raw, Performance):
         if is_performance_instance(entry_to_update_raw):
-            entry_to_update = entry_to_update_raw.dict()
+            entry_to_update = entry_to_update_raw.model_dump()
         else:
             entry_to_update = {}
 
@@ -106,6 +108,7 @@ def run() -> None:
 
     default_name = entry_to_update.get("name", "")
     default_production = entry_to_update.get("production", "")
+    default_production_id = entry_to_update.get("production_id", "")
     default_stage = entry_to_update.get("stage", "")
     default_composer = entry_to_update.get("composer", "")
     default_comments = entry_to_update.get("comments", "")
@@ -178,6 +181,54 @@ def run() -> None:
         production = st.text_input(
             label="Production", help="The production company", value=default_production
         )
+
+        possible_exisitng_productions = sorted(
+            set(
+                entry.production_id
+                for entry in db
+                if entry.production == production and entry.name == name
+            ),
+            key=lambda x: x if x is not None else -1,
+        )
+        must_be_new_production = len(possible_exisitng_productions) == 0
+        mark_as_new_production = st.checkbox(
+            "Mark as new production",
+            value=must_be_new_production,
+            disabled=must_be_new_production,
+        )
+        if not mark_as_new_production:
+            default_index = (
+                possible_exisitng_productions.index(default_production_id)
+                if default_production_id in possible_exisitng_productions
+                else 0
+            )
+            selected_production_id = st.selectbox(
+                label="Production ID",
+                options=possible_exisitng_productions,
+                help="The production ID",
+                index=default_index,
+                disabled=len(possible_exisitng_productions) < 2,
+            )
+
+            possible_dates = [
+                "Unknown date"
+                if entry.date is None
+                else format_iso_date_to_day_month_year_with_dots(entry.date)
+                for entry in db
+                if (
+                    entry.production == production
+                    and entry.name == name
+                    and entry.production_id == selected_production_id
+                    and (entry.date is None or entry.date.earliest_date != date_range.earliest_date or entry.date.latest_date != date_range.latest_date)
+                )
+            ]
+
+            if len(possible_dates) > 0:
+                with st.popover("Dates of other production visits"):
+                    for date_range_text in possible_dates:
+                        st.write(date_range_text)
+        else: 
+            selected_production_id = None
     with col2:
         stage = st.text_input(label="Stage", value=default_stage)
 
@@ -335,6 +386,7 @@ def run() -> None:
             composer,
             concertante,
             comments,
+            selected_production_id
         ],
     )
 
@@ -372,8 +424,11 @@ def do_submission(
     composer,
     concertante,
     comments,
+    selected_production_id: Optional[int],
 ):
     number_of_form_errors = 0
+
+    st.write(date_range)
 
     if date_range is not None:
         if date_range.latest_date > date.today():
@@ -398,6 +453,18 @@ def do_submission(
     if number_of_form_errors > 0:
         st.toast("Missing fields", icon=":material/error:")
         return
+    
+    if selected_production_id is None:
+        # generate a new production id that is not in use
+        production_ids = {entry.production_id for entry in load_db()}
+
+        for _ in range(10_000_000):
+            new_production_id = random.randint(0, 1_000_000)
+            if new_production_id not in production_ids:
+                break
+        else:
+            raise ValueError("Could not generate a new production id")
+        selected_production_id = new_production_id
 
     with st.spinner(text="Contacting database..."):
         cast = {k: list(v) for k, v in st.session_state["cast"].items()}
@@ -413,6 +480,7 @@ def do_submission(
             is_concertante=concertante,
             cast=cast,
             leading_team=leading_team,
+            production_id=selected_production_id,
         )
 
         try:
