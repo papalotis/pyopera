@@ -90,8 +90,12 @@ def write_cast_and_leading_team(
 
 
 def format_iso_date_to_day_month_year_with_dots(
-    date_iso: datetime | str | ApproxDate,
+    date_iso: datetime | str | ApproxDate | None,
 ) -> str:
+    
+    if date_iso is None:
+        return "Unknown date"
+
     if isinstance(date_iso, str):
         date_iso = datetime.fromisoformat(date_iso)
 
