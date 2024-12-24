@@ -103,7 +103,11 @@ def create_markdown_string(db, title_and_composer_to_dates):
             visits = groups[composer, title]
 
             stages_and_production_ids = Counter(
-                (performance.stage, performance.production_key, performance.production_identifying_person)
+                (
+                    performance.stage,
+                    performance.production_key,
+                    performance.production_identifying_person,
+                )
                 for performance in visits
             )
 
@@ -111,8 +115,12 @@ def create_markdown_string(db, title_and_composer_to_dates):
             for (stage, _, id_person), count in stages_and_production_ids.most_common():
                 # check if stage is inlcuded multiple times
                 # if that is the case add the Inszenierung/Dirigent to the string
-                count = sum(1 for stage_it, _, _ in stages_and_production_ids if stage_it == stage)
-                
+                count = sum(
+                    1
+                    for stage_it, _, _ in stages_and_production_ids
+                    if stage_it == stage
+                )
+
                 extra_id = f"{id_person}, " if count > 1 and id_person != "" else ""
 
                 stages_strings.append(f"{stage} ({extra_id}{count})")
@@ -171,9 +179,9 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
     markdown_text.append("# Productions")
 
     # group by production id
-    production_id_to_performances: defaultdict[tuple[str, str, str, str], list[Performance]] = defaultdict(
-        list
-    )
+    production_id_to_performances: defaultdict[
+        tuple[str, str, str, str], list[Performance]
+    ] = defaultdict(list)
     for performance in db:
         production_id_to_performances[performance.production_key].append(performance)
 

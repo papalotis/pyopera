@@ -98,7 +98,6 @@ def format_iso_date_to_day_month_year_with_dots(
     if isinstance(date_iso, str):
         date_iso = datetime.fromisoformat(date_iso)
         return date_iso
-        
 
     if isinstance(date_iso, dict):
         date_iso = ApproxDate(**date_iso)

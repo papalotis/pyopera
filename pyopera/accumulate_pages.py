@@ -17,18 +17,6 @@ CALLABLE_TITLE_ICON: list[tuple[Callable[[], None], str, str]] = [
 
 
 def create_pages():
-    from pyopera.assign_production import run as run_assign_production
-    from pyopera.streamlit_common import runs_on_streamlit_sharing
-
-    if not runs_on_streamlit_sharing():
-        assign_page_values = (
-            run_assign_production,
-            "Assign production",
-            ":material/assignment:",
-        )
-        if assign_page_values not in CALLABLE_TITLE_ICON:
-            CALLABLE_TITLE_ICON.append(assign_page_values)
-
     return [
         st.Page(
             kallable, title=title, icon=icon, url_path=title.lower().replace(" ", "_")

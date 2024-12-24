@@ -61,14 +61,10 @@ class ApproxDate(BaseModel):
     latest_date: date
 
 
-
 PerformanceKey = Annotated[
     SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))
 ]
 DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
-
-
-
 
 
 class Performance(BaseModel):
@@ -99,29 +95,28 @@ class Performance(BaseModel):
         composer = self.composer
 
         return identifying_person, production, name, composer
-        
-    
+
     @property
     def production_identifying_person(self) -> str:
         leading_team = self.leading_team
         identifying_person_key = (
-            ["Musikalische Leitung", "Dirigent"] if self.is_concertante else ["Inszenierung"]
+            ["Musikalische Leitung", "Dirigent"]
+            if self.is_concertante
+            else ["Inszenierung"]
         )
         for key in identifying_person_key:
             if key in leading_team:
                 return leading_team[key][0]
-            
+
         return ""
 
 
-def is_exact_date(date: ApproxDate | None | dict ) -> bool:
+def is_exact_date(date: ApproxDate | None | dict) -> bool:
     if date is None:
         return False
 
     if isinstance(date, dict):
         date = ApproxDate(**date)
-
-   
 
     return date.earliest_date == date.latest_date
 
