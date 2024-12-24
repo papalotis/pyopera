@@ -103,27 +103,13 @@ def create_markdown_string(db, title_and_composer_to_dates):
             visits = groups[composer, title]
 
             stages_and_production_ids = Counter(
-                (
-                    performance.stage,
-                    performance.production_key,
-                    performance.production_identifying_person,
-                )
+                (performance.stage, performance.production_key)
                 for performance in visits
             )
 
             stages_strings = []
-            for (stage, _, id_person), count in stages_and_production_ids.most_common():
-                # check if stage is inlcuded multiple times
-                # if that is the case add the Inszenierung/Dirigent to the string
-                count = sum(
-                    1
-                    for stage_it, _, _ in stages_and_production_ids
-                    if stage_it == stage
-                )
-
-                extra_id = f"{id_person}, " if count > 1 and id_person != "" else ""
-
-                stages_strings.append(f"{stage} ({extra_id}{count})")
+            for (stage, _), count in stages_and_production_ids.most_common():
+                stages_strings.append(f"{stage} ({count})")
 
             stages_string = ", ".join(stages_strings)
 
