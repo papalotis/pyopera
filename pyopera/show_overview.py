@@ -103,12 +103,19 @@ def create_markdown_string(db, title_and_composer_to_dates):
             visits = groups[composer, title]
 
             stages_and_production_ids = Counter(
-                (performance.stage, performance.production_id) for performance in visits
+                (performance.stage, performance.production_key, performance.production_identifying_person)
+                for performance in visits
             )
 
             stages_strings = []
-            for (stage, _), count in stages_and_production_ids.most_common():
-                stages_strings.append(f"{stage} ({count})")
+            for (stage, _, id_person), count in stages_and_production_ids.most_common():
+                # check if stage is inlcuded multiple times
+                # if that is the case add the Inszenierung/Dirigent to the string
+                count = sum(1 for stage_it, _, _ in stages_and_production_ids if stage_it == stage)
+                
+                extra_id = f"{id_person}, " if count > 1 and id_person != "" else ""
+
+                stages_strings.append(f"{stage} ({extra_id}{count})")
 
             stages_string = ", ".join(stages_strings)
 
@@ -164,16 +171,15 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
     markdown_text.append("# Productions")
 
     # group by production id
-    production_id_to_performances: defaultdict[int, list[Performance]] = defaultdict(
+    production_id_to_performances: defaultdict[tuple[str, str, str, str], list[Performance]] = defaultdict(
         list
     )
     for performance in db:
-        production_id = performance.production_id
-        production_id_to_performances[production_id].append(performance)
+        production_id_to_performances[performance.production_key].append(performance)
 
     last_production_str = ""
 
-    for production_id, performances in sorted(
+    for _, performances in sorted(
         production_id_to_performances.items(),
         key=lambda production_id_performances: (
             production_id_performances[1][0].production,
@@ -216,7 +222,7 @@ def run() -> None:
     modes = {
         ":material/music_note: Operas": run_operas,
         ":material/local_activity: Performances": run_performances,
-        ":material/theaters: Productions": run_productions,
+        # ":material/theaters: Productions": run_productions,
     }
 
     tabs = st.tabs(modes.keys())

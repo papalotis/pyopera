@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import nullcontext
 from datetime import datetime, timezone
 from enum import Enum
@@ -102,8 +103,10 @@ class DatabaseInterface(Generic[EntryType]):
         assert isinstance(items_to_put, Sequence)
         with self._table.batch_writer() as batch:
             for item in items_to_put:
-                item_dict = item.model_dump()
-
+                # this converts the pydantic model to a json string (that pydantic knows how to convert back)
+                item_json_str = item.model_dump_json()
+                # this converts the json string to a dictionary which is what boto3 expects
+                item_dict = json.loads(item_json_str)
 
                 batch.put_item(Item=item_dict)
 

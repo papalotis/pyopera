@@ -26,7 +26,6 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
-    model_serializer,
 )
 from unidecode import unidecode
 
@@ -61,23 +60,6 @@ class ApproxDate(BaseModel):
     earliest_date: date
     latest_date: date
 
-    @model_serializer
-    def model_dump(self) -> dict:
-        return f"{self.earliest_date.isoformat()} to {self.latest_date.isoformat()}"
-
-    @classmethod
-    def from_iso8601(cls, iso_string: str) -> Self:
-        try:
-            date_obj = datetime.fromisoformat(iso_string).date()
-            return cls(date_obj, date_obj)
-        except ValueError:
-            date_strings = iso_string.split(" to ")
-            if len(date_strings) != 2:
-                raise ValueError(
-                    f'Could not find two iso dates split by "to" in {iso_string}'
-                )
-            early_date, late_date = map(date.fromisoformat, date_strings)
-            return cls(earliest_date=early_date, latest_date=late_date)
 
 
 PerformanceKey = Annotated[
@@ -86,56 +68,12 @@ PerformanceKey = Annotated[
 DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
 
 
-def parse_date(v: Any) -> Optional[ApproxDate]:
-    # there are three possible formats:
-    # full iso format: "2020-01-01T00:00:00" (handled by datetime module)
-    # partial iso format: "2020-01" (January 2020) (handled by ApproxDate)
-    # short iso to short iso: "2020-01-01 to 2020-01-04" (January 1st to 4th 2020) (handled by manual parsing and ApproxDate)
 
-    print(v, type(v))
-
-    # pass on already parsed dates
-    if soft_isinstance(v, ApproxDate):
-        return ApproxDate(earliest_date=v.earliest_date, latest_date=v.latest_date)
-
-    if v is None:
-        return None
-
-    if isinstance(v, dict):
-        return ApproxDate(**v)
-
-
-    
-    try:
-        exact_date = datetime.fromisoformat(v).date()
-        approx_date = ApproxDate(earliest_date=exact_date, latest_date=exact_date)
-        return approx_date
-    except ValueError:
-        try:
-            approx_date = ApproxDate.from_iso8601(v)
-            return approx_date
-        except ValueError:
-            assert isinstance(v, str)
-            # two partial dates split by " to "
-            # short iso to short iso
-            date_strings = v.split(" to ")
-            if len(date_strings) == 2:
-                early_date, late_date = map(date.fromisoformat, date_strings)
-                approx_date = ApproxDate(early_date, late_date, source_string=v)
-                return approx_date
-
-            # if v.startswith("earliest_date="):
-            #     # the string version of the ApproxDate instance has been passed
-            #     # we split by the equal sign and then by the comma
-            #     _, earlisten_date_with_latest_date_name, latest_date = v.split("=")
-            #     earliest_date, _ = earlisten_date_with_latest_date_name.split(")")[0] + ")"
-
-    raise ValueError(f"Could not parse date from {v}")
 
 
 class Performance(BaseModel):
     name: NonEmptyStr
-    date: Annotated[Optional[ApproxDate], BeforeValidator(parse_date)]
+    date: Optional[ApproxDate]
     cast: Mapping[NonEmptyStr, NonEmptyStrList]
     leading_team: Mapping[NonEmptyStr, NonEmptyStrList]
     stage: NonEmptyStr
@@ -143,7 +81,6 @@ class Performance(BaseModel):
     composer: NonEmptyStr
     comments: str
     is_concertante: bool
-    production_id: Optional[int] = Field(default=None)
     key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
 
     model_config = ConfigDict(
@@ -151,20 +88,40 @@ class Performance(BaseModel):
         validate_default=True,
         str_strip_whitespace=True,
         arbitrary_types_allowed=True,
-        json_encoders={ApproxDate: str},
         frozen=True,
     )
 
+    @property
+    def production_key(self) -> tuple[str, str, str, str]:
+        identifying_person = self.production_identifying_person
+        production = self.production
+        name = self.name
+        composer = self.composer
 
-def is_exact_date(date: ApproxDate | None | dict | str) -> bool:
+        return identifying_person, production, name, composer
+        
+    
+    @property
+    def production_identifying_person(self) -> str:
+        leading_team = self.leading_team
+        identifying_person_key = (
+            ["Musikalische Leitung", "Dirigent"] if self.is_concertante else ["Inszenierung"]
+        )
+        for key in identifying_person_key:
+            if key in leading_team:
+                return leading_team[key][0]
+            
+        return ""
+
+
+def is_exact_date(date: ApproxDate | None | dict ) -> bool:
     if date is None:
         return False
 
     if isinstance(date, dict):
         date = ApproxDate(**date)
 
-    if isinstance(date, str):
-        date = ApproxDate.from_iso8601(date)
+   
 
     return date.earliest_date == date.latest_date
 

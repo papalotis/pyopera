@@ -96,12 +96,9 @@ def format_iso_date_to_day_month_year_with_dots(
         return "Unknown date"
 
     if isinstance(date_iso, str):
-        try:
-            date_iso = datetime.fromisoformat(date_iso)
-            return date_iso
-        except ValueError:
-            if "to" in date_iso:
-                date_iso = ApproxDate.from_iso8601(date_iso)
+        date_iso = datetime.fromisoformat(date_iso)
+        return date_iso
+        
 
     if isinstance(date_iso, dict):
         date_iso = ApproxDate(**date_iso)
