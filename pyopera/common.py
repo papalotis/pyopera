@@ -3,6 +3,7 @@ import random
 import string
 from collections import ChainMap
 from datetime import date, datetime
+from decimal import Decimal
 from typing import (
     Annotated,
     Any,
@@ -61,9 +62,7 @@ class ApproxDate(BaseModel):
     latest_date: date
 
 
-PerformanceKey = Annotated[
-    SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))
-]
+PerformanceKey = Annotated[SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))]
 DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
 
 
@@ -99,11 +98,7 @@ class Performance(BaseModel):
     @property
     def production_identifying_person(self) -> str:
         leading_team = self.leading_team
-        identifying_person_key = (
-            ["Musikalische Leitung", "Dirigent"]
-            if self.is_concertante
-            else ["Inszenierung"]
-        )
+        identifying_person_key = ["Musikalische Leitung", "Dirigent"] if self.is_concertante else ["Inszenierung"]
         for key in identifying_person_key:
             if key in leading_team:
                 return leading_team[key][0]
@@ -128,12 +123,7 @@ def normalize_title(title: str) -> str:
     return "".join(
         filter(
             str.isalpha,
-            unidecode(title)
-            .split("(")[0]
-            .split("/")[0]
-            .lower()
-            .replace(" ", "")
-            .strip(),
+            unidecode(title).split("(")[0].split("/")[0].lower().replace(" ", "").strip(),
         )
     )
 
@@ -155,11 +145,7 @@ def get_all_names_from_performance(performance: Performance) -> set[str]:
 
 
 def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
-    db_filtered = [
-        performance
-        for performance in db
-        if (len(performance.cast) + len(performance.leading_team)) > 0
-    ]
+    db_filtered = [performance for performance in db if (len(performance.cast) + len(performance.leading_team)) > 0]
 
     return db_filtered
 
@@ -191,9 +177,19 @@ class WorkYearEntryModel(BaseModel):
 class VenueModel(BaseModel):
     name: NonEmptyStr
     short_name: NonEmptyStr
+    longitude: Decimal | None = None
+    latitude: Decimal | None = None
     key: DetaKey = Field(default_factory=create_deta_style_key)
 
     model_config = ConfigDict(frozen=True, validate_default=True)
+
+    @property
+    def longitude_float(self) -> float | None:
+        return float(self.longitude) if self.longitude is not None else None
+
+    @property
+    def latitude_float(self) -> float | None:
+        return float(self.latitude) if self.latitude is not None else None
 
 
 PASS_HASH = PasswordHasher()

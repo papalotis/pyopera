@@ -53,9 +53,7 @@ def key_is_exception(key: str) -> bool:
 def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
     d_sorted = dict(sorted(d.items()))
 
-    d_without_exceptions = {
-        k: v for k, v in d_sorted.items() if not key_is_exception(k)
-    }
+    d_without_exceptions = {k: v for k, v in d_sorted.items() if not key_is_exception(k)}
 
     for role, persons in d_without_exceptions.items():
         if len(persons) > 0:
@@ -77,9 +75,7 @@ def write_role_with_persons(title: str, dict_of_roles: dict):
         write_person_with_role(dict_of_roles)
 
 
-def write_cast_and_leading_team(
-    cast: Mapping[str, Sequence[str]], leading_team: Mapping[str, Sequence[str]]
-):
+def write_cast_and_leading_team(cast: Mapping[str, Sequence[str]], leading_team: Mapping[str, Sequence[str]]):
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
@@ -114,7 +110,9 @@ def format_iso_date_to_day_month_year_with_dots(
                     return f"{earliest.day:02}-{latest.day:02}.{earliest.month:02}.{earliest.year % 100:02}"
             else:
                 # same year different month
-                return f"{earliest.day:02}.{earliest.month:02}-{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
+                return (
+                    f"{earliest.day:02}.{earliest.month:02}-{latest.day:02}.{latest.month:02}.{earliest.year % 100:02}"
+                )
         else:
             # all different
             return f"{earliest.day:02}.{earliest.month:02}.{earliest.year % 100:02}-{latest.day:02}.{latest.month:02}.{latest.year % 100:02}"

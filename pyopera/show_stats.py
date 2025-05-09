@@ -1,6 +1,8 @@
 import calendar
+import math
 import textwrap
 from collections import defaultdict
+from decimal import Decimal
 from typing import (
     Any,
     ChainMap,
@@ -94,9 +96,7 @@ def create_frequency_chart(
 
     columns_combined, frequencies = zip(*counter.most_common()[slice(*range_to_show)])
 
-    column_names_combined = ", ".join(
-        column_name.capitalize() for column_name in columns
-    )
+    column_names_combined = ", ".join(column_name.capitalize() for column_name in columns)
 
     composers_freq_df = pd.DataFrame(
         {
@@ -161,8 +161,7 @@ def run_frequencies():
         options = st.multiselect(
             "Categories to combine",
             filter(
-                lambda el: isinstance(db[0][el], (str, int))
-                and el not in ("comments", "key"),
+                lambda el: isinstance(db[0][el], (str, int)) and el not in ("comments", "key"),
                 db[0].keys(),
             ),
             default=preset,
@@ -210,17 +209,11 @@ def run_single_opus():
     st.title(name)
     st.markdown(f"#### {composer}")
     all_entries_of_opus = [
-        performance
-        for performance in load_db()
-        if performance.name == name and performance.composer == composer
+        performance for performance in load_db() if performance.name == name and performance.composer == composer
     ]
 
     for entry in all_entries_of_opus:
-        date_string = (
-            ""
-            if entry.date is None
-            else f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} "
-        )
+        date_string = "" if entry.date is None else f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} "
         st.markdown(f"{date_string} - {venues_db.get(entry.stage, entry.stage)}")
 
 
@@ -228,32 +221,19 @@ def run_single_person():
     venues_db = load_db_venues()
 
     with st.sidebar:
-        all_persons = sorted(
-            set(
-                flatten(
-                    get_all_names_from_performance(performance)
-                    for performance in load_db()
-                )
-            )
-        )
+        all_persons = sorted(set(flatten(get_all_names_from_performance(performance) for performance in load_db())))
 
         person = st.selectbox("Person", all_persons)
 
     st.title(person)
     all_entries_with_person = [
-        performance
-        for performance in load_db()
-        if person in get_all_names_from_performance(performance)
+        performance for performance in load_db() if person in get_all_names_from_performance(performance)
     ]
     for entry in all_entries_with_person:
         all_roles = ChainMap(entry.leading_team, entry.cast)
         roles = [role for role, persons in all_roles.items() if person in persons]
 
-        to_join = (
-            []
-            if entry.date is None
-            else [format_iso_date_to_day_month_year_with_dots(entry.date)]
-        )
+        to_join = [] if entry.date is None else [format_iso_date_to_day_month_year_with_dots(entry.date)]
 
         to_join.extend(
             [
@@ -291,12 +271,7 @@ def run_single_role():
         )
 
         roles = sorted(
-            {
-                role
-                for entry in load_db()
-                for role in entry.cast
-                if entry.name == name and entry.composer == composer
-            }
+            {role for entry in load_db() for role in entry.cast if entry.name == name and entry.composer == composer}
         )
 
         roles_matched: DefaultDict[str, MutableSequence[str]] = defaultdict(list)
@@ -305,12 +280,11 @@ def run_single_role():
             roles_matched[role_normalized].append(role)
 
         # prefer role names that contain non-ascii characters that are short
-        format_func = lambda role_normalized: remove_singular_prefix_from_role(
-            min(
-                roles_matched[role_normalized],
-                key=lambda role: (role.isascii(), len(role)),
+        def format_func(role_normalized):
+            return remove_singular_prefix_from_role(
+                min(roles_matched[role_normalized], key=lambda role: (role.isascii(), len(role)))
             )
-        )
+
         role = st.selectbox(
             "Role",
             roles_matched,
@@ -334,9 +308,7 @@ def run_single_role():
             for unique_role_instance in roles_matched[role]:
                 persons_list = entry.cast.get(unique_role_instance)
                 if persons_list is not None:
-                    persons = ", ".join(
-                        map(lambda person: f"**{person}**", persons_list)
-                    )
+                    persons = ", ".join(map(lambda person: f"**{person}**", persons_list))
                     break
             else:
                 persons = "No information available"
@@ -347,9 +319,64 @@ def run_single_role():
         st.warning("No roles available for this entry")
 
 
+def run_maps() -> None:
+    performances = load_db()
+
+    stages = load_db_venues(list_of_entries=True)
+
+    coords_counter: dict[tuple[Decimal, Decimal], int] = defaultdict(int)
+
+    for performance in performances:
+        stage = next((stage for stage in stages if stage.short_name == performance.stage), None)
+
+        if stage is None:
+            continue
+
+        if stage.longitude is not None and stage.latitude is not None:
+            coords_counter[(stage.longitude, stage.latitude, stage.name)] += 1
+
+    # Create DataFrame for map visualization
+    map_data = pd.DataFrame(
+        [
+            {
+                "lon": float(lon),
+                "lat": float(lat),
+                "count": count,
+                "size": math.log(count + 1),  # We'll use this for the marker size
+                "name": stage_name,
+            }
+            for (lon, lat, stage_name), count in coords_counter.items()
+        ]
+    )
+
+    st.markdown("### Visits Map")
+
+    if not map_data.empty:
+        # Create map with Plotly
+        fig = px.scatter_map(
+            map_data,
+            lat="lat",
+            lon="lon",
+            size="size",
+            size_max=20,
+            color="count",
+            hover_name="name",
+            zoom=3,
+            color_continuous_scale=px.colors.sequential.Aggrnyl,
+            map_style="carto-voyager",
+        )
+
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, coloraxis_colorbar=dict(title="Performances"))
+
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No location data available for map visualization.")
+
+
 def run():
     modes = {
         ":material/monitoring: Numbers": run_frequencies,
+        ":material/language: Map": run_maps,
         ":material/music_note: Opera": run_single_opus,
         ":material/person_search: Artist": run_single_person,
         ":material/person_pin: Role": run_single_role,
