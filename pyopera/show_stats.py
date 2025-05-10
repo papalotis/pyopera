@@ -430,14 +430,12 @@ def run_maps() -> None:
 
     map_count_to_size = {
         1: 2,
-        5: 7,
-        10: 10,
-        25: 20,
-        50: 25,
-        100: 30,
-        200: 35,
-        500: 40,
-        1000: 45,
+        5: 5,
+        10: 7,
+        20: 10,
+        50: 15,
+        100: 20,
+        500: 30,
     }
 
     # Create DataFrame for map visualization
@@ -449,7 +447,7 @@ def run_maps() -> None:
                 "count": count,
                 "size": next(
                     (size for min_count, size in map_count_to_size.items() if count <= min_count),
-                    50,
+                    40,
                 ),
                 "name": stage_name_or_city,
             }
@@ -461,12 +459,14 @@ def run_maps() -> None:
         threshold = map_data["count"].nlargest(20).min()
         map_data["label"] = map_data["name"].where(map_data["count"] >= threshold, "")
 
+        circle_scale = st.slider("Circle Scale", min_value=0.2, max_value=2.0, value=1.0)
+
         fig = px.scatter_map(
             map_data,
             lat="lat",
             lon="lon",
             size="size",
-            size_max=30,
+            size_max=30 * circle_scale,
             color="count",
             color_continuous_scale=["red", "black"],
             text="label",
