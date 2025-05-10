@@ -18,8 +18,10 @@ from typing import (
     cast,
 )
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
+import reverse_geocoder as rg
 import streamlit as st
 from more_itertools.recipes import flatten
 from unidecode import unidecode
@@ -144,7 +146,7 @@ def key_sort_opus_by_name_and_composer(
 def run_frequencies():
     month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
 
-    db = add_split_earliest_date_to_db(load_db())
+    db = load_db()
 
     presets = {
         ("name", "composer"): "Opus",
@@ -161,12 +163,17 @@ def run_frequencies():
         options = st.multiselect(
             "Categories to combine",
             filter(
-                lambda el: isinstance(db[0][el], (str, int)) and el not in ("comments", "key"),
-                db[0].keys(),
+                lambda el: isinstance(getattr(db[0], el), (str, int)) and el not in ("comments", "key"),
+                db[0].model_dump().keys(),
             ),
             default=preset,
             format_func=format_column_name,
         )
+
+    if any(option in ("day", "month", "year") for option in options):
+        db = add_split_earliest_date_to_db(db)
+    else:
+        db = [entry.model_dump() for entry in db]
 
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -319,12 +326,85 @@ def run_single_role():
         st.warning("No roles available for this entry")
 
 
+@st.cache_data
+def longitude_latitude_to_location(longitude: Decimal | None, latitude: Decimal | None) -> Optional[str]:
+    if longitude is None or latitude is None:
+        return None
+
+    coordinates = (float(latitude), float(longitude))
+    location = rg.search(coordinates, mode=1)
+    if len(location) == 0:
+        return None
+
+    if len(location) > 1:
+        raise ValueError("Multiple locations found for the given coordinates.")
+
+    location_result = location[0]
+
+    # for germany if admin1 is berlin use that instead of name (names gives the bezirk, which is too specific)
+    # for greece if admin1 is attica, name gives the dimos, convert attica to Athens
+    # for czechia if admin1 is prague, name gives the district, convert to prague
+    # for france if if name is "Levallois-Perret" convert to "Paris"
+    key_for_city_name = {
+        "AT": "name",
+        "DE": "name",
+        "GR": "admin1",
+        "GB": "name",
+        "IT": "name",
+        "CH": "name",
+        "SK": "name",
+        "FR": "name",
+        "CZ": "name",
+        "BE": "name",
+        "HU": "admin1",
+    }.get(location_result["cc"], "name")
+
+    if location_result["cc"] == "FR" and 0:
+        st.write(location_result)
+
+    city_name: str | None = None
+    if location_result[key_for_city_name] is not None:
+        city_name = location_result[key_for_city_name]
+        if location_result["cc"] == "DE" and location_result["admin1"] == "Berlin":
+            city_name = "Berlin"
+        elif location_result["cc"] == "GR" and location_result["admin1"] == "Attica":
+            city_name = "Athens"
+        elif location_result["cc"] == "CZ" and (
+            location_result["admin1"] == "Prague" or location_result["name"] == "Stare Mesto"
+        ):
+            city_name = "Prague"
+        elif location_result["cc"] == "FR" and location_result["name"] == "Levallois-Perret":
+            city_name = "Paris"
+
+    return city_name
+
+
 def run_maps() -> None:
     performances = load_db()
+
+    st.markdown("### Visits Map")
+
+    mode = st.selectbox(
+        "Map Mode",
+        ("Venues", "Cities"),
+        index=1,
+    )
 
     stages = load_db_venues(list_of_entries=True)
 
     coords_counter: dict[tuple[Decimal, Decimal], int] = defaultdict(int)
+
+    if st.session_state.get("city_name_to_coords") is None:
+        city_name_to_coords_list: defaultdict[str, list[tuple[Decimal, Decimal]]] = defaultdict(list)
+        for performance in performances:
+            for stage in stages:
+                if stage.short_name == performance.stage and stage.longitude is not None and stage.latitude is not None:
+                    city_name = longitude_latitude_to_location(stage.longitude, stage.latitude)
+                    if city_name is not None:
+                        city_name_to_coords_list[city_name].append((stage.longitude, stage.latitude))
+
+        city_name_to_coords = {key: np.mean(value, axis=0) for key, value in city_name_to_coords_list.items()}
+        st.session_state["city_name_to_coords"] = city_name_to_coords
 
     for performance in performances:
         stage = next((stage for stage in stages if stage.short_name == performance.stage), None)
@@ -333,7 +413,25 @@ def run_maps() -> None:
             continue
 
         if stage.longitude is not None and stage.latitude is not None:
-            coords_counter[(stage.longitude, stage.latitude, stage.name)] += 1
+            if mode == "Venues":
+                key = (stage.longitude, stage.latitude, stage.name)
+            elif mode == "Cities":
+                city_name = longitude_latitude_to_location(stage.longitude, stage.latitude)
+                key = (*st.session_state["city_name_to_coords"][city_name], city_name)
+
+            coords_counter[key] += 1
+
+    map_count_to_size = {
+        1: 5,
+        5: 10,
+        10: 15,
+        25: 20,
+        50: 25,
+        100: 30,
+        200: 35,
+        500: 40,
+        1000: 45,
+    }
 
     # Create DataFrame for map visualization
     map_data = pd.DataFrame(
@@ -342,33 +440,45 @@ def run_maps() -> None:
                 "lon": float(lon),
                 "lat": float(lat),
                 "count": count,
-                "size": math.log(count + 1),  # We'll use this for the marker size
-                "name": stage_name,
+                "size": next(
+                    (size for min_count, size in map_count_to_size.items() if count <= min_count),
+                    50,
+                ),
+                "name": stage_name_or_city,
             }
-            for (lon, lat, stage_name), count in coords_counter.items()
+            for (lon, lat, stage_name_or_city), count in coords_counter.items()
         ]
     )
 
-    st.markdown("### Visits Map")
-
     if not map_data.empty:
-        # Create map with Plotly
+        threshold = map_data["count"].nlargest(20).min()
+        map_data["label"] = map_data["name"].where(map_data["count"] >= threshold, "")
+
         fig = px.scatter_map(
             map_data,
             lat="lat",
             lon="lon",
             size="size",
-            size_max=20,
+            size_max=30,
             color="count",
+            color_continuous_scale=["red", "black"],
+            text="label",
             hover_name="name",
+            hover_data=["count"],
             zoom=3,
-            color_continuous_scale=px.colors.sequential.Aggrnyl,
-            map_style="carto-voyager",
+            map_style="carto-positron",
         )
 
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, coloraxis_colorbar=dict(title="Performances"))
+        fig.update_traces(mode="markers+text", textposition="middle center", marker_opacity=0.7, textfont_size=10)
+        fig.update_layout(uniformtext_minsize=12, uniformtext_mode="hide")
+
+        fig.update_layout(
+            coloraxis_colorbar=dict(title="Visits", ticks="outside"),
+            margin=dict(l=0, r=0, t=40, b=0),
+        )
 
         st.plotly_chart(fig, use_container_width=True)
+
     else:
         st.warning("No location data available for map visualization.")
 
