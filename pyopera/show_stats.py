@@ -342,9 +342,12 @@ def longitude_latitude_to_location(longitude: Decimal | None, latitude: Decimal 
     location_result = location[0]
 
     # for germany if admin1 is berlin use that instead of name (names gives the bezirk, which is too specific)
+    # for germany if city name is bogenhausen use munich
+    # for germany if city name is "Hofen an der Enz" use Bad Wildbad
     # for greece if admin1 is attica, name gives the dimos, convert attica to Athens
     # for czechia if admin1 is prague, name gives the district, convert to prague
     # for france if if name is "Levallois-Perret" convert to "Paris"
+
     key_for_city_name = {
         "AT": "name",
         "DE": "name",
@@ -375,6 +378,10 @@ def longitude_latitude_to_location(longitude: Decimal | None, latitude: Decimal 
             city_name = "Prague"
         elif location_result["cc"] == "FR" and location_result["name"] == "Levallois-Perret":
             city_name = "Paris"
+        elif location_result["cc"] == "DE" and city_name == "Bogenhausen":
+            city_name = "Munich"
+        elif location_result["cc"] == "DE" and city_name == "Hofen an der Enz":
+            city_name = "Bad Wildbad"
 
     return city_name
 
@@ -422,9 +429,9 @@ def run_maps() -> None:
             coords_counter[key] += 1
 
     map_count_to_size = {
-        1: 5,
-        5: 10,
-        10: 15,
+        1: 2,
+        5: 7,
+        10: 10,
         25: 20,
         50: 25,
         100: 30,
@@ -481,6 +488,12 @@ def run_maps() -> None:
 
     else:
         st.warning("No location data available for map visualization.")
+
+    # for stage in load_db_venues(list_of_entries=True):
+    #     if stage.longitude is not None and stage.latitude is not None:
+    #         city_name = longitude_latitude_to_location(stage.longitude, stage.latitude)
+    #         if city_name is not None:
+    #             st.markdown(f"**{stage.name}** - {city_name}")
 
 
 def run():
