@@ -2,6 +2,7 @@ import calendar
 import math
 import textwrap
 from collections import defaultdict
+from datetime import datetime
 from decimal import Decimal
 from typing import (
     Any,
@@ -30,6 +31,7 @@ from unidecode import unidecode
 
 from pyopera.common import (
     DB_TYPE,
+    Performance,
     get_all_names_from_performance,
     is_exact_date,
 )
@@ -584,15 +586,17 @@ def run_expanded_stats():
 
     with col1:
         # group performances by date
-        performances_by_date = defaultdict(list)
+        performances_by_date: defaultdict[tuple[datetime, datetime] | None, list[Performance]] = defaultdict(list)
         for performance in performances:
-            key = performance.date.earliest_date if performance.date is not None else None
+            key = (
+                (performance.date.earliest_date, performance.date.latest_date) if performance.date is not None else None
+            )
             performances_by_date[key].append(performance)
 
         performances_no_date = performances_by_date.pop(None, [])
 
         number_of_performances = len(performances_by_date) + len(performances_no_date)
-        st.metric("Total Performances", number_of_performances)
+        st.metric("Total Visits", number_of_performances)
 
         unique_composers = len(set(p.composer for p in performances))
         st.metric("Unique Composers", unique_composers)
