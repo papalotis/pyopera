@@ -18,9 +18,11 @@ from typing import (
     cast,
 )
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import reverse_geocoder as rg
 import streamlit as st
 from more_itertools.recipes import flatten
@@ -386,8 +388,25 @@ def longitude_latitude_to_location(longitude: Decimal | None, latitude: Decimal 
     return city_name
 
 
+def calculate_city_coordinates() -> None:
+    performances = load_db()
+    stages = load_db_venues(list_of_entries=True)
+    if st.session_state.get("city_name_to_coords") is None:
+        city_name_to_coords_list: defaultdict[str, list[tuple[Decimal, Decimal]]] = defaultdict(list)
+        for performance in performances:
+            for stage in stages:
+                if stage.short_name == performance.stage and stage.longitude is not None and stage.latitude is not None:
+                    city_name = longitude_latitude_to_location(stage.longitude, stage.latitude)
+                    if city_name is not None:
+                        city_name_to_coords_list[city_name].append((stage.longitude, stage.latitude))
+
+        city_name_to_coords = {key: np.mean(value, axis=0) for key, value in city_name_to_coords_list.items()}
+        st.session_state["city_name_to_coords"] = city_name_to_coords
+
+
 def run_maps() -> None:
     performances = load_db()
+    calculate_city_coordinates()
 
     st.markdown("### Visits Map")
 
@@ -400,18 +419,6 @@ def run_maps() -> None:
     stages = load_db_venues(list_of_entries=True)
 
     coords_counter: dict[tuple[Decimal, Decimal], int] = defaultdict(int)
-
-    if st.session_state.get("city_name_to_coords") is None:
-        city_name_to_coords_list: defaultdict[str, list[tuple[Decimal, Decimal]]] = defaultdict(list)
-        for performance in performances:
-            for stage in stages:
-                if stage.short_name == performance.stage and stage.longitude is not None and stage.latitude is not None:
-                    city_name = longitude_latitude_to_location(stage.longitude, stage.latitude)
-                    if city_name is not None:
-                        city_name_to_coords_list[city_name].append((stage.longitude, stage.latitude))
-
-        city_name_to_coords = {key: np.mean(value, axis=0) for key, value in city_name_to_coords_list.items()}
-        st.session_state["city_name_to_coords"] = city_name_to_coords
 
     for performance in performances:
         stage = next((stage for stage in stages if stage.short_name == performance.stage), None)
@@ -489,15 +496,354 @@ def run_maps() -> None:
     else:
         st.warning("No location data available for map visualization.")
 
-    # for stage in load_db_venues(list_of_entries=True):
-    #     if stage.longitude is not None and stage.latitude is not None:
-    #         city_name = longitude_latitude_to_location(stage.longitude, stage.latitude)
-    #         if city_name is not None:
-    #             st.markdown(f"**{stage.name}** - {city_name}")
+
+@st.cache_data
+def build_graph() -> nx.Graph:
+    performances = load_db()
+    # Build network of artists who have worked together
+    g = nx.Graph()
+
+    progress = st.progress(0.0)
+    for i, performance in enumerate(performances):
+        progress.progress(i / len(performances))
+        all_artists = set()
+
+        # Add cast members
+        for role, people in performance.cast.items():
+            for person in people:
+                g.add_node(person, type="cast")
+                all_artists.add(person)
+
+        # Add leading team
+        for role, people in performance.leading_team.items():
+            for person in people:
+                g.add_node(person, type="leading")
+                all_artists.add(person)
+
+        # Connect all artists in this performance
+        for person1 in all_artists:
+            for person2 in all_artists:
+                if person1 != person2:
+                    if g.has_edge(person1, person2):
+                        g[person1][person2]["weight"] += 1
+                    else:
+                        g.add_edge(person1, person2, weight=1)
+
+    return g
+
+
+def convert_alpha2_to_alpha3(country: str) -> str:
+    return {
+        "AT": "AUT",
+        "BE": "BEL",
+        "BG": "BGR",
+        "CH": "CHE",
+        "CY": "CYP",
+        "CZ": "CZE",
+        "DE": "DEU",
+        "DK": "DNK",
+        "EE": "EST",
+        "ES": "ESP",
+        "FI": "FIN",
+        "FR": "FRA",
+        "GB": "GBR",
+        "GR": "GRC",
+        "HR": "HRV",
+        "HU": "HUN",
+        "IE": "IRL",
+        "IS": "ISL",
+        "IT": "ITA",
+        "LI": "LIE",
+        "LT": "LTU",
+        "LU": "LUX",
+        "LV": "LVA",
+        "MC": "MCO",
+        "MD": "MDA",
+        "MT": "MLT",
+        "NL": "NLD",
+        "NO": "NOR",
+        "PL": "POL",
+        "PT": "PRT",
+        "RO": "ROU",
+        "RS": "SRB",
+        "SE": "SWE",
+        "SI": "SVN",
+        "SK": "SVK",
+        "UA": "UKR",
+    }.get(country, country)
+
+
+def run_expanded_stats():
+    performances = load_db()
+    venues_db = load_db_venues()
+
+    st.title("Opera Statistics Dashboard")
+
+    # Top-level metrics
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        # group performances by date
+        performances_by_date = defaultdict(list)
+        for performance in performances:
+            key = performance.date.earliest_date if performance.date is not None else None
+            performances_by_date[key].append(performance)
+
+        performances_no_date = performances_by_date.pop(None, [])
+
+        number_of_performances = len(performances_by_date) + len(performances_no_date)
+        st.metric("Total Performances", number_of_performances)
+
+        unique_composers = len(set(p.composer for p in performances))
+        st.metric("Unique Composers", unique_composers)
+
+    with col2:
+        unique_operas = len({(p.name, p.composer) for p in performances})
+        st.metric("Unique Operas", unique_operas)
+
+        unique_venues = len(set(p.stage for p in performances))
+        st.metric("Unique Venues", unique_venues)
+
+    with col3:
+        concertante_count = sum(1 for p in performances if p.is_concertante)
+        st.metric("Concertante Performances", f"{concertante_count} ({concertante_count/number_of_performances:.1%})")
+
+        dated_performances = [p for p in performances if p.date is not None]
+        if dated_performances:
+            years_span = (
+                max(p.date.latest_date.year for p in dated_performances)
+                - min(p.date.earliest_date.year for p in dated_performances)
+                + 1
+            )
+            st.metric("Years of Opera-going", years_span)
+
+    # Performance frequency by year
+    st.subheader("Performance Frequency by Year")
+
+    if dated_performances:
+        year_counts = Counter(p.date.earliest_date.year for p in dated_performances)
+        years = sorted(year_counts.keys())
+        counts = [year_counts[year] for year in years]
+
+        fig = px.bar(x=years, y=counts, labels={"x": "Year", "y": "Performances"}, text=counts)
+        fig.update_traces(textposition="outside")
+        fig.update_layout(uniformtext_minsize=8, uniformtext_mode="hide")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Composer distribution
+    st.subheader("Most Watched Composers")
+
+    composer_counts = Counter(p.composer for p in performances)
+    top_composers = composer_counts.most_common(10)
+
+    composer_df = pd.DataFrame(
+        {"Composer": [comp for comp, _ in top_composers], "Performances": [count for _, count in top_composers]}
+    )
+
+    fig = px.pie(composer_df, values="Performances", names="Composer", hole=0.4, title="Top 10 Composers")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Opera House Distribution
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Most Visited Venues")
+        venue_counts = Counter(p.stage for p in performances)
+        top_venues = venue_counts.most_common(5)
+
+        venue_df = pd.DataFrame(
+            {
+                "Venue": [venues_db.get(venue, venue) for venue, _ in top_venues],
+                "Visits": [count for _, count in top_venues],
+            }
+        )
+
+        fig = px.bar(venue_df, x="Venue", y="Visits", text="Visits")
+        fig.update_traces(textposition="outside")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.subheader("Most Watched Operas")
+        opera_counts = Counter((p.name, p.composer) for p in performances)
+        top_operas = opera_counts.most_common(5)
+
+        opera_df = pd.DataFrame(
+            {
+                "Opera": [f"{name} ({truncate_composer_name(composer)})" for (name, composer), _ in top_operas],
+                "Viewings": [count for _, count in top_operas],
+            }
+        )
+
+        fig = px.bar(opera_df, x="Opera", y="Viewings", text="Viewings")
+        fig.update_traces(textposition="outside")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Monthly distribution of performances
+    if dated_performances:
+        st.subheader("Performance Distribution by Month")
+
+        month_to_name = {i: calendar.month_name[i] for i in range(1, 13)}
+        month_counts = Counter(p.date.earliest_date.month for p in dated_performances)
+
+        month_df = pd.DataFrame(
+            {
+                "Month": [month_to_name[month] for month in range(1, 13)],
+                "Performances": [month_counts.get(month, 0) for month in range(1, 13)],
+            }
+        )
+
+        fig = px.line(
+            month_df,
+            x="Month",
+            y="Performances",
+            markers=True,
+            category_orders={"Month": [month_to_name[i] for i in range(1, 13)]},
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Production Analysis
+    st.subheader("Production Analysis")
+
+    # Group performances by opera (name, composer) and count unique productions
+    opera_productions = defaultdict(set)
+    for p in performances:
+        if p.production_key:
+            opera_productions[(p.name, p.composer)].add(p.production_key)
+
+    # Calculate statistics
+    operas_with_multiple_productions = [
+        (name, composer, len(productions))
+        for (name, composer), productions in opera_productions.items()
+        if len(productions) > 1
+    ]
+
+    if operas_with_multiple_productions:
+        # Sort by number of productions (descending)
+        operas_with_multiple_productions.sort(key=lambda x: x[2], reverse=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            total_unique_productions = sum(len(productions) for productions in opera_productions.values())
+            st.metric("Total Unique Productions", total_unique_productions)
+
+            # Calculate average productions per opera
+            operas_with_productions = sum(1 for prods in opera_productions.values() if prods)
+            if operas_with_productions > 0:
+                avg_productions = total_unique_productions / operas_with_productions
+                st.metric("Average Productions per Opera", f"{avg_productions:.2f}")
+
+        with col2:
+            operas_multiple_productions = sum(1 for prods in opera_productions.values() if len(prods) > 1)
+            st.metric("Operas seen in multiple productions", operas_multiple_productions)
+
+            if operas_multiple_productions > 0:
+                most_productions = max(len(prods) for prods in opera_productions.values())
+                st.metric("Max productions of a single opera", most_productions)
+
+        # Display operas with multiple productions
+        st.subheader("Operas Seen in Multiple Productions")
+
+        multi_prod_df = pd.DataFrame(
+            {
+                "Opera": [
+                    f"{name} ({truncate_composer_name(composer)})"
+                    for name, composer, _ in operas_with_multiple_productions
+                ],
+                "Productions": [count for _, _, count in operas_with_multiple_productions],
+            }
+        )
+
+        fig = px.bar(
+            multi_prod_df.head(10),
+            x="Opera",
+            y="Productions",
+            text="Productions",
+            title="Top 10 Operas by Number of Different Productions",
+        )
+        fig.update_traces(textposition="outside")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Countries visited for opera
+    st.subheader("Countries Visited for Opera")
+
+    countries = set()
+    country_counts = Counter()
+
+    for performance in performances:
+        stage = next(
+            (stage for stage in load_db_venues(list_of_entries=True) if stage.short_name == performance.stage), None
+        )
+        if stage and stage.longitude is not None and stage.latitude is not None:
+            coordinates = (float(stage.latitude), float(stage.longitude))
+            location = rg.search(coordinates, mode=1)
+            if location:
+                country = location[0]["cc"]
+
+                # convert from ISO 3166-1 alpha-2 to ISO 3166-1 alpha-3
+                country = unidecode(country).upper()
+
+                if len(country) == 2:
+                    country = convert_alpha2_to_alpha3(country)
+
+                countries.add(country)
+                country_counts[country] += 1
+
+    if countries:
+        country_df = pd.DataFrame(
+            {"Country": list(country_counts.keys()), "Performances": list(country_counts.values())}
+        )
+
+        fig = px.choropleth(
+            country_df,
+            locations="Country",
+            color="Performances",
+            hover_name="Country",
+            color_continuous_scale=px.colors.sequential.Plasma,
+        )
+        fig.update_geos(fitbounds="locations")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Artists network analysis
+    st.subheader("Artist Network Analysis")
+
+    all_artists = set()
+    for performance in performances:
+        # Get cast
+        for role, people in performance.cast.items():
+            all_artists.update(people)
+        # Get leading team
+        for role, people in performance.leading_team.items():
+            all_artists.update(people)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Unique Artists", len(all_artists))
+
+        # Count artists by role
+        leading_roles = set()
+        for performance in performances:
+            leading_roles.update(performance.leading_team.keys())
+
+        st.metric("Different Creative Team Roles", len(leading_roles))
+
+    with col2:
+        cast_roles = set()
+        for performance in performances:
+            cast_roles.update(performance.cast.keys())
+
+        st.metric("Different Cast Roles", len(cast_roles))
+
+        # Calculate average cast size
+        cast_sizes = [sum(len(people) for people in performance.cast.values()) for performance in performances]
+        if cast_sizes:
+            avg_cast_size = sum(cast_sizes) / len(cast_sizes)
+            st.metric("Average Cast Size", f"{avg_cast_size:.1f}")
 
 
 def run():
     modes = {
+        ":material/query_stats: Overview": run_expanded_stats,
         ":material/monitoring: Numbers": run_frequencies,
         ":material/language: Map": run_maps,
         ":material/music_note: Opera": run_single_opus,

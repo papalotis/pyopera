@@ -10,3 +10,4 @@ boto3-stubs==1.35.24
 argon2-cffi
 icecream
 reverse_geocoder
+networkx
