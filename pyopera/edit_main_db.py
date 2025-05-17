@@ -14,7 +14,6 @@ from pyopera.common import (
 )
 from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
-    format_iso_date_to_day_month_year_with_dots,
     format_title,
     load_db,
     write_cast_and_leading_team,
@@ -43,14 +42,12 @@ def clear_cast_leading_team_from_session_state():
 
 
 def run() -> None:
-    db = load_db()
+    db = load_db(include_archived_entries=True)
 
     with st.sidebar:
         if st.checkbox("Only show non-full entries"):
             db_to_use = [
-                performance
-                for performance in db
-                if (len(performance.cast) + len(performance.leading_team)) < 1
+                performance for performance in db if (len(performance.cast) + len(performance.leading_team)) < 1
             ]
 
         else:
@@ -80,31 +77,22 @@ def run() -> None:
 
     if __file__ not in st.session_state:
         st.session_state[__file__] = {}
-        st.session_state[__file__]["last_run_counter"] = int(
-            st.session_state.run_counter
-        )
+        st.session_state[__file__]["last_run_counter"] = int(st.session_state.run_counter)
 
-    coming_from_different_page = (
-        st.session_state.run_counter - st.session_state[__file__]["last_run_counter"]
-        > 1
-    )
+    coming_from_different_page = st.session_state.run_counter - st.session_state[__file__]["last_run_counter"] > 1
 
     if "cast" not in st.session_state or coming_from_different_page:
         st.session_state["cast"] = defaultdict(set)
         st.session_state["leading_team"] = defaultdict(set)
 
         if update_existing:
-            st.session_state["cast"].update(
-                {k: set(v) for k, v in entry_to_update["cast"].items()}
-            )
-            st.session_state["leading_team"].update(
-                {k: set(v) for k, v in entry_to_update["leading_team"].items()}
-            )
+            st.session_state["cast"].update({k: set(v) for k, v in entry_to_update["cast"].items()})
+            st.session_state["leading_team"].update({k: set(v) for k, v in entry_to_update["leading_team"].items()})
 
-    st.title(
-        ("Update an existing" if update_existing else "Add a new visited")
-        + " performance"
-    )
+    st.title(("Update an existing" if update_existing else "Add a new visited") + " performance")
+
+    if entry_to_update.get("archived", False):
+        st.warning("This is an archived entry. You can only see it here.")
 
     default_name = entry_to_update.get("name", "")
     default_production = entry_to_update.get("production", "")
@@ -117,21 +105,13 @@ def run() -> None:
     col1, col2 = st.columns([1, 2])
 
     existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
-    already_approximate_date = existing_dates is not None and not is_exact_date(
-        existing_dates
-    )
+    already_approximate_date = existing_dates is not None and not is_exact_date(existing_dates)
     no_date = existing_dates is None and update_existing
     with col1:
         date_type = st.pills(
             "Date type",
             ["Exact", "Approximate", "None"],
-            default=(
-                "Approximate"
-                if already_approximate_date
-                else "None"
-                if no_date
-                else "Exact"
-            ),
+            default=("Approximate" if already_approximate_date else "None" if no_date else "Exact"),
         )
 
     with col2:
@@ -178,16 +158,10 @@ def run() -> None:
     col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
 
     with col1:
-        production = st.text_input(
-            label="Production", help="The production company", value=default_production
-        )
+        production = st.text_input(label="Production", help="The production company", value=default_production)
 
         possible_exisitng_productions = sorted(
-            set(
-                entry.production_key
-                for entry in db
-                if entry.production == production and entry.name == name
-            ),
+            set(entry.production_key for entry in db if entry.production == production and entry.name == name),
             key=lambda x: x if x is not None else -1,
         )
 
@@ -206,22 +180,15 @@ def run() -> None:
         value=default_comments,
     )
 
-    mode = st.radio(
-        "Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True
-    )
+    mode = st.radio("Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True)
 
     add_to_cast = mode == "Cast"
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        relevant_works = [
-            entry for entry in db if entry.name == name and entry.composer == composer
-        ]
+        relevant_works = [entry for entry in db if entry.name == name and entry.composer == composer]
         relevant_roles = set(
-            chain.from_iterable(
-                entry.cast if add_to_cast else entry.leading_team
-                for entry in relevant_works
-            )
+            chain.from_iterable(entry.cast if add_to_cast else entry.leading_team for entry in relevant_works)
         )
 
         label = "Role" if add_to_cast else "Part"
@@ -243,9 +210,7 @@ def run() -> None:
             set(
                 person
                 for entry in db
-                for persons in (
-                    entry.cast if add_to_cast else entry.leading_team
-                ).values()
+                for persons in (entry.cast if add_to_cast else entry.leading_team).values()
                 for person in persons
             )
         )
@@ -269,9 +234,7 @@ def run() -> None:
     if append_button:
         if cast_leading_team_name != "" or role_or_part != "":
             key = "cast" if add_to_cast else "leading_team"
-            st.session_state[key][role_or_part].update(
-                {n.strip() for n in cast_leading_team_name.split(",")}
-            )
+            st.session_state[key][role_or_part].update({n.strip() for n in cast_leading_team_name.split(",")})
 
         else:
             st.error("At least one field is empty")
@@ -279,12 +242,7 @@ def run() -> None:
     def all_persons_with_role(
         dol: Mapping[str, Sequence[str]],
     ) -> Sequence[Tuple[str, str]]:
-        return [
-            (role, person)
-            for role in dol
-            for person in dol[role]
-            if role != "" and person != ""
-        ]
+        return [(role, person) for role in dol for person in dol[role] if role != "" and person != ""]
 
     cast_flat = all_persons_with_role(st.session_state["cast"])
     leading_team_flat = all_persons_with_role(st.session_state["leading_team"])
@@ -306,9 +264,7 @@ def run() -> None:
         disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
     )
 
-    write_cast_and_leading_team(
-        st.session_state["cast"], st.session_state["leading_team"]
-    )
+    write_cast_and_leading_team(st.session_state["cast"], st.session_state["leading_team"])
 
     if update_existing:
         ### delete entry
@@ -318,9 +274,7 @@ def run() -> None:
             )
             # ask user text confirmation
             confirmation_text = "delete"
-            user_delete_text = st.text_input(
-                f"Type '{confirmation_text}' to confirm deletion", value=""
-            )
+            user_delete_text = st.text_input(f"Type '{confirmation_text}' to confirm deletion", value="")
 
             user_text_confirmation = user_delete_text == confirmation_text
             st.button(
@@ -335,21 +289,36 @@ def run() -> None:
 
     st.markdown("---")
 
-    st.button(
-        label="Submit" + (" update" if update_existing else ""),
-        on_click=do_submission,
-        args=[
-            entry_to_update,
-            update_existing,
-            name,
-            date_range,
-            production,
-            stage,
-            composer,
-            concertante,
-            comments,
-        ],
-    )
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.button(
+            label="Submit" + (" update" if update_existing else ""),
+            icon=":material/cloud_upload:",
+            on_click=do_submission,
+            args=[
+                entry_to_update,
+                update_existing,
+                name,
+                date_range,
+                production,
+                stage,
+                composer,
+                concertante,
+                comments,
+            ],
+        )
+
+    with col2:
+        if update_existing:
+            is_archived = entry_to_update.get("archived", False)
+
+            st.button(
+                label="Unarchive" if is_archived else "Archive",
+                icon=":material/archive:" if is_archived else ":material/undo:",
+                on_click=toggle_archive_entry,
+                args=[entry_to_update],
+            )
 
     st.session_state[__file__]["last_run_counter"] = int(st.session_state.run_counter)
 
@@ -361,12 +330,20 @@ def remove_person_from_performance(remove: tuple[str, str]):
     if len(st.session_state["cast"][role]) == 0:
         del st.session_state["cast"][role]
 
-    st.session_state["leading_team"][role] = st.session_state["leading_team"][role] - {
-        person
-    }
+    st.session_state["leading_team"][role] = st.session_state["leading_team"][role] - {person}
 
     if len(st.session_state["leading_team"][role]) == 0:
         del st.session_state["leading_team"][role]
+
+
+def toggle_archive_entry(entry_to_update):
+    if entry_to_update.get("archived", False):
+        entry_to_update["archived"] = False
+        st.toast("Unarchived entry", icon=":material/undo:")
+    else:
+        entry_to_update["archived"] = True
+        st.toast("Archived entry", icon=":material/archive:")
+    send_new_performance(entry_to_update)
 
 
 def do_deletion(entry_to_update, user_text_confirmation):
@@ -451,6 +428,4 @@ def do_submission(
 
         except Exception as e:
             st.write(e)
-            st.toast(
-                "An error occured when uploading the entry", icon=":material/error:"
-            )
+            st.toast("An error occured when uploading the entry", icon=":material/error:")

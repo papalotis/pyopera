@@ -76,6 +76,7 @@ class Performance(BaseModel):
     composer: NonEmptyStr
     comments: str
     is_concertante: bool
+    archived: bool = False
     key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
 
     model_config = ConfigDict(

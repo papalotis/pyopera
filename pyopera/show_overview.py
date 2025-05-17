@@ -9,6 +9,7 @@ from pyopera.common import (
     Performance,
     WorkYearEntryModel,
 )
+from pyopera.expanded_stats import run_expanded_stats
 from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     load_db,
@@ -90,9 +91,7 @@ def create_markdown_string(db, title_and_composer_to_dates):
 
     markdown_text.append("# Operas")
 
-    for composer in sorted(
-        composer_to_titles.keys(), key=lambda composer: composer.split(" ")[-1]
-    ):
+    for composer in sorted(composer_to_titles.keys(), key=lambda composer: composer.split(" ")[-1]):
         markdown_text.append(f"#### {remove_greek_diacritics(composer).upper()}")
 
         for title in sorted(
@@ -103,8 +102,7 @@ def create_markdown_string(db, title_and_composer_to_dates):
             visits = groups[composer, title]
 
             stages_and_production_ids = Counter(
-                (performance.stage, performance.production_key)
-                for performance in visits
+                (performance.stage, performance.production_key) for performance in visits
             )
 
             stages_strings = []
@@ -134,9 +132,7 @@ def run_performances() -> None:
     st.markdown(markdown_string, unsafe_allow_html=True)
 
 
-def create_performances_markdown_string(
-    db: Sequence[Performance], venues_db: dict[str, str]
-):
+def create_performances_markdown_string(db: Sequence[Performance], venues_db: dict[str, str]):
     markdown_text = []
 
     markdown_text.append("# Performances")
@@ -165,9 +161,7 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
     markdown_text.append("# Productions")
 
     # group by production id
-    production_id_to_performances: defaultdict[
-        tuple[str, str, str, str], list[Performance]
-    ] = defaultdict(list)
+    production_id_to_performances: defaultdict[tuple[str, str, str, str], list[Performance]] = defaultdict(list)
     for performance in db:
         production_id_to_performances[performance.production_key].append(performance)
 
@@ -188,17 +182,10 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
             markdown_text.append(f"### {first_performance.production}")
             last_production_str = first_performance.production
 
-        markdown_text.append(
-            f"###### {first_performance.composer} - {first_performance.name}\n"
-        )
+        markdown_text.append(f"###### {first_performance.composer} - {first_performance.name}\n")
 
         markdown_text.append(
-            ", ".join(
-                [
-                    format_iso_date_to_day_month_year_with_dots(performance.date)
-                    for performance in performances
-                ]
-            )
+            ", ".join([format_iso_date_to_day_month_year_with_dots(performance.date) for performance in performances])
         )
 
     return "\n".join(markdown_text)
@@ -216,7 +203,7 @@ def run() -> None:
     modes = {
         ":material/music_note: Operas": run_operas,
         ":material/local_activity: Performances": run_performances,
-        # ":material/theaters: Productions": run_productions,
+        ":material/query_stats: Numbers": run_expanded_stats,
     }
 
     tabs = st.tabs(modes.keys())

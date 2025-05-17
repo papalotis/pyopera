@@ -26,8 +26,11 @@ def load_db_works_year() -> dict[tuple[str, str], WorkYearEntryModel]:
 PERFORMANCES_INTERFACE = DatabaseInterface(Performance)
 
 
-def load_db() -> DB_TYPE:
+def load_db(include_archived_entries: bool = False) -> DB_TYPE:
     raw_data = PERFORMANCES_INTERFACE.fetch_db()
+    if not include_archived_entries:
+        raw_data = [entry for entry in raw_data if not entry.archived]
+
     return raw_data
 
 
@@ -132,6 +135,10 @@ def format_title(performance: Performance | dict | None) -> str:
     stage = performance["stage"]
 
     base_string = f"{name} - {stage}"
+
+    if performance["archived"]:
+        base_string += " (archived)"
+
     if performance["date"] is None:
         return base_string
 
