@@ -193,7 +193,7 @@ def run_maps() -> None:
             lat="lat",
             lon="lon",
             size="size",
-            size_max=30 * circle_scale,
+            size_max=15 * circle_scale,
             color="count",
             color_continuous_scale=["red", "black"],
             text="label",
