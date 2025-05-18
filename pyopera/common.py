@@ -4,6 +4,7 @@ import string
 from collections import ChainMap
 from datetime import date, datetime
 from decimal import Decimal
+from functools import total_ordering
 from typing import (
     Annotated,
     Any,
@@ -57,9 +58,16 @@ def create_deta_style_key() -> str:
     return "".join(random.choices(available_characters, k=12))
 
 
+@total_ordering
 class ApproxDate(BaseModel):
     earliest_date: date
     latest_date: date
+
+    def __lt__(self, other: Self) -> bool:
+        if isinstance(other, date):
+            return self.earliest_date < other
+
+        return self.earliest_date < other.earliest_date
 
 
 PerformanceKey = Annotated[SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))]
