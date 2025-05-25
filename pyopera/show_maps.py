@@ -27,6 +27,12 @@ def load_countries_geojson(
 
     # copy the ugly ISO3166-1-Alpha-3 field into a simpler one
     for feature in geojson["features"]:
+        if feature["properties"]["name"] == "France":
+            props = feature["properties"]
+            # for some reason france has alpha 3 code -99
+
+            props["ISO3166-1-Alpha-3"] = "FRA"
+
         iso3 = feature["properties"].get("ISO3166-1-Alpha-3")
         feature["properties"]["iso_a3"] = iso3
 
@@ -220,7 +226,7 @@ def run_maps() -> None:
                 size="size",
                 size_max=15 * circle_scale,
                 color="color",
-                color_continuous_scale=["black", "red"],
+                color_continuous_scale=["red", "black"],
                 text="label",
                 hover_name="name",
                 hover_data=["count"],
@@ -262,18 +268,18 @@ def create_countries_plot(coords_counter):
     )
 
     geojson = load_countries_geojson()
+
     fig = px.choropleth_map(
         country_data,
         geojson=geojson,
         locations="id",  # your ISO-3 codes column
         featureidkey="properties.iso_a3",
         color="color",
-        color_continuous_scale=["black", "red"],
+        color_continuous_scale=["red", "black"],
         hover_name="id",
         hover_data=["count", "id"],
         zoom=3,
         center={"lat": 48, "lon": 12},
-        # color_continuous_scale=["red", "black"],
         map_style="carto-positron",
     )
 
