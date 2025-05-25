@@ -1,16 +1,36 @@
 from collections import defaultdict
 from decimal import Decimal
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import requests
 import reverse_geocoder as rg
 import streamlit as st
-from unidecode import unidecode
 
 from pyopera.show_stats_utils import convert_alpha2_to_alpha3
 from pyopera.streamlit_common import load_db, load_db_venues
+
+
+@st.cache_resource(show_spinner=False)
+def load_countries_geojson(
+    url: str = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson",
+) -> dict:
+    """
+    Download and cache a GeoJSON of world countries (with ISO codes under properties.ISO3166-1-Alpha-3),
+    then copy that into properties.iso_a3 so we can match it easily.
+    """
+    resp = requests.get(url)
+    resp.raise_for_status()
+    geojson = resp.json()
+
+    # copy the ugly ISO3166-1-Alpha-3 field into a simpler one
+    for feature in geojson["features"]:
+        iso3 = feature["properties"].get("ISO3166-1-Alpha-3")
+        feature["properties"]["iso_a3"] = iso3
+
+    return geojson
 
 
 @st.cache_data
@@ -177,6 +197,7 @@ def run_maps() -> None:
                     40,
                 ),
                 "name": stage_name_or_city,
+                "color": np.log(count),
             }
             for (lon, lat, stage_name_or_city), count in coords_counter.items()
         ]
@@ -186,32 +207,84 @@ def run_maps() -> None:
         threshold = map_data["count"].nlargest(20).min()
         map_data["label"] = map_data["name"].where(map_data["count"] >= threshold, "")
 
-        circle_scale = st.slider("Circle Scale", min_value=0.2, max_value=2.0, value=1.0)
+        # Convert data to country format if in Countries mode
+        if mode == "Countries":
+            create_countries_plot(coords_counter)
+        else:
+            circle_scale = st.slider("Circle Scale", min_value=0.2, max_value=2.0, value=1.0)
+            # For Venues and Cities, use the original scatter map
+            fig = px.scatter_map(
+                map_data,
+                lat="lat",
+                lon="lon",
+                size="size",
+                size_max=15 * circle_scale,
+                color="color",
+                color_continuous_scale=["black", "red"],
+                text="label",
+                hover_name="name",
+                hover_data=["count"],
+                zoom=3,
+                map_style="carto-positron",
+            )
 
-        fig = px.scatter_map(
-            map_data,
-            lat="lat",
-            lon="lon",
-            size="size",
-            size_max=15 * circle_scale,
-            color="count",
-            color_continuous_scale=["red", "black"],
-            text="label",
-            hover_name="name",
-            hover_data=["count"],
-            zoom=3,
-            map_style="carto-positron",
-        )
+            fig.update_traces(mode="markers+text", textposition="middle center", marker_opacity=0.7, textfont_size=10)
+            fig.update_layout(uniformtext_minsize=12, uniformtext_mode="hide")
 
-        fig.update_traces(mode="markers+text", textposition="middle center", marker_opacity=0.7, textfont_size=10)
-        fig.update_layout(uniformtext_minsize=12, uniformtext_mode="hide")
+            fig.update_layout(
+                coloraxis_colorbar=dict(title="Visits", ticks="outside"),
+                margin=dict(l=0, r=0, t=40, b=0),
+            )
 
-        fig.update_layout(
-            coloraxis_colorbar=dict(title="Visits", ticks="outside"),
-            margin=dict(l=0, r=0, t=40, b=0),
-        )
+            # dont show the legend
+            fig.update_layout(showlegend=False)
+            # dont show color bar
+            fig.update_coloraxes(showscale=False)
 
-        st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
     else:
         st.warning("No location data available for map visualization.")
+
+
+@st.cache_data
+def create_countries_plot(coords_counter):
+    country_data = pd.DataFrame(
+        [
+            {
+                "id": country_code,
+                "count": count,
+                "color": np.log(count),
+            }
+            for (_, _, country_code), count in coords_counter.items()
+            if isinstance(country_code, str)
+        ]
+    )
+
+    geojson = load_countries_geojson()
+    fig = px.choropleth_map(
+        country_data,
+        geojson=geojson,
+        locations="id",  # your ISO-3 codes column
+        featureidkey="properties.iso_a3",
+        color="color",
+        color_continuous_scale=["black", "red"],
+        hover_name="id",
+        hover_data=["count", "id"],
+        zoom=3,
+        center={"lat": 48, "lon": 12},
+        # color_continuous_scale=["red", "black"],
+        map_style="carto-positron",
+    )
+
+    fig.update_layout(uniformtext_minsize=12, uniformtext_mode="hide")
+
+    fig.update_layout(
+        coloraxis_colorbar=dict(title="Visits", ticks="outside"),
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
+
+    fig.update_layout(showlegend=False)
+    fig.update_coloraxes(showscale=False)
+
+    st.plotly_chart(fig, use_container_width=True)
