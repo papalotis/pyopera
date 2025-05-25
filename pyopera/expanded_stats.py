@@ -39,16 +39,6 @@ def run_expanded_stats():
     # Calculate concertante performances
     concertante_count = sum(1 for p in performances if p.is_concertante)
 
-    # Calculate years of opera-going
-    dated_performances = [p for p in performances if p.date is not None]
-    years_span = None
-    if dated_performances:
-        years_span = (
-            max(p.date.latest_date.year for p in dated_performances)
-            - min(p.date.earliest_date.year for p in dated_performances)
-            + 1
-        )
-
     with col1:
         st.metric("Operas", unique_operas)
     with col2:
@@ -62,35 +52,6 @@ def run_expanded_stats():
         st.metric("Composers", len(set(p.composer for p in performances)))
     with col3:
         st.metric("Venues", len(set(p.stage for p in performances)))
-
-    with col1:
-        if years_span:
-            st.metric("Years of Opera-going", years_span)
-    # col2 and col3 are empty
-
-    if False:
-        # Monthly distribution of performances
-        if dated_performances:
-            st.subheader("Performance Distribution by Month")
-
-            month_to_name = {i: calendar.month_name[i] for i in range(1, 13)}
-            month_counts = Counter(p.date.earliest_date.month for p in dated_performances)
-
-            month_df = pd.DataFrame(
-                {
-                    "Month": [month_to_name[month] for month in range(1, 13)],
-                    "Performances": [month_counts.get(month, 0) for month in range(1, 13)],
-                }
-            )
-
-            fig = px.line(
-                month_df,
-                x="Month",
-                y="Performances",
-                markers=True,
-                category_orders={"Month": [month_to_name[i] for i in range(1, 13)]},
-            )
-            st.plotly_chart(fig, use_container_width=True)
 
     # Add new bar graphs with top 20 view + option to see all
     st.subheader("Graphs")
@@ -107,7 +68,12 @@ def run_expanded_stats():
 
     selected_graph = st.selectbox("Select graph to display:", graph_options)
 
-    show_all = st.checkbox("Show all", key="show_all")
+    show_as_table = st.checkbox("Show as table", key="show_as_table")
+
+    if show_as_table:
+        show_all = True
+    else:
+        show_all = st.checkbox("Show all", key="show_all")
 
     # Operas by Composer
     if selected_graph == "Operas by Composer":
@@ -128,10 +94,21 @@ def run_expanded_stats():
             {"Composer": [comp for comp, _ in data_to_show], "Operas": [count for _, count in data_to_show]}
         )
 
-        fig = px.bar(composer_opera_df, x="Composer", y="Operas", text="Operas")
-        fig.update_traces(textposition="outside")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, use_container_width=True)
+        if show_as_table:
+            st.dataframe(composer_opera_df, use_container_width=True, hide_index=True)
+
+        else:
+            fig = px.bar(composer_opera_df, x="Composer", y="Operas", text="Operas")
+            fig.update_traces(
+                textposition="outside",
+                cliponaxis=False,
+            )
+            fig.update_layout(
+                xaxis={
+                    "categoryorder": "total descending",
+                }
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     # Performances by Opera
     elif selected_graph == "Performances by Opera":
@@ -150,10 +127,20 @@ def run_expanded_stats():
             }
         )
 
-        fig = px.bar(opera_perf_df, x="Opera", y="Performances", text="Performances")
-        fig.update_traces(textposition="outside")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, use_container_width=True)
+        if show_as_table:
+            st.dataframe(opera_perf_df, use_container_width=True, hide_index=True)
+        else:
+            fig = px.bar(opera_perf_df, x="Opera", y="Performances", text="Performances")
+            fig.update_traces(
+                textposition="outside",
+                cliponaxis=False,
+            )
+            fig.update_layout(
+                xaxis={
+                    "categoryorder": "total descending",
+                }
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     # Productions by Opera
     elif selected_graph == "Productions by Opera":
@@ -173,10 +160,21 @@ def run_expanded_stats():
             }
         )
 
-        fig = px.bar(opera_prod_df, x="Opera", y="Productions", text="Productions")
-        fig.update_traces(textposition="outside")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, use_container_width=True)
+        if show_as_table:
+            st.dataframe(opera_prod_df, use_container_width=True, hide_index=True)
+
+        else:
+            fig = px.bar(opera_prod_df, x="Opera", y="Productions", text="Productions")
+            fig.update_traces(
+                textposition="outside",
+                cliponaxis=False,
+            )
+            fig.update_layout(
+                xaxis={
+                    "categoryorder": "total descending",
+                }
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     # Performances by Composer
     elif selected_graph == "Performances by Composer":
@@ -192,10 +190,21 @@ def run_expanded_stats():
             }
         )
 
-        fig = px.bar(composer_perf_df, x="Composer", y="Performances", text="Performances")
-        fig.update_traces(textposition="outside")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, use_container_width=True)
+        if show_as_table:
+            st.dataframe(composer_perf_df, use_container_width=True, hide_index=True)
+
+        else:
+            fig = px.bar(composer_perf_df, x="Composer", y="Performances", text="Performances")
+            fig.update_traces(
+                textposition="outside",
+                cliponaxis=False,
+            )
+            fig.update_layout(
+                xaxis={
+                    "categoryorder": "total descending",
+                }
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     # Performances by Venue
     elif selected_graph == "Performances by Venue":
@@ -208,13 +217,26 @@ def run_expanded_stats():
             {"Venue": [venue for venue, _ in venue_to_show], "Performances": [count for _, count in venue_to_show]}
         )
 
-        fig = px.bar(venue_df, x="Venue", y="Performances", text="Performances")
-        fig.update_traces(textposition="outside")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig, use_container_width=True)
+        if show_as_table:
+            st.dataframe(venue_df, use_container_width=True, hide_index=True)
+        else:
+            fig = px.bar(venue_df, x="Venue", y="Performances", text="Performances")
+            fig.update_traces(
+                textposition="outside",
+                cliponaxis=False,
+            )
+            fig.update_layout(
+                xaxis={
+                    "categoryorder": "total descending",
+                }
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     # Performances by Year
     elif selected_graph == "Performances by Year":
+        # Calculate years of opera-going
+        dated_performances = [p for p in performances if p.date is not None]
+
         if dated_performances:
             year_counts = Counter(p.date.earliest_date.year for p in dated_performances)
             years = sorted(year_counts.keys())
@@ -222,9 +244,17 @@ def run_expanded_stats():
 
             year_df = pd.DataFrame({"Year": years, "Performances": counts})
 
-            fig = px.bar(year_df, x="Year", y="Performances", text="Performances")
-            fig.update_traces(textposition="outside")
-            st.plotly_chart(fig, use_container_width=True)
+            if show_as_table:
+                st.dataframe(year_df, use_container_width=True, hide_index=True)
+            else:
+                fig = px.bar(year_df, x="Year", y="Performances", text="Performances")
+                fig.update_traces(
+                    textposition="outside",
+                    cliponaxis=False,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No performances with valid dates found.")
 
     # Add maps visualization at the end
     st.subheader("Map")
