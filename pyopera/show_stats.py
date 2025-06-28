@@ -87,6 +87,14 @@ def run_query_and_analytics():
         opera_names = st.multiselect("Select Opera", all_operas)
         venues = st.multiselect("Select Venue", all_venues)
 
+        concertant_mode = st.segmented_control(
+            "Concertant Mode",
+            ["ALL", "CONCERTANT", "NON_CONCERTANT"],
+            key="concertant_mode",
+            default="ALL",
+            help="Select the concertant mode of the performances. 'ALL' includes all performances, 'CONCERTANT' includes only concertant performances, and 'NON_CONCERTANT' includes only non-concertant performances.",
+        )
+
         # Apply filters
         aggregate_singers = all if match_singers == "ALL" else any
         aggregate_leading_team = all if match_leading_team == "ALL" else any
@@ -107,6 +115,11 @@ def run_query_and_analytics():
             and (len(venues) == 0 or performance.stage in venues)
             and (len(composers) == 0 or performance.composer in composers)
             and (len(opera_names) == 0 or performance.name in opera_names)
+            and (
+                concertant_mode == "ALL"
+                or (concertant_mode == "CONCERTANT" and performance.is_concertante)
+                or (concertant_mode == "NON_CONCERTANT" and not performance.is_concertante)
+            )
         ]
 
     if len(filtered_performances) == 0:
@@ -123,23 +136,15 @@ def run_query_and_analytics():
     col1, col2, col3 = st.columns([2, 1, 1])
 
     with col1:
-        # Frequency analysis options
-        presets = {
-            ("name", "composer"): "Opera",
-            ("composer",): "Composer",
-            ("stage",): "Venue",
-        }
-
-        preset = st.selectbox("Analysis Preset", presets, format_func=presets.get)
-
         options = st.multiselect(
-            "Categories to analyze",
+            "Group by",
             filter(
                 lambda el: isinstance(getattr(db[0], el), (str, int)) and el not in ("comments", "key"),
                 db[0].model_dump().keys(),
             ),
-            default=preset,
+            default=["name", "composer"],
             format_func=format_column_name,
+            help="Select the columns to group by for frequency analysis. You can select multiple columns.",
         )
 
     with col2:
