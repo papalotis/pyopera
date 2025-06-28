@@ -101,136 +101,138 @@ def run() -> None:
     default_comments = entry_to_update.get("comments", "")
     default_concertant = entry_to_update.get("is_concertante", False)
 
-    name = st.text_input(label="Name", help="The name of the opera", value=default_name)
-    col1, col2 = st.columns([1, 2])
+    with st.container(border=True):
+        name = st.text_input(label="Name", help="The name of the opera", value=default_name)
+        col1, col2 = st.columns([1, 2])
 
-    existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
-    already_approximate_date = existing_dates is not None and not is_exact_date(existing_dates)
-    no_date = existing_dates is None and update_existing
-    with col1:
-        date_type = st.pills(
-            "Date type",
-            ["Exact", "Approximate", "None"],
-            default=("Approximate" if already_approximate_date else "None" if no_date else "Exact"),
-        )
-
-    with col2:
-        if date_type == "Approximate":
-            if existing_dates is None:
-                default_date = tuple()
-            else:
-                approx_date = ApproxDate(**existing_dates)
-                default_date = (
-                    approx_date.earliest_date,
-                    approx_date.latest_date,
-                )
-        elif date_type == "Exact":
-            if existing_dates is None:
-                default_date = date.today()
-            else:
-                default_date = ApproxDate(**existing_dates).earliest_date
-                if not is_exact_date(existing_dates):
-                    st.error("Trying to treat an approximate date as an exact date")
-                    return
-
-        else:
-            default_date = None
-
-        dates = st.date_input(
-            label="Date",
-            help="The day of the visit",
-            value=default_date,
-            min_value=date(1970, 1, 1),
-            disabled=date_type == "None",
-        )
-
-        if default_date is not None:
-            if isinstance(dates, date):
-                dates = (dates, dates)
-
-            if len(dates) < 2:
-                date_range = None
-            else:
-                date_range = ApproxDate(earliest_date=dates[0], latest_date=dates[1])
-        else:
-            date_range = None
-
-    col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
-
-    with col1:
-        production = st.text_input(label="Production", help="The production company", value=default_production)
-
-        possible_exisitng_productions = sorted(
-            set(entry.production_key for entry in db if entry.production == production and entry.name == name),
-            key=lambda x: x if x is not None else -1,
-        )
-
-    with col2:
-        stage = st.text_input(label="Stage", value=default_stage)
-
-    with col3:
-        composer = st.text_input(label="Composer", value=default_composer)
-
-    with col4:
-        concertante = st.checkbox(label="Concertante", value=default_concertant)
-
-    comments = st.text_area(
-        label="Notes",
-        help="Notes regarding the performance",
-        value=default_comments,
-    )
-
-    mode = st.radio("Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True)
-
-    add_to_cast = mode == "Cast"
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        relevant_works = [entry for entry in db if entry.name == name and entry.composer == composer]
-        relevant_roles = set(
-            chain.from_iterable(entry.cast if add_to_cast else entry.leading_team for entry in relevant_works)
-        )
-
-        label = "Role" if add_to_cast else "Part"
-
-        role_or_part = st.selectbox(
-            label,
-            list(relevant_roles),
-            format_func=lambda x: x,
-            accept_new_options=True,
-        )
-
-    with col2:
-        label = "Name" + " " * add_to_cast
-
-        all_persons = sorted(
-            set(
-                person
-                for entry in db
-                for persons in (entry.cast if add_to_cast else entry.leading_team).values()
-                for person in persons
+        existing_dates: Optional[ApproxDate] = entry_to_update.get("date")
+        already_approximate_date = existing_dates is not None and not is_exact_date(existing_dates)
+        no_date = existing_dates is None and update_existing
+        with col1:
+            date_type = st.pills(
+                "Date type",
+                ["Exact", "Approximate", "None"],
+                default=("Approximate" if already_approximate_date else "None" if no_date else "Exact"),
             )
+
+        with col2:
+            if date_type == "Approximate":
+                if existing_dates is None:
+                    default_date = tuple()
+                else:
+                    approx_date = ApproxDate(**existing_dates)
+                    default_date = (
+                        approx_date.earliest_date,
+                        approx_date.latest_date,
+                    )
+            elif date_type == "Exact":
+                if existing_dates is None:
+                    default_date = date.today()
+                else:
+                    default_date = ApproxDate(**existing_dates).earliest_date
+                    if not is_exact_date(existing_dates):
+                        st.error("Trying to treat an approximate date as an exact date")
+                        return
+
+            else:
+                default_date = None
+
+            dates = st.date_input(
+                label="Date",
+                help="The day of the visit",
+                value=default_date,
+                min_value=date(1970, 1, 1),
+                disabled=date_type == "None",
+            )
+
+            if default_date is not None:
+                if isinstance(dates, date):
+                    dates = (dates, dates)
+
+                if len(dates) < 2:
+                    date_range = None
+                else:
+                    date_range = ApproxDate(earliest_date=dates[0], latest_date=dates[1])
+            else:
+                date_range = None
+
+        col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
+
+        with col1:
+            production = st.text_input(label="Production", help="The production company", value=default_production)
+
+            possible_exisitng_productions = sorted(
+                set(entry.production_key for entry in db if entry.production == production and entry.name == name),
+                key=lambda x: x if x is not None else -1,
+            )
+
+        with col2:
+            stage = st.text_input(label="Stage", value=default_stage)
+
+        with col3:
+            composer = st.text_input(label="Composer", value=default_composer)
+
+        with col4:
+            concertante = st.checkbox(label="Concertante", value=default_concertant)
+
+        comments = st.text_area(
+            label="Notes",
+            help="Notes regarding the performance",
+            value=default_comments,
         )
 
-        cast_leading_team_name = st.selectbox(
-            label,
-            all_persons,
-            format_func=lambda x: x,
-            accept_new_options=True,
+    with st.container(border=10):
+        mode = st.radio("Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True)
+
+        add_to_cast = mode == "Cast"
+
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            relevant_works = [entry for entry in db if entry.name == name and entry.composer == composer]
+            relevant_roles = set(
+                chain.from_iterable(entry.cast if add_to_cast else entry.leading_team for entry in relevant_works)
+            )
+
+            label = "Role" if add_to_cast else "Part"
+
+            role_or_part = st.selectbox(
+                label,
+                list(relevant_roles),
+                format_func=lambda x: x,
+                accept_new_options=True,
+            )
+
+        with col2:
+            label = "Name" + " " * add_to_cast
+
+            all_persons = sorted(
+                set(
+                    person
+                    for entry in db
+                    for persons in (entry.cast if add_to_cast else entry.leading_team).values()
+                    for person in persons
+                )
+            )
+
+            cast_leading_team_name = st.selectbox(
+                label,
+                all_persons,
+                format_func=lambda x: x,
+                accept_new_options=True,
+            )
+
+        append_button = st.button(
+            "Append to " + mode,
+            disabled=role_or_part in ("", None) or cast_leading_team_name in ("", None),
         )
 
-    append_button = st.button(
-        "Append to " + mode,
-        disabled=role_or_part in ("", None) or cast_leading_team_name in ("", None),
-    )
+        if append_button:
+            if cast_leading_team_name != "" or role_or_part != "":
+                key = "cast" if add_to_cast else "leading_team"
+                st.session_state[key][role_or_part].update({n.strip() for n in cast_leading_team_name.split(",")})
 
-    if append_button:
-        if cast_leading_team_name != "" or role_or_part != "":
-            key = "cast" if add_to_cast else "leading_team"
-            st.session_state[key][role_or_part].update({n.strip() for n in cast_leading_team_name.split(",")})
-
-        else:
-            st.error("At least one field is empty")
+            else:
+                st.error("At least one field is empty")
 
     def all_persons_with_role(
         dol: Mapping[str, Sequence[str]],
@@ -244,18 +246,19 @@ def run() -> None:
         role, name = role_name
         return f"{role} - {name}"
 
-    remove = st.selectbox(
-        "Remove",
-        [*cast_flat, *leading_team_flat],
-        format_func=format_func,
-    )
+    with st.container(border=True, key="remove_person_container"):
+        remove = st.selectbox(
+            "Remove",
+            [*cast_flat, *leading_team_flat],
+            format_func=format_func,
+        )
 
-    st.button(
-        "Remove",
-        on_click=remove_person_from_performance,
-        args=[remove],
-        disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
-    )
+        st.button(
+            "Remove",
+            on_click=remove_person_from_performance,
+            args=[remove],
+            disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
+        )
 
     write_cast_and_leading_team(st.session_state["cast"], st.session_state["leading_team"])
 
