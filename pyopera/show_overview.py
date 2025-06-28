@@ -132,10 +132,13 @@ def run_performances() -> None:
     st.markdown(markdown_string, unsafe_allow_html=True)
 
 
-def create_performances_markdown_string(db: Sequence[Performance], venues_db: dict[str, str]):
+def create_performances_markdown_string(
+    db: Sequence[Performance], venues_db: dict[str, str], *, include_header: bool = True
+) -> str:
     markdown_text = []
 
-    markdown_text.append("# Performances")
+    if include_header:
+        markdown_text.append("# Performances")
 
     have_added_following_works_no_dates = False
 

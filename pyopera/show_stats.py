@@ -1,38 +1,17 @@
 import calendar
-import math
 from collections import defaultdict
-from datetime import datetime
-from decimal import Decimal
 from typing import (
-    Any,
     ChainMap,
-    Counter,
     DefaultDict,
-    Hashable,
-    Mapping,
     MutableSequence,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
 )
 
-import networkx as nx
-import numpy as np
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 from more_itertools.recipes import flatten
 
 from pyopera.common import (
-    DB_TYPE,
-    Performance,
     get_all_names_from_performance,
-    is_exact_date,
 )
-from pyopera.expanded_stats import run_expanded_stats
 from pyopera.show_overview import create_performances_markdown_string
 from pyopera.show_stats_utils import (
     add_split_earliest_date_to_db,
@@ -50,23 +29,111 @@ from pyopera.streamlit_common import (
 )
 
 
-def run_frequencies():
-    month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
+def run_query_and_analytics():
+    """Combined query and analytics page that allows filtering and visualization of the data."""
+    st.title("Query & Analytics")
 
+    month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
     db = load_db()
 
-    presets = {
-        ("name", "composer"): "Opera",
-        ("composer",): "Composer",
-        ("stage",): "Stage",
-    }
+    # === FILTERING SECTION ===
+    with st.expander("Filter Performances", expanded=False):
+        all_singers = sorted({person for performance in db for person in flatten(performance.cast.values())})
+        all_leading_team = sorted(
+            {person for performance in db for person in flatten(performance.leading_team.values())}
+        )
+        all_venues = sorted({performance.stage for performance in db if performance.stage is not None})
+        all_composers = sorted({performance.composer for performance in db if performance.composer is not None})
 
-    col1, col2 = st.columns(2)
+        st.markdown("#### Cast & Team")
+
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            match_singers = st.segmented_control(
+                "Match Singers",
+                ["ALL", "ANY"],
+                key="match_type",
+                default="ALL",
+                help="Select how to match singers in the cast. 'ALL' means all selected singers must be present, 'ANY' means at least one singer must be present.",
+            )
+        with col2:
+            singers = st.multiselect("Select Singers", all_singers)
+
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            match_leading_team = st.segmented_control(
+                "Match Leading Team",
+                ["ALL", "ANY"],
+                key="match_leading_team_type",
+                default="ALL",
+                help="Select how to match leading team members. 'ALL' means all selected members must be present, 'ANY' means at least one member must be present.",
+            )
+
+        with col2:
+            leading_team = st.multiselect("Select Leading Team", all_leading_team)
+
+        st.markdown("### Works & Venues")
+
+        composers = st.multiselect("Select Composer", all_composers)
+
+        all_operas = sorted(
+            {
+                performance.name
+                for performance in db
+                if performance.name is not None and (len(composers) == 0 or performance.composer in composers)
+            }
+        )
+        opera_names = st.multiselect("Select Opera", all_operas)
+        venues = st.multiselect("Select Venue", all_venues)
+
+        # Apply filters
+        aggregate_singers = all if match_singers == "ALL" else any
+        aggregate_leading_team = all if match_leading_team == "ALL" else any
+
+        filtered_performances = [
+            performance
+            for performance in db
+            if (
+                len(singers) == 0
+                or aggregate_singers(singer in flatten(performance.cast.values()) for singer in singers)
+            )
+            and (
+                len(leading_team) == 0
+                or aggregate_leading_team(
+                    person in flatten(performance.leading_team.values()) for person in leading_team
+                )
+            )
+            and (len(venues) == 0 or performance.stage in venues)
+            and (len(composers) == 0 or performance.composer in composers)
+            and (len(opera_names) == 0 or performance.name in opera_names)
+        ]
+
+    if len(filtered_performances) == 0:
+        st.warning("No performances found for the selected criteria.")
+        return
+
+    # === ANALYTICS SECTION ===
+
+    st.markdown(
+        f"### Analytics ({len(filtered_performances)} {'performances' if len(filtered_performances) > 1 else 'performance'})"
+    )
+
+    # Analytics configuration
+    col1, col2, col3 = st.columns([2, 1, 1])
+
     with col1:
-        preset = st.selectbox("Presets", presets, format_func=presets.get)
-    with col2:
+        # Frequency analysis options
+        presets = {
+            ("name", "composer"): "Opera",
+            ("composer",): "Composer",
+            ("stage",): "Venue",
+        }
+
+        preset = st.selectbox("Analysis Preset", presets, format_func=presets.get)
+
         options = st.multiselect(
-            "Categories to combine",
+            "Categories to analyze",
             filter(
                 lambda el: isinstance(getattr(db[0], el), (str, int)) and el not in ("comments", "key"),
                 db[0].model_dump().keys(),
@@ -75,22 +142,25 @@ def run_frequencies():
             format_func=format_column_name,
         )
 
-    if any(option in ("day", "month", "year") for option in options):
-        db = add_split_earliest_date_to_db(db)
-    else:
-        db = [entry.model_dump() for entry in db]
+    with col2:
+        number_to_show = st.number_input("Bars to show", 1, value=15, step=5)
 
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        number_to_show = st.number_input("Number of bars to show", 1, value=20, step=5)
-    show_all = st.checkbox("Show full bar chart")
+    with col3:
+        show_all = st.checkbox("Show all")
 
     if show_all:
         number_to_show = None
 
+    # Generate frequency chart for filtered data
     if len(options) > 0:
+        # Prepare data for frequency analysis
+        if any(option in ("day", "month", "year") for option in options):
+            analysis_db = add_split_earliest_date_to_db(filtered_performances)
+        else:
+            analysis_db = [entry.model_dump() for entry in filtered_performances]
+
         create_frequency_chart(
-            db,
+            analysis_db,
             options,
             number_to_show,
             column_mapper={
@@ -100,7 +170,17 @@ def run_frequencies():
             },
         )
     else:
-        st.warning("Add category names to above widget")
+        st.info("Select categories above to see frequency analysis")
+
+    # === DETAILED RESULTS SECTION ===
+    st.markdown("### Detailed Results")
+
+    performances_md_string = create_performances_markdown_string(
+        filtered_performances,
+        load_db_venues(),
+        include_header=False,
+    )
+    st.markdown(performances_md_string, unsafe_allow_html=True)
 
 
 def run_single_opus():
@@ -224,95 +304,12 @@ def run_single_role():
         st.warning("No roles available for this entry")
 
 
-def run_query_page():
-    st.title("Query Database")
-
-    db = load_db()
-
-    all_singers = sorted({person for performance in db for person in flatten(performance.cast.values())})
-    all_leading_team = sorted({person for performance in db for person in flatten(performance.leading_team.values())})
-    all_venues = sorted({performance.stage for performance in db if performance.stage is not None})
-    all_composers = sorted({performance.composer for performance in db if performance.composer is not None})
-
-    col_left, col_right = st.columns([1, 3])
-    with col_left:
-        match_singers = st.segmented_control(
-            "Match Singers",
-            ["ALL", "ANY"],
-            key="match_type",
-            default="ALL",
-            help="Select how to match singers in the cast. 'ALL' means all selected singers must be present, 'ANY' means at least one singer must be present.",
-        )
-
-    with col_right:
-        singers = st.multiselect("Select Singers", all_singers)
-
-    col_left, col_right = st.columns([1, 3])
-
-    with col_left:
-        match_leading_team = st.segmented_control(
-            "Match Leading Team",
-            ["ALL", "ANY"],
-            key="match_leading_team_type",
-            default="ALL",
-            help="Select how to match leading team members. 'ALL' means all selected members must be present, 'ANY' means at least one member must be present.",
-        )
-
-    with col_right:
-        leading_team = st.multiselect("Select Leading Team", all_leading_team)
-
-    composers = st.multiselect("Select Composer", all_composers)
-
-    all_operas = sorted(
-        {
-            performance.name
-            for performance in db
-            if performance.name is not None and (len(composers) == 0 or performance.composer in composers)
-        }
-    )
-
-    opera_names = st.multiselect("Select Opera", all_operas)
-
-    venues = st.multiselect(
-        "Select Venue",
-        all_venues,
-        help="Select venues to filter. Only performances found in one of these .",
-    )
-
-    aggregate_singers = all if match_singers == "ALL" else any
-    aggregate_leading_team = all if match_leading_team == "ALL" else any
-
-    valid_performances = [
-        performance
-        for performance in db
-        if (len(singers) == 0 or aggregate_singers(singer in flatten(performance.cast.values()) for singer in singers))
-        and (
-            len(leading_team) == 0
-            or aggregate_leading_team(person in flatten(performance.leading_team.values()) for person in leading_team)
-        )
-        and (len(venues) == 0 or performance.stage in venues)
-        and (len(composers) == 0 or performance.composer in composers)
-        and (len(opera_names) == 0 or performance.name in opera_names)
-    ]
-
-    if len(valid_performances) == 0:
-        st.warning("No performances found for the selected criteria.")
-        return
-
-    st.subheader(f"Found {len(valid_performances)} {"performances" if len(valid_performances) > 1 else "performance"}")
-
-    performances_md_string = create_performances_markdown_string(valid_performances, load_db_venues())
-
-    st.markdown(performances_md_string, unsafe_allow_html=True)
-
-
 def run():
     modes = {
-        ":material/monitoring: Numbers": run_frequencies,
+        ":material/analytics: Query & Analytics": run_query_and_analytics,
         ":material/music_note: Opera": run_single_opus,
         ":material/person_search: Artist": run_single_person,
         ":material/person_pin: Role": run_single_role,
-        ":material/search: Query": run_query_page,
     }
 
     with st.sidebar:
