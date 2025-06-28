@@ -88,11 +88,11 @@ def run_query_and_analytics():
         venues = st.multiselect("Select Venue", all_venues)
 
         concertant_mode = st.segmented_control(
-            "Concertant Mode",
-            ["ALL", "CONCERTANT", "NON_CONCERTANT"],
+            "Mode of Performance",
+            ["ALL", "STAGED", "CONCERTANTE"],
             key="concertant_mode",
             default="ALL",
-            help="Select the concertant mode of the performances. 'ALL' includes all performances, 'CONCERTANT' includes only concertant performances, and 'NON_CONCERTANT' includes only non-concertant performances.",
+            help="Select the concertant mode of the performances. 'ALL' includes all performances, 'CONCERTANTE' includes only concertante performances, and 'STAGED' includes only staged performances.",
         )
 
         # Apply filters
@@ -117,8 +117,8 @@ def run_query_and_analytics():
             and (len(opera_names) == 0 or performance.name in opera_names)
             and (
                 concertant_mode == "ALL"
-                or (concertant_mode == "CONCERTANT" and performance.is_concertante)
-                or (concertant_mode == "NON_CONCERTANT" and not performance.is_concertante)
+                or (concertant_mode == "CONCERTANTE" and performance.is_concertante)
+                or (concertant_mode == "STAGED" and not performance.is_concertante)
             )
         ]
 
