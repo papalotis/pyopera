@@ -1,7 +1,7 @@
 import platform
 import re
 from datetime import date, datetime
-from typing import Mapping, Sequence
+from typing import Literal, Mapping, Sequence, overload
 
 import streamlit as st
 
@@ -35,6 +35,14 @@ def load_db(include_archived_entries: bool = False) -> DB_TYPE:
 
 
 VENUES_INTERFACE = DatabaseInterface(VenueModel)
+
+
+@overload
+def load_db_venues(list_of_entries: Literal[True]) -> list[VenueModel]: ...
+
+
+@overload
+def load_db_venues(list_of_entries: Literal[False] = False) -> dict[str, str]: ...
 
 
 def load_db_venues(list_of_entries: bool = False) -> dict[str, str] | list[VenueModel]:
