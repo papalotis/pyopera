@@ -33,6 +33,7 @@ from pyopera.common import (
     is_exact_date,
 )
 from pyopera.expanded_stats import run_expanded_stats
+from pyopera.show_overview import create_performances_markdown_string
 from pyopera.show_stats_utils import (
     add_split_earliest_date_to_db,
     create_frequency_chart,
@@ -223,12 +224,95 @@ def run_single_role():
         st.warning("No roles available for this entry")
 
 
+def run_query_page():
+    st.title("Query Database")
+
+    db = load_db()
+
+    all_singers = sorted({person for performance in db for person in flatten(performance.cast.values())})
+    all_leading_team = sorted({person for performance in db for person in flatten(performance.leading_team.values())})
+    all_venues = sorted({performance.stage for performance in db if performance.stage is not None})
+    all_composers = sorted({performance.composer for performance in db if performance.composer is not None})
+
+    col_left, col_right = st.columns([1, 3])
+    with col_left:
+        match_singers = st.segmented_control(
+            "Match Singers",
+            ["ALL", "ANY"],
+            key="match_type",
+            default="ALL",
+            help="Select how to match singers in the cast. 'ALL' means all selected singers must be present, 'ANY' means at least one singer must be present.",
+        )
+
+    with col_right:
+        singers = st.multiselect("Select Singers", all_singers)
+
+    col_left, col_right = st.columns([1, 3])
+
+    with col_left:
+        match_leading_team = st.segmented_control(
+            "Match Leading Team",
+            ["ALL", "ANY"],
+            key="match_leading_team_type",
+            default="ALL",
+            help="Select how to match leading team members. 'ALL' means all selected members must be present, 'ANY' means at least one member must be present.",
+        )
+
+    with col_right:
+        leading_team = st.multiselect("Select Leading Team", all_leading_team)
+
+    composers = st.multiselect("Select Composer", all_composers)
+
+    all_operas = sorted(
+        {
+            performance.name
+            for performance in db
+            if performance.name is not None and (len(composers) == 0 or performance.composer in composers)
+        }
+    )
+
+    opera_names = st.multiselect("Select Opera", all_operas)
+
+    venues = st.multiselect(
+        "Select Venue",
+        all_venues,
+        help="Select venues to filter. Only performances found in one of these .",
+    )
+
+    aggregate_singers = all if match_singers == "ALL" else any
+    aggregate_leading_team = all if match_leading_team == "ALL" else any
+
+    valid_performances = [
+        performance
+        for performance in db
+        if (len(singers) == 0 or aggregate_singers(singer in flatten(performance.cast.values()) for singer in singers))
+        and (
+            len(leading_team) == 0
+            or aggregate_leading_team(person in flatten(performance.leading_team.values()) for person in leading_team)
+        )
+        and (len(venues) == 0 or performance.stage in venues)
+        and (len(composers) == 0 or performance.composer in composers)
+        and (len(opera_names) == 0 or performance.name in opera_names)
+    ]
+
+    if len(valid_performances) == 0:
+        st.warning("No performances found for the selected criteria.")
+        return
+
+    st.subheader(f"Found {len(valid_performances)} {"performances" if len(valid_performances) > 1 else "performance"}")
+
+    performances_md_string = create_performances_markdown_string(valid_performances, load_db_venues())
+
+    st.markdown(performances_md_string, unsafe_allow_html=True)
+
+
 def run():
     modes = {
         ":material/monitoring: Numbers": run_frequencies,
         ":material/music_note: Opera": run_single_opus,
         ":material/person_search: Artist": run_single_person,
         ":material/person_pin: Role": run_single_role,
+        ":material/search: Query": run_query_page,
     }
 
     with st.sidebar:
