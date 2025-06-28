@@ -192,16 +192,13 @@ def run() -> None:
         )
 
         label = "Role" if add_to_cast else "Part"
-        use_existing_checkbox = st.checkbox(f"Use existing {label.lower()}")
 
-        if use_existing_checkbox:
-            role_or_part = st.selectbox(
-                label,
-                list(relevant_roles),
-                format_func=lambda x: x,
-            )
-        else:
-            role_or_part = st.text_input(label)
+        role_or_part = st.selectbox(
+            label,
+            list(relevant_roles),
+            format_func=lambda x: x,
+            accept_new_options=True,
+        )
 
     with col2:
         label = "Name" + " " * add_to_cast
@@ -215,16 +212,12 @@ def run() -> None:
             )
         )
 
-        use_existing_checkbox = st.checkbox("Use existing person")
-
-        if use_existing_checkbox:
-            cast_leading_team_name = st.selectbox(
-                label,
-                all_persons,
-                format_func=lambda x: x,
-            )
-        else:
-            cast_leading_team_name = st.text_input(label)
+        cast_leading_team_name = st.selectbox(
+            label,
+            all_persons,
+            format_func=lambda x: x,
+            accept_new_options=True,
+        )
 
     append_button = st.button(
         "Append to " + mode,

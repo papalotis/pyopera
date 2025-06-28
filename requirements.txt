@@ -4,7 +4,7 @@ typing-extensions
 pydantic
 requests
 plotly
-streamlit==1.41
+streamlit==1.46
 boto3==1.35.24
 boto3-stubs==1.35.24
 argon2-cffi
