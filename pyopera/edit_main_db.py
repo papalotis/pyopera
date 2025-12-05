@@ -270,7 +270,7 @@ def run() -> None:
             )
             # ask user text confirmation
             confirmation_text = "delete"
-            user_delete_text = st.text_input(f"Type '{confirmation_text}' to confirm deletion", value="")
+            user_delete_text = st.text_input(f"Type *{confirmation_text}* to confirm deletion", value="")
 
             user_text_confirmation = user_delete_text == confirmation_text
             st.button(
