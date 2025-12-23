@@ -1,7 +1,7 @@
 import json
 import random
 import string
-from collections import ChainMap
+from collections import ChainMap, defaultdict
 from datetime import date, datetime
 from decimal import Decimal
 from functools import total_ordering
@@ -174,6 +174,28 @@ def soft_isinstance(obj: Any, type_: type[T]) -> TypeGuard[T]:
 
 def is_performance_instance(obj: Any) -> TypeGuard[Performance]:
     return soft_isinstance(obj, Performance)
+
+
+def group_performances_by_visit(performances: Sequence[Performance]) -> dict[str, List[Performance]]:
+    """
+    Groups performances by their visit_index.
+    Performances without a visit_index are treated as unique visits (keyed by their unique key).
+    """
+    visits = defaultdict(list)
+    for p in performances:
+        if p.visit_index is not None:
+            visits[p.visit_index].append(p)
+        else:
+            # Use the performance key as the visit ID for standalone performances
+            visits[p.key].append(p)
+    return dict(visits)
+
+
+def pluralize(count: int, singular: str, plural: str | None = None) -> str:
+    if plural is None:
+        plural = singular + "s"
+
+    return singular if count == 1 else plural
 
 
 class WorkYearEntryModel(BaseModel):

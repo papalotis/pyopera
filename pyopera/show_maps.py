@@ -9,6 +9,7 @@ import requests
 import reverse_geocoder as rg
 import streamlit as st
 
+from pyopera.common import group_performances_by_visit
 from pyopera.show_stats_utils import convert_alpha2_to_alpha3
 from pyopera.streamlit_common import load_db, load_db_venues
 
@@ -162,13 +163,7 @@ def run_maps() -> None:
     coords_counter: dict[tuple[Decimal, Decimal], int] = defaultdict(int)
 
     # Group performances by visit
-    visits = defaultdict(list)
-    for p in performances:
-        if p.visit_index:
-            visits[p.visit_index].append(p)
-        else:
-            # Treat standalone performances as unique visits
-            visits[id(p)].append(p)
+    visits = group_performances_by_visit(performances)
 
     for visit_perfs in visits.values():
         # Use the stage of the first performance in the visit
@@ -263,6 +258,8 @@ def run_maps() -> None:
 
     else:
         st.warning("No location data available for map visualization.")
+
+    st.title("")  # this moves any other element down a bit and not into the copyright message below the map
 
 
 @st.cache_data

@@ -9,7 +9,7 @@ import reverse_geocoder as rg
 import streamlit as st
 from unidecode import unidecode
 
-from pyopera.common import Performance
+from pyopera.common import Performance, group_performances_by_visit, pluralize
 from pyopera.show_maps import run_maps
 from pyopera.show_stats_utils import convert_alpha2_to_alpha3, truncate_composer_name
 from pyopera.streamlit_common import load_db, load_db_venues
@@ -75,13 +75,6 @@ def run_expanded_stats():
         st.metric("Visits", total_visits)
     with col2:
         st.metric("Performances", len(performances))
-        if longest_streak > 1:
-            st.metric(
-                "Longest Streak",
-                f"{longest_streak} days",
-                delta=streak_range_str,
-                delta_color="off",
-            )
     with col3:
         st.metric("Concertante Performances", f"{concertante_count} ({concertante_count/len(performances):.1%})")
 
@@ -369,3 +362,64 @@ def run_expanded_stats():
     # Add maps visualization at the end
     st.subheader("Visits Map")
     run_maps()
+
+    st.subheader("Interesting Facts")
+
+    facts = []
+
+    # Longest Streak
+    if longest_streak > 1:
+        facts.append(f"**Longest Streak**: {longest_streak} days ({streak_range_str})")
+
+    if performances:
+        # Most Performed Opera
+        opera_counts = Counter((p.name, p.composer) for p in performances)
+        (name, composer), count = opera_counts.most_common(1)[0]
+        facts.append(f"**Most Performed Opera**: {name} ({truncate_composer_name(composer)}) — {count} performances")
+
+        # Most Performed Composer
+        composer_counts = Counter(p.composer for p in performances)
+        composer, count = composer_counts.most_common(1)[0]
+        facts.append(f"**Most Performed Composer**: {composer} — {count} performances")
+
+        # Most Visited Venue
+        # group by visit (so that we do not double count multiple performances at same venue in one visit)
+
+        visits = group_performances_by_visit(performances)
+
+        venue_counts = Counter(visit[0].stage for visit in visits.values())
+        venue, count = venue_counts.most_common(1)[0]
+        venue_name = venues_db.get(venue, venue)
+        facts.append(f"**Most Visited Venue**: {venue_name} — {count} visits")
+
+        # Busiest Year
+        dated_visits = [visit for visit in visits.values() if visit[0].date]
+        if dated_visits:
+            year_counts = Counter(visit[0].date.earliest_date.year for visit in dated_visits)
+            year, count = year_counts.most_common(1)[0]
+            facts.append(f"**Busiest Year**: {year} — {count} visits")
+
+            # Busiest Month
+            month_counts = Counter(visit[0].date.earliest_date.strftime("%B") for visit in dated_visits)
+            month, count = month_counts.most_common(1)[0]
+            facts.append(f"**Busiest Month**: {month} — {count} visits")
+
+        # Most Seen Production
+        production_counts = Counter(p.production_key for p in performances if p.production_key)
+        if production_counts:
+            (identifying_person, production_name, opera_name, composer), count = production_counts.most_common(1)[0]
+            if count > 1:
+                facts.append(
+                    f"**Most Seen Production**: {opera_name} ({truncate_composer_name(composer)}) by {production_name} ({identifying_person}) — {count} {pluralize(count, 'performance')}"
+                )
+
+    # Opera with Most Productions
+    if opera_productions:
+        (name, composer), productions = max(opera_productions.items(), key=lambda x: len(x[1]))
+        count = len(productions)
+        facts.append(
+            f"**Opera with Most Productions**: {name} ({truncate_composer_name(composer)}) — {count} productions"
+        )
+
+    for fact in facts:
+        st.markdown(f"- {fact}")
