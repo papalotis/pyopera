@@ -3,6 +3,12 @@ import streamlit as st
 
 
 def create_dynamodb_resource():
+    try:
+        st.secrets
+    except Exception as e:
+        st.info("You are trying to develop the app but have not downloaded the secrets.toml file.")
+        st.exception(e)
+
     """Create a DynamoDB resource using credentials stored in Streamlit secrets."""
     aws_access_key_id = st.secrets["aws"]["aws_access_key_id"]
     aws_secret_access_key = st.secrets["aws"]["aws_secret_access_key"]
