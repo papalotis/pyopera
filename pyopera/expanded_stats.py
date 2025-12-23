@@ -9,7 +9,7 @@ import reverse_geocoder as rg
 import streamlit as st
 from unidecode import unidecode
 
-from pyopera.common import Performance, group_performances_by_visit, pluralize
+from pyopera.common import Performance, get_top_streaks, group_performances_by_visit, pluralize
 from pyopera.show_maps import run_maps
 from pyopera.show_stats_utils import convert_alpha2_to_alpha3, truncate_composer_name
 from pyopera.streamlit_common import load_db, load_db_venues
@@ -44,31 +44,8 @@ def run_expanded_stats():
     performances_without_visit = sum(1 for p in performances if not p.visit_index)
     total_visits = len(unique_visits) + performances_without_visit
 
-    # Calculate longest streak
-    dates = sorted({p.date.earliest_date for p in performances if p.date})
-    longest_streak = 0
-    streak_range_str = ""
-
-    if dates:
-        longest_streak = 1
-        current_streak = 1
-        streak_end_date = dates[0]
-
-        for i in range(1, len(dates)):
-            if dates[i] == dates[i - 1] + timedelta(days=1):
-                current_streak += 1
-            else:
-                if current_streak > longest_streak:
-                    longest_streak = current_streak
-                    streak_end_date = dates[i - 1]
-                current_streak = 1
-
-        if current_streak > longest_streak:
-            longest_streak = current_streak
-            streak_end_date = dates[-1]
-
-        streak_start_date = streak_end_date - timedelta(days=longest_streak - 1)
-        streak_range_str = f"{streak_start_date.strftime('%d.%m.%y')} - {streak_end_date.strftime('%d.%m.%y')}"
+    # Calculate top streaks
+    top_streaks = get_top_streaks(performances, n=3)
 
     with col1:
         st.metric("Operas", unique_operas)
@@ -367,9 +344,15 @@ def run_expanded_stats():
 
     facts = []
 
-    # Longest Streak
-    if longest_streak > 1:
-        facts.append(f"**Longest Streak**: {longest_streak} days ({streak_range_str})")
+    # Top Streaks
+    if top_streaks and top_streaks[0][0] > 1:
+        streak_strs = []
+        for i, (streak_len, streak_range) in enumerate(top_streaks, 1):
+            if streak_len > 1:
+                streak_strs.append(f"{i}. {streak_len} days ({streak_range})")
+
+        if streak_strs:
+            facts.append(f"**Longest Streaks**:\n  " + "\n  ".join(streak_strs))
 
     if performances:
         # Most Performed Opera

@@ -2,7 +2,7 @@ import json
 import random
 import string
 from collections import ChainMap, defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import total_ordering
 from typing import (
@@ -196,6 +196,42 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
         plural = singular + "s"
 
     return singular if count == 1 else plural
+
+
+def get_top_streaks(performances: Sequence[Performance], n: int = 3) -> List[tuple[int, str]]:
+    """
+    Returns the top n streaks of consecutive days with performances.
+    Returns a list of tuples (streak_length, date_range_string).
+    """
+    dates = sorted({p.date.earliest_date for p in performances if p.date})
+    if not dates:
+        return []
+
+    streaks = []
+    current_streak = 1
+    streak_end_date = dates[0]
+
+    for i in range(1, len(dates)):
+        if dates[i] == dates[i - 1] + timedelta(days=1):
+            current_streak += 1
+            streak_end_date = dates[i]
+        else:
+            streak_start_date = streak_end_date - timedelta(days=current_streak - 1)
+            streak_range_str = f"{streak_start_date.strftime('%d.%m.%y')} - {streak_end_date.strftime('%d.%m.%y')}"
+            streaks.append((current_streak, streak_range_str))
+
+            current_streak = 1
+            streak_end_date = dates[i]
+
+    # Add the last streak
+    streak_start_date = streak_end_date - timedelta(days=current_streak - 1)
+    streak_range_str = f"{streak_start_date.strftime('%d.%m.%y')} - {streak_end_date.strftime('%d.%m.%y')}"
+    streaks.append((current_streak, streak_range_str))
+
+    # Sort by streak length descending
+    streaks.sort(key=lambda x: x[0], reverse=True)
+
+    return streaks[:n]
 
 
 class WorkYearEntryModel(BaseModel):
