@@ -75,6 +75,16 @@ def run() -> None:
         else:
             update_existing = False
 
+    # Sync visit_index state when entry changes
+    current_entry_key = entry_to_update.get("key")
+    if "current_entry_key" not in st.session_state:
+        st.session_state["current_entry_key"] = None
+
+    if st.session_state["current_entry_key"] != current_entry_key:
+        st.session_state["current_entry_key"] = current_entry_key
+        val = entry_to_update.get("visit_index")
+        st.session_state["visit_index_input"] = val if val is not None else ""
+
     if __file__ not in st.session_state:
         st.session_state[__file__] = {}
         st.session_state[__file__]["last_run_counter"] = int(st.session_state.run_counter)
@@ -180,6 +190,65 @@ def run() -> None:
             help="Notes regarding the performance",
             value=default_comments,
         )
+
+        col_day, col_visit = st.columns(2)
+        with col_day:
+            default_day_index = entry_to_update.get("day_index")
+            day_index = st.number_input(
+                "Day Index (Order on same day)",
+                value=default_day_index if default_day_index is not None else 0,
+                min_value=0,
+                step=1,
+                help="Lower index comes first",
+            )
+
+            # Helper for same day
+            if date_range and is_exact_date(date_range):
+                same_day_performances = [
+                    p
+                    for p in db
+                    if p.date and is_exact_date(p.date) and p.date.earliest_date == date_range.earliest_date
+                ]
+                if same_day_performances:
+                    with st.expander(f"Found {len(same_day_performances)} other performances on this day"):
+                        for p in same_day_performances:
+                            st.write(f"- {p.name} (Index: {p.day_index})")
+
+        with col_visit:
+            # Helper for existing visits
+            if date_range and is_exact_date(date_range):
+                existing_visits = sorted(
+                    {
+                        p.visit_index
+                        for p in db
+                        if p.visit_index
+                        and p.date
+                        and is_exact_date(p.date)
+                        and p.date.earliest_date == date_range.earliest_date
+                    }
+                )
+            else:
+                existing_visits = []
+
+            options = [""] + existing_visits
+
+            # Ensure current value in session state is in options
+            current_val = st.session_state.get("visit_index_input", "")
+            if current_val and current_val not in options:
+                options.append(current_val)
+
+            def clear_visit_index():
+                st.session_state["visit_index_input"] = ""
+
+            visit_index = st.selectbox(
+                "Visit Group ID",
+                options,
+                accept_new_options=True,
+                help="Group multiple performances into a single visit. Select existing or type new.",
+                key="visit_index_input",
+            )
+
+            st.button("Clear Group Assignment", on_click=clear_visit_index)
 
     with st.container(border=10):
         mode = st.radio("Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True)
@@ -302,6 +371,8 @@ def run() -> None:
                 composer,
                 concertante,
                 comments,
+                day_index,
+                visit_index,
             ],
         )
 
@@ -358,6 +429,8 @@ def do_submission(
     composer,
     concertante,
     comments,
+    day_index,
+    visit_index,
 ):
     number_of_form_errors = 0
 
@@ -401,6 +474,8 @@ def do_submission(
             is_concertante=concertante,
             cast=cast,
             leading_team=leading_team,
+            day_index=day_index if day_index != 0 else None,
+            visit_index=visit_index if visit_index != "" else None,
         )
 
         try:

@@ -86,6 +86,8 @@ class Performance(BaseModel):
     is_concertante: bool
     archived: bool = False
     key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
+    day_index: Optional[int] = None
+    visit_index: Optional[str] = None
 
     model_config = ConfigDict(
         validate_assignment=True,

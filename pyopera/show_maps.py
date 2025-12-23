@@ -161,7 +161,19 @@ def run_maps() -> None:
 
     coords_counter: dict[tuple[Decimal, Decimal], int] = defaultdict(int)
 
-    for performance in performances:
+    # Group performances by visit
+    visits = defaultdict(list)
+    for p in performances:
+        if p.visit_index:
+            visits[p.visit_index].append(p)
+        else:
+            # Treat standalone performances as unique visits
+            visits[id(p)].append(p)
+
+    for visit_perfs in visits.values():
+        # Use the stage of the first performance in the visit
+        # (Assuming all performances in a visit are at the same location, or taking the first one as representative)
+        performance = visit_perfs[0]
         stage = next((stage for stage in stages if stage.short_name == performance.stage), None)
 
         if stage is None:

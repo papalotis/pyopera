@@ -33,7 +33,14 @@ def get_earliest_date(date: Optional[ApproxDate]) -> datetime:
 
 
 def sort_entries_by_date(entries: Sequence[Performance]) -> list[Performance]:
-    return sorted(entries, key=lambda x: get_earliest_date(x.date), reverse=True)
+    return sorted(
+        entries,
+        key=lambda x: (
+            get_earliest_date(x.date),
+            x.day_index if x.day_index is not None else 0,
+        ),
+        reverse=True,
+    )
 
 
 class DatabaseName(str, Enum):
@@ -140,9 +147,7 @@ class DatabaseInterface(Generic[EntryType]):
 def fetch_all_cached(interface: DatabaseInterface[EntryType]) -> list[EntryType]:
     text_for_spinner = EnumToLoadText.get(interface._entry_type)
 
-    context_manager = (
-        nullcontext() if text_for_spinner is None else st.spinner(text_for_spinner)
-    )
+    context_manager = nullcontext() if text_for_spinner is None else st.spinner(text_for_spinner)
 
     with context_manager:
         raw_data = interface._fetch_db()

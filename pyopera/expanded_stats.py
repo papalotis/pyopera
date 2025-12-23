@@ -1,6 +1,6 @@
 import calendar
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Sequence
 
 import pandas as pd
@@ -39,10 +39,49 @@ def run_expanded_stats():
     # Calculate concertante performances
     concertante_count = sum(1 for p in performances if p.is_concertante)
 
+    # Calculate visits
+    unique_visits = {p.visit_index for p in performances if p.visit_index}
+    performances_without_visit = sum(1 for p in performances if not p.visit_index)
+    total_visits = len(unique_visits) + performances_without_visit
+
+    # Calculate longest streak
+    dates = sorted({p.date.earliest_date for p in performances if p.date})
+    longest_streak = 0
+    streak_range_str = ""
+
+    if dates:
+        longest_streak = 1
+        current_streak = 1
+        streak_end_date = dates[0]
+
+        for i in range(1, len(dates)):
+            if dates[i] == dates[i - 1] + timedelta(days=1):
+                current_streak += 1
+            else:
+                if current_streak > longest_streak:
+                    longest_streak = current_streak
+                    streak_end_date = dates[i - 1]
+                current_streak = 1
+
+        if current_streak > longest_streak:
+            longest_streak = current_streak
+            streak_end_date = dates[-1]
+
+        streak_start_date = streak_end_date - timedelta(days=longest_streak - 1)
+        streak_range_str = f"{streak_start_date.strftime('%d.%m.%y')} - {streak_end_date.strftime('%d.%m.%y')}"
+
     with col1:
         st.metric("Operas", unique_operas)
+        st.metric("Visits", total_visits)
     with col2:
         st.metric("Performances", len(performances))
+        if longest_streak > 1:
+            st.metric(
+                "Longest Streak",
+                f"{longest_streak} days",
+                delta=streak_range_str,
+                delta_color="off",
+            )
     with col3:
         st.metric("Concertante Performances", f"{concertante_count} ({concertante_count/len(performances):.1%})")
 
@@ -64,6 +103,8 @@ def run_expanded_stats():
         "Performances by Composer",
         "Performances by Venue",
         "Performances by Year",
+        "Visits by Venue",
+        "Visits by Year",
     ]
 
     selected_graph = st.selectbox("Select graph to display:", graph_options)
@@ -256,6 +297,75 @@ def run_expanded_stats():
         else:
             st.warning("No performances with valid dates found.")
 
+    # Visits by Venue
+    elif selected_graph == "Visits by Venue":
+        visit_stages = []
+        visits = defaultdict(list)
+
+        for p in performances:
+            if p.visit_index:
+                visits[p.visit_index].append(p)
+            else:
+                visit_stages.append(p.stage)
+
+        for visit_id, perfs in visits.items():
+            stages = {p.stage for p in perfs}
+            if len(stages) > 1:
+                raise ValueError(f"found visit {visit_id} with multiple stages: {stages}")
+            visit_stages.append(stages.pop())
+
+        venue_counts = Counter(visit_stages)
+        venue_data = [(venues_db.get(venue, venue), count) for venue, count in venue_counts.most_common()]
+        venue_to_show = venue_data if show_all else venue_data[:20]
+
+        venue_df = pd.DataFrame(
+            {
+                "Venue": [venue for venue, _ in venue_to_show],
+                "Visits": [count for _, count in venue_to_show],
+            }
+        )
+
+        if show_as_table:
+            st.dataframe(venue_df, use_container_width=True, hide_index=True)
+        else:
+            fig = px.bar(venue_df, x="Venue", y="Visits", text="Visits")
+            fig.update_traces(textposition="outside", cliponaxis=False)
+            fig.update_layout(xaxis={"categoryorder": "total descending"})
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Visits by Year
+    elif selected_graph == "Visits by Year":
+        visit_years = []
+        visits = defaultdict(list)
+
+        for p in performances:
+            if p.visit_index:
+                visits[p.visit_index].append(p)
+            elif p.date:
+                visit_years.append(p.date.earliest_date.year)
+
+        for visit_id, perfs in visits.items():
+            dated_perfs = [p for p in perfs if p.date]
+            if dated_perfs:
+                earliest_year = min(p.date.earliest_date.year for p in dated_perfs)
+                visit_years.append(earliest_year)
+
+        if visit_years:
+            year_counts = Counter(visit_years)
+            years = sorted(year_counts.keys())
+            counts = [year_counts[year] for year in years]
+
+            year_df = pd.DataFrame({"Year": years, "Visits": counts})
+
+            if show_as_table:
+                st.dataframe(year_df, use_container_width=True, hide_index=True)
+            else:
+                fig = px.bar(year_df, x="Year", y="Visits", text="Visits")
+                fig.update_traces(textposition="outside", cliponaxis=False)
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No visits with valid dates found.")
+
     # Add maps visualization at the end
-    st.subheader("Map")
+    st.subheader("Visits Map")
     run_maps()
