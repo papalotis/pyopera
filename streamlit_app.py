@@ -1,6 +1,15 @@
 import streamlit as st
 
-from pyopera.accumulate_pages import main
+try:
+    from pyopera.accumulate_pages import main
+except ImportError as e:
+    import sys
+
+    sys.path.append(".")
+    try:
+        from pyopera.accumulate_pages import main
+    except ImportError:
+        raise e
 
 st.set_page_config(
     page_title="Vangelis OperArchive",
