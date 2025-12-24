@@ -17,6 +17,12 @@ st.set_page_config(
     menu_items={"About": "An interface for Vangelis' Opera Archive"},
 )
 
+hide_streamlit_style = """
+            <style>
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
