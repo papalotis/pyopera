@@ -10,8 +10,30 @@
             margin: 0;
             padding: 0;
             height: 100%;
+            width: 100%;
             overflow: hidden;
+            background-color: #ffffff; /* Match this to your app background */
         }
+
+        .wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* This div sits on top of the Streamlit footer */
+        .hidefooter {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100%; /* Covers the entire bottom bar */
+            height: 35px; /* Standard height to cover the footer */
+            background: #ffffff; /* Change to your app's background color */
+            z-index: 10; /* Ensures it stays on top of the iframe */
+            pointer-events: none; /* Allows clicks to pass through if necessary */
+        }
+
         iframe {
             position: absolute;
             top: 0;
@@ -19,10 +41,20 @@
             width: 100%;
             height: 100%;
             border: none;
+            z-index: 1;
         }
     </style>
 </head>
 <body>
-    <iframe src="https://papalotis-pyopera-pyoperafull-app-test-deploy-4n6lsz.streamlit.app/?embed=true"></iframe>
+
+    <div class="wrapper">
+        <div class="hidefooter"></div>
+        
+        <iframe 
+            src="https://papalotis-pyopera-pyoperafull-app-test-deploy-4n6lsz.streamlit.app/?embed=true"
+            title="OperArchive Streamlit App">
+        </iframe>
+    </div>
+
 </body>
 </html>
