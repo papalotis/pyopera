@@ -44,20 +44,31 @@ def run_expanded_stats():
     performances_without_visit = sum(1 for p in performances if not p.visit_index)
     total_visits = len(unique_visits) + performances_without_visit
 
-    with col1:
-        st.metric("Operas", unique_operas)
-        st.metric("Visits", total_visits)
-    with col2:
-        st.metric("Performances", len(performances))
-    with col3:
-        st.metric("Concertante Performances", f"{concertante_count} ({concertante_count/len(performances):.1%})")
+    def small_metric(label, value):
+        st.markdown(
+            f"""
+            <div style="margin-bottom: 10px;">
+                <p style="font-size: 14px; margin-bottom: 0px; opacity: 0.8;">{label}</p>
+                <p style="font-size: 20px; font-weight: bold; margin-top: 0px;">{value}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with col1:
-        st.metric("Productions", total_unique_productions)
+        small_metric("Operas", unique_operas)
+        small_metric("Visits", total_visits)
     with col2:
-        st.metric("Composers", len(set(p.composer for p in performances)))
+        small_metric("Performances", len(performances))
     with col3:
-        st.metric("Venues", len(set(p.stage for p in performances)))
+        small_metric("Concertante Performances", f"{concertante_count} ({concertante_count/len(performances):.1%})")
+
+    with col1:
+        small_metric("Productions", total_unique_productions)
+    with col2:
+        small_metric("Composers", len(set(p.composer for p in performances)))
+    with col3:
+        small_metric("Venues", len(set(p.stage for p in performances)))
 
     # Add new bar graphs with top 20 view + option to see all
     st.subheader("Graphs")
@@ -337,7 +348,7 @@ def run_expanded_stats():
     st.subheader("Visits Map")
     run_maps()
 
-    st.subheader("Interesting Facts")
+    st.subheader("Curious Facts")
 
     facts = []
 
@@ -355,52 +366,18 @@ def run_expanded_stats():
             facts.append(
                 (
                     "**Longest Streaks**:\n  " + "\n  ".join(streak_strs),
-                    f"Top {n} longest streaks of consecutive days with performances.",
+                    f"The {n} longest streaks of consecutive opera visits.",
                 )
             )
 
+    visits = group_performances_by_visit(performances)
     if performances:
-        # Most Performed Opera
-        opera_counts = Counter((p.name, p.composer) for p in performances)
-        (name, composer), count = opera_counts.most_common(1)[0]
-        facts.append(
-            (
-                f"**Most Performed Opera**: {name} ({truncate_composer_name(composer)}) — {count} performances",
-                "The opera you have seen the most times.",
-            )
-        )
-
-        # Most Performed Composer
-        composer_counts = Counter(p.composer for p in performances)
-        composer, count = composer_counts.most_common(1)[0]
-        facts.append(
-            (
-                f"**Most Performed Composer**: {composer} — {count} performances",
-                "The composer whose works you have seen the most.",
-            )
-        )
-
-        # Most Visited Venue
-        # group by visit (so that we do not double count multiple performances at same venue in one visit)
-
-        visits = group_performances_by_visit(performances)
-
-        venue_counts = Counter(visit[0].stage for visit in visits.values())
-        venue, count = venue_counts.most_common(1)[0]
-        venue_name = venues_db.get(venue, venue)
-        facts.append(
-            (
-                f"**Most Visited Venue**: {venue_name} — {count} visits",
-                "The venue you have visited the most times (grouped by visit).",
-            )
-        )
-
         # Busiest Year
         dated_visits = [visit for visit in visits.values() if visit[0].date]
         if dated_visits:
             year_counts = Counter(visit[0].date.earliest_date.year for visit in dated_visits)
             year, count = year_counts.most_common(1)[0]
-            facts.append((f"**Busiest Year**: {year} — {count} visits", "The calendar year with the most visits."))
+            facts.append((f"**Busiest Year**: {year} — {count} visits", "Most opera visits within a calendar year."))
 
             # Busiest Month
             month_counts = Counter(visit[0].date.earliest_date.strftime("%B") for visit in dated_visits)
@@ -408,7 +385,7 @@ def run_expanded_stats():
             facts.append(
                 (
                     f"**Busiest Month**: {month} — {count} visits",
-                    "The month of the year with the most visits (aggregated across all years).",
+                    "Most opera visits in within a calendar month.",
                 )
             )
 
@@ -419,8 +396,8 @@ def run_expanded_stats():
             if count > 1:
                 facts.append(
                     (
-                        f"**Most Seen Production**: {opera_name} ({truncate_composer_name(composer)}) by {production_name} ({identifying_person}) — {count} {pluralize(count, 'performance')}",
-                        "The specific production (Director/Conductor combination) you have seen the most times.",
+                        f"**Most-attended opera production**: {opera_name} ({truncate_composer_name(composer)}) by {production_name} ({identifying_person}) — {count} {pluralize(count, 'performance')}",
+                        "A single production is defined by its particular director.",
                     )
                 )
 
@@ -431,7 +408,7 @@ def run_expanded_stats():
         facts.append(
             (
                 f"**Opera with Most Productions**: {name} ({truncate_composer_name(composer)}) — {count} productions",
-                "The opera for which you have seen the most different productions.",
+                "The opera seen in most different productions. Productions in concert form are not included.)",
             )
         )
 
@@ -450,7 +427,7 @@ def run_expanded_stats():
             facts.append(
                 (
                     f"**The Chameleon**: {chameleon} — {len(roles)} different roles",
-                    "The artist who has performed the most unique roles.",
+                    "The artist seen in most different roles.",
                 )
             )
 
@@ -464,7 +441,7 @@ def run_expanded_stats():
         if len(venues) > 1:
             facts.append(
                 (
-                    f"**The Deja Vu**: {opera} ({truncate_composer_name(composer)}) — seen in {len(venues)} different venues",
+                    f"**The Deja Vu**: {opera} ({truncate_composer_name(composer)}) — {len(venues)} different venues",
                     "The opera seen in the most unique venues.",
                 )
             )
@@ -487,7 +464,7 @@ def run_expanded_stats():
         facts.append(
             (
                 f"**The Variety Spice**: {max_variety} consecutive performances without repeating an opera",
-                "The longest streak of consecutive performances without repeating an opera.",
+                "The longest streak of consecutive different operas.",
             )
         )
 
@@ -502,19 +479,6 @@ def run_expanded_stats():
                 "The single performance with the largest number of cast members listed.",
             )
         )
-
-    # The Double Dipper (Days with >1 performance)
-    dates = [p.date.earliest_date for p in performances if p.date]
-    if dates:
-        date_counts = Counter(dates)
-        double_dip_days = sum(1 for count in date_counts.values() if count > 1)
-        if double_dip_days > 0:
-            facts.append(
-                (
-                    f"**The Double Dipper**: {double_dip_days} days with multiple performances",
-                    "The number of days where you attended more than one performance.",
-                )
-            )
 
     # The Weekend Warrior (Performances on Sat/Sun)
     weekend_count = sum(1 for p in performances if p.date and p.date.earliest_date.weekday() >= 5)
@@ -538,19 +502,20 @@ def run_expanded_stats():
     if conductors:
         facts.append(
             (
-                f"**The Conductor Collector**: {len(conductors)} unique conductors seen",
-                "The total number of unique conductors you have seen.",
+                f"**The Conductor Collector**: {len(conductors)} conductors",
+                "The total number of conductors seen.",
             )
         )
 
     # The One-Night Stand (Operas seen exactly once)
+    opera_counts = Counter((p.name, p.composer) for p in performances)
     if performances:
         single_view_operas = sum(1 for count in opera_counts.values() if count == 1)
         if single_view_operas > 0:
             facts.append(
                 (
-                    f"**The One-Night Stand**: {single_view_operas} operas seen exactly once",
-                    "The number of operas you have seen exactly once.",
+                    f"**The One-Night Stand**: {single_view_operas} operas",
+                    "The number of operas you have seen only once.",
                 )
             )
 
