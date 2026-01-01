@@ -54,7 +54,12 @@ def add_split_earliest_date_to_db(db: DB_TYPE) -> Sequence[Mapping[str, Any]]:
 
 
 def format_column_name(column_name: str) -> str:
-    return column_name.replace("is_", "").replace("_", " ").title()
+    text = column_name.replace("is_", "").replace("_", " ").title()
+
+    if text == "Name":
+        return "Opera"
+
+    return text
 
 
 def create_frequency_chart(
