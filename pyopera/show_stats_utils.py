@@ -57,7 +57,7 @@ def format_column_name(column_name: str) -> str:
     text = column_name.replace("is_", "").replace("_", " ").title()
 
     if text == "Name":
-        return "Opera"
+        return "Opera Title"
 
     return text
 
