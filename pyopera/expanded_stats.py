@@ -397,7 +397,7 @@ def run_expanded_stats():
                 facts.append(
                     (
                         f"**Most-attended opera production**: {opera_name} ({truncate_composer_name(composer)}) by {production_name} ({identifying_person}) — {count} {pluralize(count, 'performance')}",
-                        "A single production is defined by its particular director.",
+                        "A single production is defined by its particular director or conductor (in concert form).",
                     )
                 )
 
@@ -408,7 +408,7 @@ def run_expanded_stats():
         facts.append(
             (
                 f"**Opera with Most Productions**: {name} ({truncate_composer_name(composer)}) — {count} productions",
-                "The opera seen in most different productions. Productions in concert form are not included.)",
+                "The opera seen in most different productions.",
             )
         )
 
