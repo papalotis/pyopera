@@ -2,9 +2,18 @@ import boto3
 import streamlit as st
 import os
 
+from streamlit.errors import StreamlitSecretNotFoundError
+
 def _load_secret(secret_name: str) -> str:
     """Load a secret from Streamlit secrets or environment variables."""
-    return st.secrets.get("aws", {}).get(secret_name) or os.getenv(secret_name)
+
+    try:
+        secret = st.secrets.get("aws", {}).get(secret_name)
+    except StreamlitSecretNotFoundError:
+        secret = os.getenv(secret_name)
+
+    return secret
+
 
 def create_dynamodb_resource():
     try:
