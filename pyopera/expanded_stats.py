@@ -288,7 +288,9 @@ def run_expanded_stats():
 
         if dated_performances:
             season_counts = Counter(get_season_label(p.date.earliest_date) for p in dated_performances)
-            season_start_years = sorted({int(season.split("/")[0]) for season in season_counts})
+            min_start_year = min(int(season.split("/")[0]) for season in season_counts)
+            max_start_year = max(int(season.split("/")[0]) for season in season_counts)
+            season_start_years = list(range(min_start_year, max_start_year + 1))
             seasons = [f"{year}/{str(year + 1)[-2:]}" for year in season_start_years]
             counts = [season_counts[season] for season in seasons]
 
@@ -391,7 +393,9 @@ def run_expanded_stats():
 
         if visit_seasons:
             season_counts = Counter(visit_seasons)
-            season_start_years = sorted({int(season.split("/")[0]) for season in season_counts})
+            min_start_year = min(int(season.split("/")[0]) for season in season_counts)
+            max_start_year = max(int(season.split("/")[0]) for season in season_counts)
+            season_start_years = list(range(min_start_year, max_start_year + 1))
             seasons = [f"{year}/{str(year + 1)[-2:]}" for year in season_start_years]
             counts = [season_counts[season] for season in seasons]
 
