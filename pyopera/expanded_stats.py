@@ -19,6 +19,10 @@ def run_expanded_stats():
     performances = load_db()
     venues_db = load_db_venues()
 
+    def get_season_label(dt: datetime) -> str:
+        start_year = dt.year if dt.month >= 9 else dt.year - 1
+        return f"{start_year}/{str(start_year + 1)[-2:]}"
+
     st.title("Opera Statistics Dashboard")
 
     st.subheader("Statistics Overview")
@@ -81,8 +85,11 @@ def run_expanded_stats():
         "Performances by Composer",
         "Performances by Venue",
         "Performances by Year",
+        "Performances by Season",
         "Visits by Venue",
         "Visits by Year",
+        "Visits by Season",
+        
     ]
 
     selected_graph = st.selectbox("Select graph to display:", graph_options)
@@ -275,6 +282,27 @@ def run_expanded_stats():
         else:
             st.warning("No performances with valid dates found.")
 
+    # Performances by Season
+    elif selected_graph == "Performances by Season":
+        dated_performances = [p for p in performances if p.date is not None]
+
+        if dated_performances:
+            season_counts = Counter(get_season_label(p.date.earliest_date) for p in dated_performances)
+            season_start_years = sorted({int(season.split("/")[0]) for season in season_counts})
+            seasons = [f"{year}/{str(year + 1)[-2:]}" for year in season_start_years]
+            counts = [season_counts[season] for season in seasons]
+
+            season_df = pd.DataFrame({"Season": seasons, "Performances": counts})
+
+            if show_as_table:
+                st.dataframe(season_df, use_container_width=True, hide_index=True)
+            else:
+                fig = px.bar(season_df, x="Season", y="Performances", text="Performances")
+                fig.update_traces(textposition="outside", cliponaxis=False)
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No performances with valid dates found.")
+
     # Visits by Venue
     elif selected_graph == "Visits by Venue":
         visit_stages = []
@@ -339,6 +367,40 @@ def run_expanded_stats():
                 st.dataframe(year_df, use_container_width=True, hide_index=True)
             else:
                 fig = px.bar(year_df, x="Year", y="Visits", text="Visits")
+                fig.update_traces(textposition="outside", cliponaxis=False)
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No visits with valid dates found.")
+
+    # Visits by Season
+    elif selected_graph == "Visits by Season":
+        visit_seasons = []
+        visits = defaultdict(list)
+
+        for p in performances:
+            if p.visit_index:
+                visits[p.visit_index].append(p)
+            elif p.date:
+                visit_seasons.append(get_season_label(p.date.earliest_date))
+
+        for visit_id, perfs in visits.items():
+            dated_perfs = [p for p in perfs if p.date]
+            if dated_perfs:
+                earliest_date = min(p.date.earliest_date for p in dated_perfs)
+                visit_seasons.append(get_season_label(earliest_date))
+
+        if visit_seasons:
+            season_counts = Counter(visit_seasons)
+            season_start_years = sorted({int(season.split("/")[0]) for season in season_counts})
+            seasons = [f"{year}/{str(year + 1)[-2:]}" for year in season_start_years]
+            counts = [season_counts[season] for season in seasons]
+
+            season_df = pd.DataFrame({"Season": seasons, "Visits": counts})
+
+            if show_as_table:
+                st.dataframe(season_df, use_container_width=True, hide_index=True)
+            else:
+                fig = px.bar(season_df, x="Season", y="Visits", text="Visits")
                 fig.update_traces(textposition="outside", cliponaxis=False)
                 st.plotly_chart(fig, use_container_width=True)
         else:
