@@ -24,7 +24,7 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-if __name__ == "__main__" and 11:
+if __name__ == "__main__":
     main()
 else:
     raise ValueError("This script should be run directly")
