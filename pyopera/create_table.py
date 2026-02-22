@@ -1,6 +1,10 @@
 import boto3
 import streamlit as st
+import os
 
+def _load_secret(secret_name: str) -> str:
+    """Load a secret from Streamlit secrets or environment variables."""
+    return st.secrets.get("aws", {}).get(secret_name) or os.getenv(secret_name)
 
 def create_dynamodb_resource():
     try:
@@ -10,9 +14,9 @@ def create_dynamodb_resource():
         st.exception(e)
 
     """Create a DynamoDB resource using credentials stored in Streamlit secrets."""
-    aws_access_key_id = st.secrets["aws"]["aws_access_key_id"]
-    aws_secret_access_key = st.secrets["aws"]["aws_secret_access_key"]
-    aws_region = st.secrets["aws"]["aws_region"]
+    aws_access_key_id = _load_secret("aws_access_key_id")
+    aws_secret_access_key = _load_secret("aws_secret_access_key")
+    aws_region = _load_secret("aws_region")
 
     session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
