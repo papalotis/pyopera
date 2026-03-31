@@ -28,12 +28,33 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    model_validator,
 )
 from unidecode import unidecode
 
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 NonEmptyStrList = Annotated[List[NonEmptyStr], Field(min_items=1)]
 SHA1Str = Annotated[str, StringConstraints(pattern=r"[0-9a-f]{40}")]
+
+
+def normalize_composers(raw_composers: Any) -> list[str]:
+    if raw_composers is None:
+        return []
+
+    if isinstance(raw_composers, str):
+        return [part.strip() for part in raw_composers.split(",") if part.strip() != ""]
+
+    if isinstance(raw_composers, (list, tuple, set)):
+        normalized: list[str] = []
+        for composer in raw_composers:
+            if not isinstance(composer, str):
+                raise TypeError(f"Each composer must be a string. Got {type(composer)}")
+
+            normalized.extend(part.strip() for part in composer.split(",") if part.strip() != "")
+
+        return normalized
+
+    raise TypeError(f"Composer must be a string or a sequence of strings. Got {type(raw_composers)}")
 
 
 def key_create_creator(key_creator: Callable[[], str]) -> Callable[[str | None], str]:
@@ -81,13 +102,23 @@ class Performance(BaseModel):
     leading_team: Mapping[NonEmptyStr, NonEmptyStrList]
     stage: NonEmptyStr
     production: NonEmptyStr
-    composer: NonEmptyStr
+    composers: Annotated[NonEmptyStrList, BeforeValidator(normalize_composers)]
     comments: str
     is_concertante: bool
     archived: bool = False
     key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
     day_index: Optional[int] = None
     visit_index: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_composer_field(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            data = dict(data)
+            if "composers" not in data and "composer" in data:
+                data["composers"] = data.pop("composer")
+
+        return data
 
     model_config = ConfigDict(
         validate_assignment=True,
@@ -98,13 +129,32 @@ class Performance(BaseModel):
     )
 
     @property
-    def production_key(self) -> tuple[str, str, str, str]:
+    def production_key(self) -> tuple[str, str, str, tuple[str, ...]]:
         identifying_person = self.production_identifying_person
         production = self.production
         name = self.name
-        composer = self.composer
+        composers = self.composers_key
 
-        return identifying_person, production, name, composer
+        return identifying_person, production, name, composers
+
+    @property
+    def composers_key(self) -> tuple[str, ...]:
+        return tuple(self.composers)
+
+    @property
+    def has_single_composer(self) -> bool:
+        return len(self.composers) == 1
+
+    @property
+    def composer(self) -> str:
+        if self.has_single_composer:
+            return self.composers[0]
+
+        raise ValueError(f"Expected exactly one composer, got {len(self.composers)} for '{self.name}'")
+
+    @property
+    def composers_display(self) -> str:
+        return ", ".join(self.composers)
 
     @property
     def production_identifying_person(self) -> str:
@@ -149,8 +199,7 @@ def get_all_names_from_performance(performance: Performance) -> set[str]:
         )
     )
 
-    if performance.composer != "":
-        return_set.add(performance.composer)
+    return_set.update(performance.composers)
 
     return return_set
 
@@ -189,6 +238,16 @@ def group_performances_by_visit(performances: Sequence[Performance]) -> dict[str
             # Use the performance key as the visit ID for standalone performances
             visits[p.key].append(p)
     return dict(visits)
+
+
+def visit_has_single_composer(performances: Sequence[Performance]) -> bool:
+    if len(performances) == 0:
+        return False
+
+    if not all(performance.has_single_composer for performance in performances):
+        return False
+
+    return len({performance.composer for performance in performances}) == 1
 
 
 def pluralize(count: int, singular: str, plural: str | None = None) -> str:

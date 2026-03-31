@@ -9,7 +9,7 @@ import reverse_geocoder as rg
 import streamlit as st
 from unidecode import unidecode
 
-from pyopera.common import Performance, get_top_streaks, group_performances_by_visit, pluralize
+from pyopera.common import Performance, get_top_streaks, group_performances_by_visit, pluralize, visit_has_single_composer
 from pyopera.show_maps import run_maps
 from pyopera.show_stats_utils import convert_alpha2_to_alpha3, truncate_composer_name
 from pyopera.streamlit_common import load_db, load_db_venues
@@ -17,6 +17,12 @@ from pyopera.streamlit_common import load_db, load_db_venues
 
 def run_expanded_stats():
     performances = load_db()
+    composer_stats_performances = [
+        performance
+        for visit in group_performances_by_visit(performances).values()
+        if visit_has_single_composer(visit)
+        for performance in visit
+    ]
     venues_db = load_db_venues()
 
     def get_season_label(dt: datetime) -> str:
@@ -32,13 +38,13 @@ def run_expanded_stats():
 
     # Calculate productions
     opera_productions = defaultdict(set)
-    for p in performances:
+    for p in composer_stats_performances:
         if p.production_key:
             opera_productions[(p.name, p.composer)].add(p.production_key)
     total_unique_productions = sum(len(productions) for productions in opera_productions.values())
 
     # Calculate unique operas
-    unique_operas = len({(p.name, p.composer) for p in performances})
+    unique_operas = len({(p.name, p.composer) for p in composer_stats_performances})
 
     # Calculate concertante performances
     concertante_count = sum(1 for p in performances if p.is_concertante)
@@ -70,7 +76,7 @@ def run_expanded_stats():
     with col1:
         small_metric("Productions", total_unique_productions)
     with col2:
-        small_metric("Composers", len(set(p.composer for p in performances)))
+        small_metric("Composers", len(set(p.composer for p in composer_stats_performances)))
     with col3:
         small_metric("Venues", len(set(p.stage for p in performances)))
 
@@ -104,7 +110,7 @@ def run_expanded_stats():
     # Operas by Composer
     if selected_graph == "Operas by Composer":
         composer_operas = {}
-        for p in performances:
+        for p in composer_stats_performances:
             composer = p.composer
             opera = (p.name, p.composer)
             if composer not in composer_operas:
@@ -138,7 +144,7 @@ def run_expanded_stats():
 
     # Performances by Opera
     elif selected_graph == "Performances by Opera":
-        opera_performance_counts = Counter((p.name, p.composer) for p in performances)
+        opera_performance_counts = Counter((p.name, p.composer) for p in composer_stats_performances)
         opera_perf_data = [
             (f"{name} ({truncate_composer_name(composer)})", count)
             for (name, composer), count in opera_performance_counts.most_common()
@@ -204,7 +210,7 @@ def run_expanded_stats():
 
     # Performances by Composer
     elif selected_graph == "Performances by Composer":
-        composer_perf_counts = Counter(p.composer for p in performances)
+        composer_perf_counts = Counter(p.composer for p in composer_stats_performances)
         composer_perf_data = composer_perf_counts.most_common()
 
         composer_perf_to_show = composer_perf_data if show_all else composer_perf_data[:20]
@@ -456,13 +462,13 @@ def run_expanded_stats():
             )
 
         # Most Seen Production
-        production_counts = Counter(p.production_key for p in performances if p.production_key)
+        production_counts = Counter(p.production_key for p in composer_stats_performances if p.production_key)
         if production_counts:
-            (identifying_person, production_name, opera_name, composer), count = production_counts.most_common(1)[0]
+            (identifying_person, production_name, opera_name, composers_key), count = production_counts.most_common(1)[0]
             if count > 1:
                 facts.append(
                     (
-                        f"**Most-attended opera production**: {opera_name} ({truncate_composer_name(composer)}) by {production_name} ({identifying_person}) — {count} {pluralize(count, 'performance')}",
+                        f"**Most-attended opera production**: {opera_name} ({truncate_composer_name(composers_key)}) by {production_name} ({identifying_person}) — {count} {pluralize(count, 'performance')}",
                         "A single production is defined by its particular director or conductor (in concert form).",
                     )
                 )
@@ -499,7 +505,7 @@ def run_expanded_stats():
 
     # The Deja Vu (Opera seen in most unique venues)
     opera_venues = defaultdict(set)
-    for p in performances:
+    for p in composer_stats_performances:
         opera_venues[(p.name, p.composer)].add(p.stage)
 
     if opera_venues:
@@ -513,7 +519,7 @@ def run_expanded_stats():
             )
 
     # The Variety Spice (Longest streak of different operas)
-    sorted_perfs = sorted([p for p in performances if p.date], key=lambda x: x.date.earliest_date)
+    sorted_perfs = sorted([p for p in composer_stats_performances if p.date], key=lambda x: x.date.earliest_date)
     max_variety = 0
     current_variety = []
 
@@ -541,7 +547,7 @@ def run_expanded_stats():
         cast_size = sum(len(artists) for artists in cast_hog.cast.values())
         facts.append(
             (
-                f"**The Cast Hog**: {cast_hog.name} ({truncate_composer_name(cast_hog.composer)}) — {cast_size} cast members",
+                f"**The Cast Hog**: {cast_hog.name} ({truncate_composer_name(cast_hog.composers)}) — {cast_size} cast members",
                 "The single performance with the largest number of cast members listed.",
             )
         )
@@ -574,7 +580,7 @@ def run_expanded_stats():
         )
 
     # The One-Night Stand (Operas seen exactly once)
-    opera_counts = Counter((p.name, p.composer) for p in performances)
+    opera_counts = Counter((p.name, p.composer) for p in composer_stats_performances)
     if performances:
         single_view_operas = sum(1 for count in opera_counts.values() if count == 1)
         if single_view_operas > 0:

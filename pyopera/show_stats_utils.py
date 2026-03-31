@@ -15,9 +15,24 @@ import streamlit as st
 from pyopera.common import DB_TYPE, is_exact_date
 
 
-def truncate_composer_name(composer: str) -> str:
-    parts = composer.split()
-    return " ".join([part[0] + "." for part in parts[:-1]] + [parts[-1]])
+def truncate_composer_name(composer: str | Sequence[str]) -> str:
+    if isinstance(composer, str):
+        composer_items = [composer]
+    else:
+        composer_items = [item for item in composer if isinstance(item, str)]
+
+    truncated_items = []
+    for composer_item in composer_items:
+        parts = [part for part in composer_item.split() if part != ""]
+        if len(parts) == 0:
+            continue
+        if len(parts) == 1:
+            truncated_items.append(parts[0])
+            continue
+
+        truncated_items.append(" ".join([part[0] + "." for part in parts[:-1]] + [parts[-1]]))
+
+    return ", ".join(truncated_items)
 
 
 def key_sort_opus_by_name_and_composer(

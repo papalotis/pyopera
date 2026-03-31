@@ -11,6 +11,7 @@ from pyopera.common import (
     Performance,
     is_exact_date,
     is_performance_instance,
+    normalize_composers,
 )
 from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
@@ -107,7 +108,9 @@ def run() -> None:
     default_name = entry_to_update.get("name", "")
     default_production = entry_to_update.get("production", "")
     default_stage = entry_to_update.get("stage", "")
-    default_composer = entry_to_update.get("composer", "")
+    default_composer = ", ".join(
+        normalize_composers(entry_to_update.get("composers", entry_to_update.get("composer", "")))
+    )
     default_comments = entry_to_update.get("comments", "")
     default_concertant = entry_to_update.get("is_concertante", False)
 
@@ -180,7 +183,9 @@ def run() -> None:
             stage = st.text_input(label="Stage", value=default_stage)
 
         with col3:
-            composer = st.text_input(label="Composer", value=default_composer)
+            composer_input = st.text_input(label="Composer(s)", value=default_composer)
+
+        composers = normalize_composers(composer_input)
 
         with col4:
             concertante = st.checkbox(label="Concertante", value=default_concertant)
@@ -257,7 +262,7 @@ def run() -> None:
 
         col1, col2 = st.columns([1, 1])
         with col1:
-            relevant_works = [entry for entry in db if entry.name == name and entry.composer == composer]
+            relevant_works = [entry for entry in db if entry.name == name and entry.composers_key == tuple(composers)]
             relevant_roles = set(
                 chain.from_iterable(entry.cast if add_to_cast else entry.leading_team for entry in relevant_works)
             )
@@ -368,7 +373,7 @@ def run() -> None:
                 date_range,
                 production,
                 stage,
-                composer,
+                composer_input,
                 concertante,
                 comments,
                 day_index,
@@ -426,7 +431,7 @@ def do_submission(
     date_range: Optional[ApproxDate],
     production,
     stage,
-    composer,
+    composer_input,
     concertante,
     comments,
     day_index,
@@ -452,7 +457,8 @@ def do_submission(
     if stage == "":
         number_of_form_errors += 1
         st.error("Stage field is empty")
-    if composer == "":
+    composers = normalize_composers(composer_input)
+    if len(composers) == 0:
         number_of_form_errors += 1
         st.error("Composer field is empty")
 
@@ -468,7 +474,7 @@ def do_submission(
             name=name,
             date=date_range,
             production=production,
-            composer=composer,
+            composers=composers,
             stage=stage,
             comments=comments,
             is_concertante=concertante,

@@ -11,10 +11,11 @@ from more_itertools.recipes import flatten
 
 from pyopera.common import (
     get_all_names_from_performance,
+    group_performances_by_visit,
+    visit_has_single_composer,
 )
 from pyopera.show_overview import create_performances_markdown_string
 from pyopera.show_stats_utils import (
-    add_split_earliest_date_to_db,
     create_frequency_chart,
     format_column_name,
     key_sort_opus_by_name_and_composer,
@@ -35,6 +36,12 @@ def run_query_and_analytics():
 
     month_to_month_name = {i: calendar.month_abbr[i] for i in range(1, 13)}
     db = load_db()
+    composer_stats_eligible_keys = {
+        performance.key
+        for visit in group_performances_by_visit(db).values()
+        if visit_has_single_composer(visit)
+        for performance in visit
+    }
 
     # === FILTERING SECTION ===
     with st.expander("Filter Performances", expanded=False):
@@ -43,7 +50,13 @@ def run_query_and_analytics():
             {person for performance in db for person in flatten(performance.leading_team.values())}
         )
         all_venues = sorted({performance.stage for performance in db if performance.stage is not None})
-        all_composers = sorted({performance.composer for performance in db if performance.composer is not None})
+        all_composers = sorted(
+            {
+                performance.composer
+                for performance in db
+                if performance.has_single_composer and performance.key in composer_stats_eligible_keys
+            }
+        )
 
         st.markdown("#### Cast & Team")
 
@@ -81,7 +94,15 @@ def run_query_and_analytics():
             {
                 performance.name
                 for performance in db
-                if performance.name is not None and (len(composers) == 0 or performance.composer in composers)
+                if performance.name is not None
+                and (
+                    len(composers) == 0
+                    or (
+                        performance.has_single_composer
+                        and performance.key in composer_stats_eligible_keys
+                        and performance.composer in composers
+                    )
+                )
             }
         )
         opera_names = st.multiselect("Select Opera", all_operas)
@@ -113,7 +134,14 @@ def run_query_and_analytics():
                 )
             )
             and (len(venues) == 0 or performance.stage in venues)
-            and (len(composers) == 0 or performance.composer in composers)
+            and (
+                len(composers) == 0
+                or (
+                    performance.has_single_composer
+                    and performance.key in composer_stats_eligible_keys
+                    and performance.composer in composers
+                )
+            )
             and (len(opera_names) == 0 or performance.name in opera_names)
             and (
                 concertant_mode == "ALL"
@@ -136,12 +164,16 @@ def run_query_and_analytics():
     col1, col2, col3 = st.columns([2, 1, 1])
 
     with col1:
+        scalar_group_columns = [
+            column
+            for column in db[0].model_dump().keys()
+            if isinstance(getattr(db[0], column), (str, int)) and column not in ("comments", "key")
+        ]
+        options_for_grouping = [*scalar_group_columns, "composer"]
+
         options = st.multiselect(
             "Group by",
-            filter(
-                lambda el: isinstance(getattr(db[0], el), (str, int)) and el not in ("comments", "key"),
-                db[0].model_dump().keys(),
-            ),
+            options_for_grouping,
             default=["name", "composer"],
             format_func=format_column_name,
             help="Select the columns to group by for frequency analysis. You can select multiple columns.",
@@ -159,21 +191,46 @@ def run_query_and_analytics():
     # Generate frequency chart for filtered data
     if len(options) > 0:
         # Prepare data for frequency analysis
-        if any(option in ("day", "month", "year") for option in options):
-            analysis_db = add_split_earliest_date_to_db(filtered_performances)
-        else:
-            analysis_db = [entry.model_dump() for entry in filtered_performances]
+        split_date = any(option in ("day", "month", "year") for option in options)
+        include_composer = "composer" in options
 
-        create_frequency_chart(
-            analysis_db,
-            options,
-            number_to_show,
-            column_mapper={
-                "month": month_to_month_name.get,
-                "composer": truncate_composer_name,
-                "date": lambda el: ".".join(el.split("T")[0].split("-")[::-1]),
-            },
-        )
+        analysis_db = []
+        for entry in filtered_performances:
+            if split_date and entry.date is None:
+                continue
+
+            if include_composer and not entry.has_single_composer:
+                continue
+
+            if include_composer and entry.key not in composer_stats_eligible_keys:
+                continue
+
+            row = entry.model_dump()
+            if split_date:
+                row.update(
+                    day=entry.date.earliest_date.day,
+                    month=entry.date.earliest_date.month,
+                    year=entry.date.earliest_date.year,
+                )
+
+            if include_composer:
+                row["composer"] = entry.composer
+
+            analysis_db.append(row)
+
+        if len(analysis_db) == 0:
+            st.info("No entries match the selected grouping options.")
+        else:
+            create_frequency_chart(
+                analysis_db,
+                options,
+                number_to_show,
+                column_mapper={
+                    "month": month_to_month_name.get,
+                    "composer": truncate_composer_name,
+                    "date": lambda el: ".".join(el.split("T")[0].split("-")[::-1]),
+                },
+            )
     else:
         st.info("Select categories above to see frequency analysis")
 
@@ -190,10 +247,26 @@ def run_query_and_analytics():
 
 def run_single_opus():
     venues_db = load_db_venues()
+    loaded_db = load_db()
+    composer_stats_eligible_keys = {
+        performance.key
+        for visit in group_performances_by_visit(loaded_db).values()
+        if visit_has_single_composer(visit)
+        for performance in visit
+    }
+    db = [
+        performance
+        for performance in loaded_db
+        if performance.has_single_composer and performance.key in composer_stats_eligible_keys
+    ]
+
+    if len(db) == 0:
+        st.warning("No single-composer performances available.")
+        return
 
     with st.sidebar:
         all_opus = sorted(
-            {(performance.name, performance.composer) for performance in load_db()},
+            {(performance.name, performance.composer) for performance in db},
             key=key_sort_opus_by_name_and_composer,
         )
 
@@ -205,9 +278,7 @@ def run_single_opus():
 
     st.title(name)
     st.markdown(f"#### {composer}")
-    all_entries_of_opus = [
-        performance for performance in load_db() if performance.name == name and performance.composer == composer
-    ]
+    all_entries_of_opus = [performance for performance in db if performance.name == name and performance.composer == composer]
 
     for entry in all_entries_of_opus:
         date_string = "" if entry.date is None else f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} "
@@ -238,19 +309,35 @@ def run_single_person():
                 entry.name,
             ]
         )
-        if person == entry.composer and len(roles) == 0:
+        if person in entry.composers and len(roles) == 0:
             pass
         else:
-            to_join.extend([entry.composer, ", ".join(roles)])
+            to_join.extend([entry.composers_display, ", ".join(roles)])
         st.markdown("- " + " - ".join(to_join))
 
 
 def run_single_role():
     venues_db = load_db_venues()
+    loaded_db = load_db()
+    composer_stats_eligible_keys = {
+        performance.key
+        for visit in group_performances_by_visit(loaded_db).values()
+        if visit_has_single_composer(visit)
+        for performance in visit
+    }
+    db = [
+        performance
+        for performance in loaded_db
+        if performance.has_single_composer and performance.key in composer_stats_eligible_keys
+    ]
+
+    if len(db) == 0:
+        st.warning("No single-composer performances available.")
+        return
 
     with st.sidebar:
         all_opus = sorted(
-            {(performance.name, performance.composer) for performance in load_db()},
+            {(performance.name, performance.composer) for performance in db},
             key=key_sort_opus_by_name_and_composer,
         )
 
@@ -261,7 +348,7 @@ def run_single_role():
         )
 
         roles = sorted(
-            {role for entry in load_db() for role in entry.cast if entry.name == name and entry.composer == composer}
+            {role for entry in db for role in entry.cast if entry.name == name and entry.composer == composer}
         )
 
         roles_matched: DefaultDict[str, MutableSequence[str]] = defaultdict(list)
@@ -287,7 +374,7 @@ def run_single_role():
         st.subheader(format_func(role))
         all_entries_of_opus = [
             performance
-            for performance in load_db()
+            for performance in db
             if performance.name == name and performance.composer == composer
             # and set(roles_matched[role]).intersection(performance.cast) != set()
         ]

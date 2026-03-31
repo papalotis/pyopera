@@ -97,7 +97,7 @@ def run():
         else ""
     )
     st.markdown(
-        f"##### **{performance.composer}**\n### {performance.name}\n{date_str}\n\n{stage_name_to_show}"
+        f"##### **{performance.composers_display}**\n### {performance.name}\n{date_str}\n\n{stage_name_to_show}"
     )
 
     def hightlight_person_if_selected(person: str) -> str:

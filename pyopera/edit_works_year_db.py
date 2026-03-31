@@ -20,6 +20,9 @@ def extract_all_existing_composers_and_titles() -> dict:
     composer_to_titles = {}
 
     for performance in db:
+        if not performance.has_single_composer:
+            continue
+
         composer = performance.composer
         title = performance.name
 
@@ -63,17 +66,22 @@ def run() -> None:
 
     title_markdown = st.empty()
 
-    existing_composer = st.toggle("Existing composer")
+    existing_composer = st.toggle("Registered composer")
+    available_composers = sorted(composer_to_titles.keys())
 
-    if existing_composer:
-        composer = st.selectbox("Composer", sorted(composer_to_titles.keys()))
+    if existing_composer and len(available_composers) > 0:
+        composer = st.selectbox("Composer", available_composers)
         possible_titles = composer_to_titles[composer]
+    elif existing_composer:
+        st.info("No single-composer works are available for selection.")
+        composer = ""
+        possible_titles = []
     else:
         composer = st.text_input("Composer")
         possible_titles = []
 
     toggle_default_existing_title = len(possible_titles) > 0
-    existing_title = st.toggle("Existing title", value=toggle_default_existing_title)
+    existing_title = st.toggle("Registered title", value=toggle_default_existing_title)
 
     if existing_title:
         title = st.selectbox(

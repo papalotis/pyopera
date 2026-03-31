@@ -24,6 +24,9 @@ def group_works_by_composer_and_name(
     groups = defaultdict(list)
 
     for performance in db:
+        if not performance.has_single_composer:
+            continue
+
         composer = performance.composer
         name = performance.name
         groups[(composer, name)].append(performance)
@@ -38,6 +41,9 @@ def map_composer_to_names(db: DB_TYPE) -> Dict[str, Set[str]]:
     composer_to_titles = defaultdict(set)
 
     for performance in db:
+        if not performance.has_single_composer:
+            continue
+
         composer = performance.composer
         name = performance.name
         composer_to_titles[composer].add(name)
@@ -86,36 +92,76 @@ def run_operas() -> None:
 def create_markdown_string(db, title_and_composer_to_dates):
     groups = group_works_by_composer_and_name(db)
     composer_to_titles = map_composer_to_names(db)
+    multi_composer_groups: dict[tuple[str, str], list[Performance]] = defaultdict(list)
+    multi_composer_to_titles: dict[str, set[str]] = defaultdict(set)
+
+    for performance in db:
+        if performance.has_single_composer:
+            continue
+
+        composers_display = performance.composers_display
+        title = performance.name
+        multi_composer_groups[(composers_display, title)].append(performance)
+        multi_composer_to_titles[composers_display].add(title)
 
     markdown_text = []
 
     markdown_text.append("# Operas")
 
-    for composer in sorted(composer_to_titles.keys(), key=lambda composer: composer.split(" ")[-1]):
-        markdown_text.append(f"#### {remove_greek_diacritics(composer).upper()}")
+    if len(composer_to_titles) == 0:
+        markdown_text.append("No single-composer works available.")
+    else:
+        for composer in sorted(composer_to_titles.keys(), key=lambda composer: composer.split(" ")[-1]):
+            markdown_text.append(f"#### {remove_greek_diacritics(composer).upper()}")
 
-        for title in sorted(
-            composer_to_titles[composer],
-            key=lambda title: get_year(title, composer, title_and_composer_to_dates),
+            for title in sorted(
+                composer_to_titles[composer],
+                key=lambda title: get_year(title, composer, title_and_composer_to_dates),
+            ):
+                year = get_year(title, composer, title_and_composer_to_dates)
+                visits = groups[composer, title]
+
+                stages_and_production_ids = Counter(
+                    (performance.stage, performance.production_key) for performance in visits
+                )
+
+                stages_strings = []
+                for (stage, _), count in stages_and_production_ids.most_common():
+                    stages_strings.append(f"{stage} ({count})")
+
+                stages_string = ", ".join(stages_strings)
+
+                markdown_text.append(
+                    f"##### {title} ({year})<br><sub>{stages_string}</sub>",
+                )
+
+            markdown_text.append("---")
+
+    if len(multi_composer_to_titles) > 0:
+      
+        for composers_display in sorted(
+            multi_composer_to_titles.keys(),
+            key=lambda composer: composer.split(" ")[-1],
         ):
-            year = get_year(title, composer, title_and_composer_to_dates)
-            visits = groups[composer, title]
+            markdown_text.append(f"#### {remove_greek_diacritics(composers_display).upper()}")
 
-            stages_and_production_ids = Counter(
-                (performance.stage, performance.production_key) for performance in visits
-            )
+            for title in sorted(multi_composer_to_titles[composers_display]):
+                visits = multi_composer_groups[(composers_display, title)]
+                stages_and_production_ids = Counter(
+                    (performance.stage, performance.production_key) for performance in visits
+                )
 
-            stages_strings = []
-            for (stage, _), count in stages_and_production_ids.most_common():
-                stages_strings.append(f"{stage} ({count})")
+                stages_strings = []
+                for (stage, _), count in stages_and_production_ids.most_common():
+                    stages_strings.append(f"{stage} ({count})")
 
-            stages_string = ", ".join(stages_strings)
+                stages_string = ", ".join(stages_strings)
 
-            markdown_text.append(
-                f"##### {title} ({year})<br><sub>{stages_string}</sub>",
-            )
+                markdown_text.append(
+                    f"##### {title}<br><sub>{stages_string}</sub>",
+                )
 
-        markdown_text.append("---")
+            markdown_text.append("---")
 
     final_markdown = "\n".join(markdown_text)
 
@@ -145,7 +191,7 @@ def create_performances_markdown_string(
     for entry in db:
         stage = venues_db.get(entry.stage, entry.stage)
 
-        base_string = f"{stage} - {entry.composer} - {entry.name}\n"
+        base_string = f"{stage} - {entry.composers_display} - {entry.name}\n"
         if entry.date is not None:
             date = format_iso_date_to_day_month_year_with_dots(entry.date)
             base_string = f"{date} - {base_string}"
@@ -164,7 +210,7 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
     markdown_text.append("# Productions")
 
     # group by production id
-    production_id_to_performances: defaultdict[tuple[str, str, str, str], list[Performance]] = defaultdict(list)
+    production_id_to_performances: defaultdict[tuple[str, str, str, tuple[str, ...]], list[Performance]] = defaultdict(list)
     for performance in db:
         production_id_to_performances[performance.production_key].append(performance)
 
@@ -174,7 +220,7 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
         production_id_to_performances.items(),
         key=lambda production_id_performances: (
             production_id_performances[1][0].production,
-            production_id_performances[1][0].composer,
+            production_id_performances[1][0].composers_display,
         ),
     ):
         first_performance = performances[0]
@@ -185,7 +231,7 @@ def create_productions_markdown_string(db: Sequence[Performance]) -> str:
             markdown_text.append(f"### {first_performance.production}")
             last_production_str = first_performance.production
 
-        markdown_text.append(f"###### {first_performance.composer} - {first_performance.name}\n")
+        markdown_text.append(f"###### {first_performance.composers_display} - {first_performance.name}\n")
 
         markdown_text.append(
             ", ".join([format_iso_date_to_day_month_year_with_dots(performance.date) for performance in performances])
