@@ -52,7 +52,7 @@ def run():
     venues_db_list = load_db_venues(list_of_entries=True)
     assert isinstance(venues_db_list, list)
 
-    if len(venues_db_list) > 0 and st.toggle("Registered Venue"):
+    if len(venues_db_list) > 0 and st.toggle("Registered Venue "):
         venue = st.selectbox(
             "Venue Short Name",
             sorted(venues_db_list, key=lambda x: x.short_name),
