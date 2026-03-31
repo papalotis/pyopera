@@ -1,7 +1,7 @@
 import streamlit as st
 from pydantic import ValidationError
 
-from pyopera.common import WorkYearEntryModel
+from pyopera.common import WorkYearEntryModel, normalize_composers
 from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
     load_db,
@@ -14,16 +14,17 @@ except ImportError:
     ic = lambda *args: None
 
 
+def normalize_composer_key(raw_value: str) -> str:
+    return ", ".join(normalize_composers(raw_value))
+
+
 def extract_all_existing_composers_and_titles() -> dict:
     db = load_db()
 
     composer_to_titles = {}
 
     for performance in db:
-        if not performance.has_single_composer:
-            continue
-
-        composer = performance.composer
+        composer = performance.composers_display
         title = performance.name
 
         if composer not in composer_to_titles:
@@ -42,6 +43,8 @@ def delete_from_db(to_delete: str) -> None:
 
 def upload_to_db(**kwargs) -> None:
     try:
+        kwargs["composer"] = normalize_composer_key(kwargs.get("composer", ""))
+
         if kwargs["key"] is None:
             del kwargs["key"]
 
@@ -73,12 +76,13 @@ def run() -> None:
         composer = st.selectbox("Composer", available_composers)
         possible_titles = composer_to_titles[composer]
     elif existing_composer:
-        st.info("No single-composer works are available for selection.")
+        st.info("No works are available for selection.")
         composer = ""
         possible_titles = []
     else:
-        composer = st.text_input("Composer")
-        possible_titles = []
+        composer_input = st.text_input("Composer(s)")
+        composer = normalize_composer_key(composer_input)
+        possible_titles = composer_to_titles.get(composer, set())
 
     toggle_default_existing_title = len(possible_titles) > 0
     existing_title = st.toggle("Registered title", value=toggle_default_existing_title)
