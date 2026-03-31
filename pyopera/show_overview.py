@@ -146,6 +146,7 @@ def create_markdown_string(db, title_and_composer_to_dates):
             markdown_text.append(f"#### {remove_greek_diacritics(composers_display).upper()}")
 
             for title in sorted(multi_composer_to_titles[composers_display]):
+                year = get_year(title, composers_display, title_and_composer_to_dates)
                 visits = multi_composer_groups[(composers_display, title)]
                 stages_and_production_ids = Counter(
                     (performance.stage, performance.production_key) for performance in visits
@@ -158,7 +159,7 @@ def create_markdown_string(db, title_and_composer_to_dates):
                 stages_string = ", ".join(stages_strings)
 
                 markdown_text.append(
-                    f"##### {title}<br><sub>{stages_string}</sub>",
+                    f"##### {title} ({year})<br><sub>{stages_string}</sub>",
                 )
 
             markdown_text.append("---")
