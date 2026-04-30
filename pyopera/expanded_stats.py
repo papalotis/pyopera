@@ -88,9 +88,12 @@ def run_expanded_stats():
     with col1:
         small_metric("Productions", total_unique_productions)
     with col2:
+        all_composers_set = set(
+            composer for composer in p.composers for p in composer_stats_performances
+        )
         small_metric(
             "Composers",
-            len(set(p.composers_tuple for p in composer_stats_performances)),
+            len(all_composers_set),
         )
     with col3:
         small_metric("Venues", len(set(p.stage for p in performances)))
