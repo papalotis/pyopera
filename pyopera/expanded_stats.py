@@ -89,7 +89,7 @@ def run_expanded_stats():
         small_metric("Productions", total_unique_productions)
     with col2:
         all_composers_set = set(
-            composer for composer in p.composers for p in composer_stats_performances
+            composer for p in composer_stats_performances for composer in p.composers
         )
         small_metric(
             "Composers",
