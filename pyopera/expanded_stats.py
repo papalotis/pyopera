@@ -45,13 +45,15 @@ def run_expanded_stats():
     opera_productions = defaultdict(set)
     for p in composer_stats_performances:
         if p.production_key:
-            opera_productions[(p.name, p.composer)].add(p.production_key)
+            opera_productions[(p.name, p.composers_tuple)].add(p.production_key)
     total_unique_productions = sum(
         len(productions) for productions in opera_productions.values()
     )
 
     # Calculate unique operas
-    unique_operas = len({(p.name, p.composer) for p in composer_stats_performances})
+    unique_operas = len(
+        {(p.name, p.composers_tuple) for p in composer_stats_performances}
+    )
 
     # Calculate concertante performances
     concertante_count = sum(1 for p in performances if p.is_concertante)
@@ -87,7 +89,8 @@ def run_expanded_stats():
         small_metric("Productions", total_unique_productions)
     with col2:
         small_metric(
-            "Composers", len(set(p.composer for p in composer_stats_performances))
+            "Composers",
+            len(set(p.composers_tuple for p in composer_stats_performances)),
         )
     with col3:
         small_metric("Venues", len(set(p.stage for p in performances)))
@@ -122,8 +125,8 @@ def run_expanded_stats():
     if selected_graph == "Operas by Composer":
         composer_operas = {}
         for p in composer_stats_performances:
-            composer = p.composer
-            opera = (p.name, p.composer)
+            composer = p.composers_tuple
+            opera = (p.name, p.composers_tuple)
             if composer not in composer_operas:
                 composer_operas[composer] = set()
             composer_operas[composer].add(opera)
@@ -137,7 +140,7 @@ def run_expanded_stats():
 
         composer_opera_df = pd.DataFrame(
             {
-                "Composer": [comp for comp, _ in data_to_show],
+                "Composer": [truncate_composer_name(comp) for comp, _ in data_to_show],
                 "Operas": [count for _, count in data_to_show],
             }
         )
@@ -161,7 +164,7 @@ def run_expanded_stats():
     # Performances by Opera
     elif selected_graph == "Performances by Opera":
         opera_performance_counts = Counter(
-            (p.name, p.composer) for p in composer_stats_performances
+            (p.name, p.composers_tuple) for p in composer_stats_performances
         )
         opera_perf_data = [
             (f"{name} ({truncate_composer_name(composer)})", count)
@@ -230,7 +233,9 @@ def run_expanded_stats():
 
     # Performances by Composer
     elif selected_graph == "Performances by Composer":
-        composer_perf_counts = Counter(p.composer for p in composer_stats_performances)
+        composer_perf_counts = Counter(
+            p.composers_tuple for p in composer_stats_performances
+        )
         composer_perf_data = composer_perf_counts.most_common()
 
         composer_perf_to_show = (
@@ -239,7 +244,9 @@ def run_expanded_stats():
 
         composer_perf_df = pd.DataFrame(
             {
-                "Composer": [comp for comp, _ in composer_perf_to_show],
+                "Composer": [
+                    truncate_composer_name(comp) for comp, _ in composer_perf_to_show
+                ],
                 "Performances": [count for _, count in composer_perf_to_show],
             }
         )
@@ -560,7 +567,7 @@ def run_expanded_stats():
     # The Deja Vu (Opera seen in most unique venues)
     opera_venues = defaultdict(set)
     for p in composer_stats_performances:
-        opera_venues[(p.name, p.composer)].add(p.stage)
+        opera_venues[(p.name, p.composers_tuple)].add(p.stage)
 
     if opera_venues:
         (opera, composer), venues = max(opera_venues.items(), key=lambda x: len(x[1]))
@@ -581,7 +588,7 @@ def run_expanded_stats():
     current_variety = []
 
     for p in sorted_perfs:
-        opera_id = (p.name, p.composer)
+        opera_id = (p.name, p.composers_tuple)
         if opera_id in current_variety:
             # Streak broken, remove everything up to and including the first occurrence
             idx = current_variety.index(opera_id)
@@ -641,7 +648,9 @@ def run_expanded_stats():
         )
 
     # The One-Night Stand (Operas seen exactly once)
-    opera_counts = Counter((p.name, p.composer) for p in composer_stats_performances)
+    opera_counts = Counter(
+        (p.name, p.composers_tuple) for p in composer_stats_performances
+    )
     if performances:
         single_view_operas = sum(1 for count in opera_counts.values() if count == 1)
         if single_view_operas > 0:

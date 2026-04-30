@@ -50,11 +50,15 @@ def normalize_composers(raw_composers: Any) -> list[str]:
             if not isinstance(composer, str):
                 raise TypeError(f"Each composer must be a string. Got {type(composer)}")
 
-            normalized.extend(part.strip() for part in composer.split(",") if part.strip() != "")
+            normalized.extend(
+                part.strip() for part in composer.split(",") if part.strip() != ""
+            )
 
         return normalized
 
-    raise TypeError(f"Composer must be a string or a sequence of strings. Got {type(raw_composers)}")
+    raise TypeError(
+        f"Composer must be a string or a sequence of strings. Got {type(raw_composers)}"
+    )
 
 
 def key_create_creator(key_creator: Callable[[], str]) -> Callable[[str | None], str]:
@@ -91,7 +95,9 @@ class ApproxDate(BaseModel):
         return self.earliest_date < other.earliest_date
 
 
-PerformanceKey = Annotated[SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))]
+PerformanceKey = Annotated[
+    SHA1Str, AfterValidator(key_create_creator(create_key_for_visited_performance_v3))
+]
 DetaKey = Annotated[str, AfterValidator(key_create_creator(create_deta_style_key))]
 
 
@@ -150,7 +156,13 @@ class Performance(BaseModel):
         if self.has_single_composer:
             return self.composers[0]
 
-        raise ValueError(f"Expected exactly one composer, got {len(self.composers)} for '{self.name}'")
+        raise ValueError(
+            f"Expected exactly one composer, got {len(self.composers)} for '{self.name}'"
+        )
+
+    @property
+    def composers_tuple(self) -> tuple[str, ...]:
+        return tuple(self.composers)
 
     @property
     def composers_display(self) -> str:
@@ -159,7 +171,11 @@ class Performance(BaseModel):
     @property
     def production_identifying_person(self) -> str:
         leading_team = self.leading_team
-        identifying_person_key = ["Musikalische Leitung", "Dirigent"] if self.is_concertante else ["Inszenierung"]
+        identifying_person_key = (
+            ["Musikalische Leitung", "Dirigent"]
+            if self.is_concertante
+            else ["Inszenierung"]
+        )
         for key in identifying_person_key:
             if key in leading_team:
                 return leading_team[key][0]
@@ -184,7 +200,12 @@ def normalize_title(title: str) -> str:
     return "".join(
         filter(
             str.isalpha,
-            unidecode(title).split("(")[0].split("/")[0].lower().replace(" ", "").strip(),
+            unidecode(title)
+            .split("(")[0]
+            .split("/")[0]
+            .lower()
+            .replace(" ", "")
+            .strip(),
         )
     )
 
@@ -205,7 +226,11 @@ def get_all_names_from_performance(performance: Performance) -> set[str]:
 
 
 def filter_only_full_entries(db: DB_TYPE) -> DB_TYPE:
-    db_filtered = [performance for performance in db if (len(performance.cast) + len(performance.leading_team)) > 0]
+    db_filtered = [
+        performance
+        for performance in db
+        if (len(performance.cast) + len(performance.leading_team)) > 0
+    ]
 
     return db_filtered
 
@@ -225,7 +250,9 @@ def is_performance_instance(obj: Any) -> TypeGuard[Performance]:
     return soft_isinstance(obj, Performance)
 
 
-def group_performances_by_visit(performances: Sequence[Performance]) -> dict[str, List[Performance]]:
+def group_performances_by_visit(
+    performances: Sequence[Performance],
+) -> dict[str, List[Performance]]:
     """
     Groups performances by their visit_index.
     Performances without a visit_index are treated as unique visits (keyed by their unique key).
@@ -257,7 +284,9 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     return singular if count == 1 else plural
 
 
-def get_top_streaks(performances: Sequence[Performance], n: int = 3) -> List[tuple[int, str]]:
+def get_top_streaks(
+    performances: Sequence[Performance], n: int = 3
+) -> List[tuple[int, str]]:
     """
     Returns the top n streaks of consecutive days with performances.
     Returns a list of tuples (streak_length, date_range_string).
