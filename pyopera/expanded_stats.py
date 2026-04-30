@@ -9,7 +9,13 @@ import reverse_geocoder as rg
 import streamlit as st
 from unidecode import unidecode
 
-from pyopera.common import Performance, get_top_streaks, group_performances_by_visit, pluralize, visit_has_single_composer
+from pyopera.common import (
+    Performance,
+    get_top_streaks,
+    group_performances_by_visit,
+    pluralize,
+    visit_has_single_composer,
+)
 from pyopera.show_maps import run_maps
 from pyopera.show_stats_utils import convert_alpha2_to_alpha3, truncate_composer_name
 from pyopera.streamlit_common import load_db, load_db_venues
@@ -20,7 +26,6 @@ def run_expanded_stats():
     composer_stats_performances = [
         performance
         for visit in group_performances_by_visit(performances).values()
-        if visit_has_single_composer(visit)
         for performance in visit
     ]
     venues_db = load_db_venues()
@@ -41,7 +46,9 @@ def run_expanded_stats():
     for p in composer_stats_performances:
         if p.production_key:
             opera_productions[(p.name, p.composer)].add(p.production_key)
-    total_unique_productions = sum(len(productions) for productions in opera_productions.values())
+    total_unique_productions = sum(
+        len(productions) for productions in opera_productions.values()
+    )
 
     # Calculate unique operas
     unique_operas = len({(p.name, p.composer) for p in composer_stats_performances})
@@ -71,12 +78,17 @@ def run_expanded_stats():
     with col2:
         small_metric("Performances", len(performances))
     with col3:
-        small_metric("Concertante Performances", f"{concertante_count} ({concertante_count/len(performances):.1%})")
+        small_metric(
+            "Concertante Performances",
+            f"{concertante_count} ({concertante_count/len(performances):.1%})",
+        )
 
     with col1:
         small_metric("Productions", total_unique_productions)
     with col2:
-        small_metric("Composers", len(set(p.composer for p in composer_stats_performances)))
+        small_metric(
+            "Composers", len(set(p.composer for p in composer_stats_performances))
+        )
     with col3:
         small_metric("Venues", len(set(p.stage for p in performances)))
 
@@ -95,7 +107,6 @@ def run_expanded_stats():
         "Visits by Venue",
         "Visits by Year",
         "Visits by Season",
-        
     ]
 
     selected_graph = st.selectbox("Select graph to display:", graph_options)
@@ -117,13 +128,18 @@ def run_expanded_stats():
                 composer_operas[composer] = set()
             composer_operas[composer].add(opera)
 
-        composer_opera_counts = [(composer, len(operas)) for composer, operas in composer_operas.items()]
+        composer_opera_counts = [
+            (composer, len(operas)) for composer, operas in composer_operas.items()
+        ]
         composer_opera_counts.sort(key=lambda x: x[1], reverse=True)
 
         data_to_show = composer_opera_counts if show_all else composer_opera_counts[:20]
 
         composer_opera_df = pd.DataFrame(
-            {"Composer": [comp for comp, _ in data_to_show], "Operas": [count for _, count in data_to_show]}
+            {
+                "Composer": [comp for comp, _ in data_to_show],
+                "Operas": [count for _, count in data_to_show],
+            }
         )
 
         if show_as_table:
@@ -144,7 +160,9 @@ def run_expanded_stats():
 
     # Performances by Opera
     elif selected_graph == "Performances by Opera":
-        opera_performance_counts = Counter((p.name, p.composer) for p in composer_stats_performances)
+        opera_performance_counts = Counter(
+            (p.name, p.composer) for p in composer_stats_performances
+        )
         opera_perf_data = [
             (f"{name} ({truncate_composer_name(composer)})", count)
             for (name, composer), count in opera_performance_counts.most_common()
@@ -162,7 +180,9 @@ def run_expanded_stats():
         if show_as_table:
             st.dataframe(opera_perf_df, use_container_width=True, hide_index=True)
         else:
-            fig = px.bar(opera_perf_df, x="Opera", y="Performances", text="Performances")
+            fig = px.bar(
+                opera_perf_df, x="Opera", y="Performances", text="Performances"
+            )
             fig.update_traces(
                 textposition="outside",
                 cliponaxis=False,
@@ -213,7 +233,9 @@ def run_expanded_stats():
         composer_perf_counts = Counter(p.composer for p in composer_stats_performances)
         composer_perf_data = composer_perf_counts.most_common()
 
-        composer_perf_to_show = composer_perf_data if show_all else composer_perf_data[:20]
+        composer_perf_to_show = (
+            composer_perf_data if show_all else composer_perf_data[:20]
+        )
 
         composer_perf_df = pd.DataFrame(
             {
@@ -226,7 +248,9 @@ def run_expanded_stats():
             st.dataframe(composer_perf_df, use_container_width=True, hide_index=True)
 
         else:
-            fig = px.bar(composer_perf_df, x="Composer", y="Performances", text="Performances")
+            fig = px.bar(
+                composer_perf_df, x="Composer", y="Performances", text="Performances"
+            )
             fig.update_traces(
                 textposition="outside",
                 cliponaxis=False,
@@ -241,12 +265,18 @@ def run_expanded_stats():
     # Performances by Venue
     elif selected_graph == "Performances by Venue":
         venue_counts = Counter(p.stage for p in performances)
-        venue_data = [(venues_db.get(venue, venue), count) for venue, count in venue_counts.most_common()]
+        venue_data = [
+            (venues_db.get(venue, venue), count)
+            for venue, count in venue_counts.most_common()
+        ]
 
         venue_to_show = venue_data if show_all else venue_data[:20]
 
         venue_df = pd.DataFrame(
-            {"Venue": [venue for venue, _ in venue_to_show], "Performances": [count for _, count in venue_to_show]}
+            {
+                "Venue": [venue for venue, _ in venue_to_show],
+                "Performances": [count for _, count in venue_to_show],
+            }
         )
 
         if show_as_table:
@@ -293,7 +323,9 @@ def run_expanded_stats():
         dated_performances = [p for p in performances if p.date is not None]
 
         if dated_performances:
-            season_counts = Counter(get_season_label(p.date.earliest_date) for p in dated_performances)
+            season_counts = Counter(
+                get_season_label(p.date.earliest_date) for p in dated_performances
+            )
             min_start_year = min(int(season.split("/")[0]) for season in season_counts)
             max_start_year = max(int(season.split("/")[0]) for season in season_counts)
             season_start_years = list(range(min_start_year, max_start_year + 1))
@@ -305,7 +337,9 @@ def run_expanded_stats():
             if show_as_table:
                 st.dataframe(season_df, use_container_width=True, hide_index=True)
             else:
-                fig = px.bar(season_df, x="Season", y="Performances", text="Performances")
+                fig = px.bar(
+                    season_df, x="Season", y="Performances", text="Performances"
+                )
                 fig.update_traces(textposition="outside", cliponaxis=False)
                 st.plotly_chart(fig, use_container_width=True)
         else:
@@ -325,11 +359,16 @@ def run_expanded_stats():
         for visit_id, perfs in visits.items():
             stages = {p.stage for p in perfs}
             if len(stages) > 1:
-                raise ValueError(f"found visit {visit_id} with multiple stages: {stages}")
+                raise ValueError(
+                    f"found visit {visit_id} with multiple stages: {stages}"
+                )
             visit_stages.append(stages.pop())
 
         venue_counts = Counter(visit_stages)
-        venue_data = [(venues_db.get(venue, venue), count) for venue, count in venue_counts.most_common()]
+        venue_data = [
+            (venues_db.get(venue, venue), count)
+            for venue, count in venue_counts.most_common()
+        ]
         venue_to_show = venue_data if show_all else venue_data[:20]
 
         venue_df = pd.DataFrame(
@@ -447,12 +486,21 @@ def run_expanded_stats():
         # Busiest Year
         dated_visits = [visit for visit in visits.values() if visit[0].date]
         if dated_visits:
-            year_counts = Counter(visit[0].date.earliest_date.year for visit in dated_visits)
+            year_counts = Counter(
+                visit[0].date.earliest_date.year for visit in dated_visits
+            )
             year, count = year_counts.most_common(1)[0]
-            facts.append((f"**Busiest Year**: {year} — {count} visits", "Most opera visits within a calendar year."))
+            facts.append(
+                (
+                    f"**Busiest Year**: {year} — {count} visits",
+                    "Most opera visits within a calendar year.",
+                )
+            )
 
             # Busiest Month
-            month_counts = Counter(visit[0].date.earliest_date.strftime("%B") for visit in dated_visits)
+            month_counts = Counter(
+                visit[0].date.earliest_date.strftime("%B") for visit in dated_visits
+            )
             month, count = month_counts.most_common(1)[0]
             facts.append(
                 (
@@ -462,9 +510,13 @@ def run_expanded_stats():
             )
 
         # Most Seen Production
-        production_counts = Counter(p.production_key for p in composer_stats_performances if p.production_key)
+        production_counts = Counter(
+            p.production_key for p in composer_stats_performances if p.production_key
+        )
         if production_counts:
-            (identifying_person, production_name, opera_name, composers_key), count = production_counts.most_common(1)[0]
+            (identifying_person, production_name, opera_name, composers_key), count = (
+                production_counts.most_common(1)[0]
+            )
             if count > 1:
                 facts.append(
                     (
@@ -475,7 +527,9 @@ def run_expanded_stats():
 
     # Opera with Most Productions
     if opera_productions:
-        (name, composer), productions = max(opera_productions.items(), key=lambda x: len(x[1]))
+        (name, composer), productions = max(
+            opera_productions.items(), key=lambda x: len(x[1])
+        )
         count = len(productions)
         facts.append(
             (
@@ -519,7 +573,10 @@ def run_expanded_stats():
             )
 
     # The Variety Spice (Longest streak of different operas)
-    sorted_perfs = sorted([p for p in composer_stats_performances if p.date], key=lambda x: x.date.earliest_date)
+    sorted_perfs = sorted(
+        [p for p in composer_stats_performances if p.date],
+        key=lambda x: x.date.earliest_date,
+    )
     max_variety = 0
     current_variety = []
 
@@ -543,7 +600,9 @@ def run_expanded_stats():
     # The Cast Hog (Performance with largest cast)
     # Count total number of artists in cast (sum of lengths of lists in values)
     if performances:
-        cast_hog = max(performances, key=lambda p: sum(len(artists) for artists in p.cast.values()))
+        cast_hog = max(
+            performances, key=lambda p: sum(len(artists) for artists in p.cast.values())
+        )
         cast_size = sum(len(artists) for artists in cast_hog.cast.values())
         facts.append(
             (
@@ -553,7 +612,9 @@ def run_expanded_stats():
         )
 
     # The Weekend Warrior (Performances on Sat/Sun)
-    weekend_count = sum(1 for p in performances if p.date and p.date.earliest_date.weekday() >= 5)
+    weekend_count = sum(
+        1 for p in performances if p.date and p.date.earliest_date.weekday() >= 5
+    )
     if performances and weekend_count > 0:
         percentage = (weekend_count / len(performances)) * 100
         facts.append(
