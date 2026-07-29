@@ -475,12 +475,26 @@ def run_expanded_stats():
             dated_visit_dates.append(min(p.date.earliest_date for p in dated))
 
     if dated_visit_dates:
+        available_years = sorted({d.year for d in dated_visit_dates})
+        year_options = ["All years"] + [str(y) for y in available_years]
+        selected_year_label = st.selectbox(
+            "Year",
+            year_options,
+            key="heatmap_year",
+        )
+
+        if selected_year_label == "All years":
+            filtered_dates = dated_visit_dates
+        else:
+            selected_year = int(selected_year_label)
+            filtered_dates = [d for d in dated_visit_dates if d.year == selected_year]
+
         month_names = [calendar.month_abbr[m] for m in range(1, 13)]
         days = list(range(1, 32))
 
         # Build 12×31 matrix of visit counts
         matrix = [[0] * 31 for _ in range(12)]
-        for d in dated_visit_dates:
+        for d in filtered_dates:
             matrix[d.month - 1][d.day - 1] += 1
 
         heatmap_df = pd.DataFrame(matrix, index=month_names, columns=days)
