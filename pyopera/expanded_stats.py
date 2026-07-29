@@ -465,6 +465,47 @@ def run_expanded_stats():
         else:
             st.warning("No visits with valid dates found.")
 
+    # Visit heat map (day/month matrix)
+    st.subheader("Visit Heat Map")
+
+    dated_visit_dates = []
+    for visit_perfs in group_performances_by_visit(performances).values():
+        dated = [p for p in visit_perfs if p.date]
+        if dated:
+            dated_visit_dates.append(min(p.date.earliest_date for p in dated))
+
+    if dated_visit_dates:
+        month_names = [calendar.month_abbr[m] for m in range(1, 13)]
+        days = list(range(1, 32))
+
+        # Build 12×31 matrix of visit counts
+        matrix = [[0] * 31 for _ in range(12)]
+        for d in dated_visit_dates:
+            matrix[d.month - 1][d.day - 1] += 1
+
+        heatmap_df = pd.DataFrame(matrix, index=month_names, columns=days)
+
+        fig = px.imshow(
+            heatmap_df,
+            labels={"x": "Day", "y": "Month", "color": "Visits"},
+            color_continuous_scale=[
+                [0, "#ebedf0"],
+                [0.01, "#9be9a8"],
+                [0.33, "#40c463"],
+                [0.66, "#30a14e"],
+                [1.0, "#216e39"],
+            ],
+            aspect="auto",
+        )
+        fig.update_layout(
+            xaxis={"tickmode": "linear", "dtick": 1, "title": "Day of Month"},
+            yaxis={"title": "Month"},
+            coloraxis_showscale=True,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No visits with valid dates found.")
+
     # Add maps visualization at the end
     st.subheader("Visits Map")
     run_maps()
