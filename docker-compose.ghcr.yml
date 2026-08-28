@@ -2,12 +2,17 @@
 # Use this on ZimaOS (or anywhere) WITHOUT cloning the repo — just this file.
 #
 # The image is built automatically by GitHub Actions on every push to main.
+# Watchtower (below) polls GHCR and auto-recreates the container when a new
+# image is published, so the app updates itself.
 
 services:
   pyopera:
     image: ghcr.io/papalotis/pyopera:main
     container_name: pyopera
     restart: unless-stopped
+    labels:
+      # Tell Watchtower to watch this container for updates.
+      - com.centurylinklabs.watchtower.enable=true
     ports:
       - "8501:8501"
     environment:
@@ -26,3 +31,19 @@ services:
     # Optional: mount a local secrets.toml if you prefer Streamlit secrets over env vars.
     # volumes:
     #   - ./secrets.toml:/app/.streamlit/secrets.toml:ro
+
+  # Watchtower: polls the registry and auto-updates the pyopera container when
+  # a new image is pushed. Only watches the pyopera container.
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Check for updates every 30 seconds (default is 24h).
+      - WATCHTOWER_POLL_INTERVAL=30
+      # Only update the pyopera container, not everything on the host.
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+    command: --label-enable --interval 30
