@@ -9,7 +9,7 @@ from pyopera.show_stats import run as run_stats
 from pyopera.visualize_json import run as run_vis_json
 
 CALLABLE_TITLE_ICON: list[tuple[Callable[[], None], str, str]] = [
-    (run_overview, "Overview", ":material/bar_chart:"),
+    (run_overview, "Overview with a test", ":material/bar_chart:"),
     (run_vis_json, "Performances", ":material/theater_comedy:"),
     (run_stats, "Search", ":material/search:"),
     (run_add_seen_performance, "Edit database", ":material/build:"),
