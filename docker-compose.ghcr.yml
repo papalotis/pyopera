@@ -1,0 +1,23 @@
+# Compose file for running the prebuilt image from GitHub Container Registry.
+# Use this on ZimaOS (or anywhere) WITHOUT cloning the repo — just this file.
+#
+# Usage:
+#   1. Create a .env file with your AWS credentials (see .env.example).
+#   2. docker compose up -d
+#
+# The image is built automatically by GitHub Actions on every push to main.
+
+services:
+  pyopera:
+    image: ghcr.io/papalotis/pyopera:main
+    container_name: pyopera
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+    # Optional: mount a local secrets.toml if you prefer Streamlit secrets over env vars.
+    # volumes:
+    #   - ./secrets.toml:/app/.streamlit/secrets.toml:ro
