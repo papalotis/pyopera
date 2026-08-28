@@ -46,4 +46,3 @@ services:
       # Only update the pyopera container, not everything on the host.
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_LABEL_ENABLE=true
-    command: --label-enable --interval 30
