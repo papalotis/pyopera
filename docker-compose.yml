@@ -8,11 +8,18 @@ services:
     ports:
       - "8501:8501"
     environment:
-      # AWS credentials for DynamoDB access.
-      # Provide these via a .env file (see .env.example) or the host environment.
+      # Option 1 (default): pass env vars from a .env file placed next to this
+      # compose file. Create it from .env.example and fill in your credentials.
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=${AWS_REGION}
+
+      # Option 2 (alternative): hardcode the values directly here instead of
+      # using a .env file. Uncomment and fill in, then comment out Option 1.
+      # - AWS_ACCESS_KEY_ID=your_access_key_id
+      # - AWS_SECRET_ACCESS_KEY=your_secret_access_key
+      # - AWS_REGION=your_region
+
     # Optional: mount a local secrets.toml if you prefer Streamlit secrets over env vars.
     # volumes:
     #   - ./secrets.toml:/app/.streamlit/secrets.toml:ro
