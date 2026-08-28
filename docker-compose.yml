@@ -1,0 +1,18 @@
+services:
+  pyopera:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pyopera
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      # AWS credentials for DynamoDB access.
+      # Provide these via a .env file (see .env.example) or the host environment.
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+    # Optional: mount a local secrets.toml if you prefer Streamlit secrets over env vars.
+    # volumes:
+    #   - ./secrets.toml:/app/.streamlit/secrets.toml:ro
