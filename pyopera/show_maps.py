@@ -238,6 +238,7 @@ def run_maps() -> None:
                 hover_name="name",
                 hover_data=["count"],
                 zoom=3,
+                center={"lat": 48, "lon": 12},
                 map_style="carto-positron",
             )
 

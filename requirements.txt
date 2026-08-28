@@ -3,7 +3,7 @@ Unidecode
 typing-extensions
 pydantic
 requests
-plotly
+plotly==5.24.1
 streamlit==1.46
 boto3==1.35.24
 boto3-stubs==1.35.24
