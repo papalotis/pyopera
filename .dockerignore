@@ -10,4 +10,3 @@ secrets.toml
 .streamlit
 deta_project_data.json
 *.md
-assets/
