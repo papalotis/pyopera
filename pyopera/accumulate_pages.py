@@ -30,7 +30,10 @@ def main():
         st.session_state.run_counter = 0
 
     st.session_state.run_counter += 1
+    try:
+        st.logo(generate_logo(), size="large")
+    except Exception as e:
+        print("Error generating logo:", e)
 
-    st.logo(generate_logo(), size="large")
     page = st.navigation(create_pages())
     page.run()
