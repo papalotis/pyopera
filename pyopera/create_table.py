@@ -5,12 +5,27 @@ import os
 from streamlit.errors import StreamlitSecretNotFoundError
 
 def _load_secret(secret_name: str) -> str:
-    """Load a secret from Streamlit secrets or environment variables."""
+    """Load a secret from Streamlit secrets or environment variables.
 
+    Checks, in order:
+      1. Streamlit secrets under the ``[aws]`` section (e.g. ``aws_region``).
+      2. The lowercase environment variable (e.g. ``aws_region``).
+      3. The standard uppercase AWS environment variable (e.g. ``AWS_REGION``).
+    """
+
+    # 1. Streamlit secrets
     try:
         secret = st.secrets.get("aws", {}).get(secret_name)
     except StreamlitSecretNotFoundError:
+        secret = None
+
+    # 2. Lowercase env var (e.g. aws_region)
+    if not secret:
         secret = os.getenv(secret_name)
+
+    # 3. Standard uppercase AWS env var (e.g. AWS_REGION)
+    if not secret:
+        secret = os.getenv(secret_name.upper())
 
     return secret
 
