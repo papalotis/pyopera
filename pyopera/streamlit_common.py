@@ -8,6 +8,7 @@ import streamlit as st
 from pyopera.common import (
     DB_TYPE,
     ApproxDate,
+    CompanyModel,
     Performance,
     VenueModel,
     WorkYearEntryModel,
@@ -52,6 +53,40 @@ def load_db_venues(list_of_entries: bool = False) -> dict[str, str] | list[Venue
         return raw_data
 
     return {data.short_name: data.name for data in raw_data}
+
+
+COMPANIES_INTERFACE = DatabaseInterface(CompanyModel)
+
+
+@overload
+def load_db_companies(list_of_entries: Literal[True]) -> list[CompanyModel]: ...
+
+
+@overload
+def load_db_companies(list_of_entries: Literal[False] = False) -> dict[str, str]: ...
+
+
+def load_db_companies(list_of_entries: bool = False) -> dict[str, str] | list[CompanyModel]:
+    raw_data = COMPANIES_INTERFACE.fetch_db()
+
+    if list_of_entries:
+        return raw_data
+
+    return {data.short_name: data.name for data in raw_data}
+
+
+def resolve_company_name(short_name: str) -> str:
+    """Resolve a production company short name to its full name.
+
+    Precedence is companies -> venues -> the raw short name, so that short codes
+    which have not been migrated to the companies table yet still resolve.
+    """
+    companies_db = load_db_companies()
+    if short_name in companies_db:
+        return companies_db[short_name]
+
+    venues_db = load_db_venues()
+    return venues_db.get(short_name, short_name)
 
 
 def key_is_exception(key: str) -> bool:

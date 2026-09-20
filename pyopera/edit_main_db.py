@@ -17,6 +17,7 @@ from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
     format_title,
     load_db,
+    load_db_companies,
     write_cast_and_leading_team,
 )
 
@@ -172,12 +173,30 @@ def run() -> None:
         col1, col2, col3, col4 = st.columns([2, 1, 3, 1])
 
         with col1:
-            production = st.text_input(label="Production", help="The production company", value=default_production)
-
-            possible_exisitng_productions = sorted(
-                set(entry.production_key for entry in db if entry.production == production and entry.name == name),
-                key=lambda x: x if x is not None else -1,
+            companies_db = load_db_companies()
+            registered_company = st.toggle(
+                "Registered company",
+                value=default_production in companies_db,
+                help="Pick a company from the companies table, or type a new short name.",
             )
+
+            if registered_company and len(companies_db) > 0:
+                sorted_company_short_names = sorted(companies_db)
+                production = st.selectbox(
+                    label="Production",
+                    help="The production company",
+                    options=sorted_company_short_names,
+                    index=(
+                        sorted_company_short_names.index(default_production)
+                        if default_production in companies_db
+                        else 0
+                    ),
+                    format_func=lambda short_name: f"{short_name} - {companies_db[short_name]}",
+                )
+            else:
+                production = st.text_input(
+                    label="Production", help="The production company", value=default_production
+                )
 
         with col2:
             stage = st.text_input(label="Stage", value=default_stage)

@@ -349,6 +349,20 @@ class VenueModel(BaseModel):
         return float(self.latitude) if self.latitude is not None else None
 
 
+class CompanyModel(BaseModel):
+    """An opera company (the Haus / production company).
+
+    Distinct from :class:`VenueModel`: a venue is where a performance was played,
+    while a company is who produced it. Most short names overlap, but not all.
+    """
+
+    name: NonEmptyStr
+    short_name: NonEmptyStr
+    key: DetaKey = Field(default_factory=create_deta_style_key)
+
+    model_config = ConfigDict(frozen=True, validate_default=True)
+
+
 PASS_HASH = PasswordHasher()
 
 

@@ -11,6 +11,7 @@ from pyopera.streamlit_common import (
     format_title,
     load_db,
     load_db_venues,
+    resolve_company_name,
     write_cast_and_leading_team,
 )
 
@@ -84,9 +85,7 @@ def run():
 
     stage_name_to_show = venues_db.get(performance.stage, performance.stage)
 
-    production_name_to_show = venues_db.get(
-        performance.production, performance.production
-    )
+    production_name_to_show = resolve_company_name(performance.production)
 
     if stage_name_to_show != production_name_to_show:
         stage_name_to_show += f" - {production_name_to_show}"

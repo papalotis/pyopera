@@ -2,6 +2,7 @@ import streamlit as st
 
 from pyopera.common import PasswordModel
 from pyopera.deta_base import DatabaseInterface
+from pyopera.edit_companies_db import run as edit_companies_db
 from pyopera.edit_main_db import run as edit_main_db
 from pyopera.edit_venues_db import run as edit_venues_db
 from pyopera.edit_works_year_db import run as edit_works_year_db
@@ -52,6 +53,7 @@ def run():
         edit_main_db: ":material/storage: Main database",
         edit_works_year_db: ":material/edit_calendar: Year of first performance",
         edit_venues_db: ":material/home: Venues",
+        edit_companies_db: ":material/corporate_fare: Opera companies",
     }
 
     with st.sidebar:

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from pyopera.common import (
     ApproxDate,
+    CompanyModel,
     PasswordModel,
     Performance,
     VenueModel,
@@ -47,6 +48,7 @@ class DatabaseName(str, Enum):
     performances = "performances"
     works_dates = "works_dates"
     venues = "venues"
+    companies = "companies"
     passwords = "passwords"
 
 
@@ -54,6 +56,7 @@ ModelToEnum = {
     Performance: DatabaseName.performances,
     WorkYearEntryModel: DatabaseName.works_dates,
     VenueModel: DatabaseName.venues,
+    CompanyModel: DatabaseName.companies,
     PasswordModel: DatabaseName.passwords,
 }
 
@@ -61,6 +64,7 @@ EnumToLoadText = {
     Performance: "Loading performances ...",
     WorkYearEntryModel: "Loading work year data...",
     VenueModel: "Loading venue data...",
+    CompanyModel: "Loading company data...",
 }
 
 EnumToPostProcess = {
