@@ -169,7 +169,8 @@ class Performance(BaseModel):
         return ", ".join(self.composers)
 
     @property
-    def production_identifying_person(self) -> str:
+    def production_identifying_persons(self) -> list[str]:
+        """All directors (or conductors, for concertante performances) of the production."""
         leading_team = self.leading_team
         identifying_person_key = (
             ["Musikalische Leitung", "Dirigent"]
@@ -178,9 +179,15 @@ class Performance(BaseModel):
         )
         for key in identifying_person_key:
             if key in leading_team:
-                return leading_team[key][0]
+                return list(leading_team[key])
 
-        return ""
+        return []
+
+    @property
+    def production_identifying_person(self) -> str:
+        persons = self.production_identifying_persons
+
+        return persons[0] if len(persons) > 0 else ""
 
 
 def is_exact_date(date: ApproxDate | None | dict) -> bool:

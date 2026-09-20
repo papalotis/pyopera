@@ -31,6 +31,7 @@ from pyopera.streamlit_common import (
     load_db,
     load_db_venues,
     remove_singular_prefix_from_role,
+    resolve_company_name,
 )
 
 
@@ -293,11 +294,11 @@ def get_orchestra(performance: Performance) -> str:
     return ""
 
 
-def get_first_performance_date(performances: Sequence[Performance]) -> date:
-    """Return the earliest known date of a production, or ``date.max`` if unknown."""
+def get_last_performance_date(performances: Sequence[Performance]) -> date:
+    """Return the latest known date of a production, or ``date.max`` if unknown."""
     dates = [performance.date.earliest_date for performance in performances if performance.date is not None]
 
-    return min(dates) if len(dates) > 0 else date.max
+    return max(dates) if len(dates) > 0 else date.min
 
 
 def run_single_opus():
@@ -346,14 +347,15 @@ def run_single_production():
     for _, performances in sorted(
         production_key_to_performances.items(),
         key=lambda item: (
-            get_first_performance_date(item[1]),
+            get_last_performance_date(item[1]),
             item[1][0].production,
             item[1][0].production_identifying_person,
         ),
+        reverse=True,
     ):
         first_performance = performances[0]
-        haus = first_performance.production
-        identifying_person = first_performance.production_identifying_person
+        haus = resolve_company_name(first_performance.production)
+        identifying_person = ", ".join(first_performance.production_identifying_persons)
         number_of_performances = len(performances)
 
         if first_performance.is_concertante:
