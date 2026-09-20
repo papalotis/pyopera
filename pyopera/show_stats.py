@@ -1,9 +1,11 @@
 import calendar
 from collections import defaultdict
+from datetime import date
 from typing import (
     ChainMap,
     DefaultDict,
     MutableSequence,
+    Sequence,
 )
 
 import streamlit as st
@@ -291,6 +293,13 @@ def get_orchestra(performance: Performance) -> str:
     return ""
 
 
+def get_first_performance_date(performances: Sequence[Performance]) -> date:
+    """Return the earliest known date of a production, or ``date.max`` if unknown."""
+    dates = [performance.date.earliest_date for performance in performances if performance.date is not None]
+
+    return min(dates) if len(dates) > 0 else date.max
+
+
 def run_single_opus():
     venues_db = load_db_venues()
     db = load_single_composer_db()
@@ -336,7 +345,11 @@ def run_single_production():
 
     for _, performances in sorted(
         production_key_to_performances.items(),
-        key=lambda item: (item[1][0].production, item[1][0].production_identifying_person),
+        key=lambda item: (
+            get_first_performance_date(item[1]),
+            item[1][0].production,
+            item[1][0].production_identifying_person,
+        ),
     ):
         first_performance = performances[0]
         haus = first_performance.production
