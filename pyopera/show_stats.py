@@ -10,6 +10,8 @@ import streamlit as st
 from more_itertools.recipes import flatten
 
 from pyopera.common import (
+    DB_TYPE,
+    Performance,
     get_all_names_from_performance,
     group_performances_by_visit,
     visit_has_single_composer,
@@ -245,8 +247,8 @@ def run_query_and_analytics():
     st.markdown(performances_md_string, unsafe_allow_html=True)
 
 
-def run_single_opus():
-    venues_db = load_db_venues()
+def load_single_composer_db() -> DB_TYPE:
+    """Load performances that belong to a single-composer work eligible for composer stats."""
     loaded_db = load_db()
     composer_stats_eligible_keys = {
         performance.key
@@ -254,27 +256,51 @@ def run_single_opus():
         if visit_has_single_composer(visit)
         for performance in visit
     }
-    db = [
+
+    return [
         performance
         for performance in loaded_db
         if performance.has_single_composer and performance.key in composer_stats_eligible_keys
     ]
+
+
+def select_opus_from_sidebar(db: DB_TYPE, label: str = "Opera") -> tuple[str, str]:
+    """Render a sidebar selectbox to pick an opera by name and composer."""
+    all_opus = sorted(
+        {(performance.name, performance.composer) for performance in db},
+        key=key_sort_opus_by_name_and_composer,
+    )
+
+    return st.selectbox(
+        label,
+        all_opus,
+        format_func=lambda name_composer: f"{name_composer[0]} - {truncate_composer_name(name_composer[1])}",
+    )
+
+
+ORCHESTRA_KEY_MARKERS = ("orchester", "orchestra", "ensemble")
+
+
+def get_orchestra(performance: Performance) -> str:
+    """Return the orchestra/ensemble of a performance from its leading team, if present."""
+    for key, persons in performance.leading_team.items():
+        key_alpha_lower = "".join(filter(str.isalpha, key.lower()))
+        if any(marker in key_alpha_lower for marker in ORCHESTRA_KEY_MARKERS) and len(persons) > 0:
+            return ", ".join(persons)
+
+    return ""
+
+
+def run_single_opus():
+    venues_db = load_db_venues()
+    db = load_single_composer_db()
 
     if len(db) == 0:
         st.warning("No single-composer performances available.")
         return
 
     with st.sidebar:
-        all_opus = sorted(
-            {(performance.name, performance.composer) for performance in db},
-            key=key_sort_opus_by_name_and_composer,
-        )
-
-        name, composer = st.selectbox(
-            "Opera",
-            all_opus,
-            format_func=lambda name_composer: f"{name_composer[0]} - {truncate_composer_name(name_composer[1])}",
-        )
+        name, composer = select_opus_from_sidebar(db, "Opera")
 
     st.title(name)
     st.markdown(f"#### {composer}")
@@ -283,6 +309,54 @@ def run_single_opus():
     for entry in all_entries_of_opus:
         date_string = "" if entry.date is None else f"- {format_iso_date_to_day_month_year_with_dots(entry.date)} "
         st.markdown(f"{date_string} - {venues_db.get(entry.stage, entry.stage)}")
+
+
+def run_single_production():
+    db = load_single_composer_db()
+
+    if len(db) == 0:
+        st.warning("No single-composer performances available.")
+        return
+
+    with st.sidebar:
+        name, composer = select_opus_from_sidebar(db, "Opera")
+
+    st.title(name)
+    st.markdown(f"#### {composer}")
+
+    performances_of_opus = [
+        performance for performance in db if performance.name == name and performance.composer == composer
+    ]
+
+    production_key_to_performances: dict[
+        tuple[str, str, str, tuple[str, ...]], list[Performance]
+    ] = defaultdict(list)
+    for performance in performances_of_opus:
+        production_key_to_performances[performance.production_key].append(performance)
+
+    for _, performances in sorted(
+        production_key_to_performances.items(),
+        key=lambda item: (item[1][0].production, item[1][0].production_identifying_person),
+    ):
+        first_performance = performances[0]
+        haus = first_performance.production
+        identifying_person = first_performance.production_identifying_person
+        number_of_performances = len(performances)
+
+        if first_performance.is_concertante:
+            haus_part = f"{haus} (c)"
+            orchestra = get_orchestra(first_performance)
+            if orchestra != "":
+                haus_part = f"{haus_part}, {orchestra}"
+        else:
+            haus_part = haus
+
+        parts = [haus_part]
+        if identifying_person != "":
+            parts.append(identifying_person)
+        parts.append(str(number_of_performances))
+
+        st.markdown("- " + " – ".join(parts))
 
 
 def run_single_person():
@@ -318,34 +392,14 @@ def run_single_person():
 
 def run_single_role():
     venues_db = load_db_venues()
-    loaded_db = load_db()
-    composer_stats_eligible_keys = {
-        performance.key
-        for visit in group_performances_by_visit(loaded_db).values()
-        if visit_has_single_composer(visit)
-        for performance in visit
-    }
-    db = [
-        performance
-        for performance in loaded_db
-        if performance.has_single_composer and performance.key in composer_stats_eligible_keys
-    ]
+    db = load_single_composer_db()
 
     if len(db) == 0:
         st.warning("No single-composer performances available.")
         return
 
     with st.sidebar:
-        all_opus = sorted(
-            {(performance.name, performance.composer) for performance in db},
-            key=key_sort_opus_by_name_and_composer,
-        )
-
-        name, composer = st.selectbox(
-            "Opus",
-            all_opus,
-            format_func=lambda name_composer: f"{name_composer[0]} - {truncate_composer_name(name_composer[1])}",
-        )
+        name, composer = select_opus_from_sidebar(db, "Opus")
 
         roles = sorted(
             {role for entry in db for role in entry.cast if entry.name == name and entry.composer == composer}
@@ -400,6 +454,7 @@ def run():
     modes = {
         ":material/analytics: Query & Analytics": run_query_and_analytics,
         ":material/music_note: Opera": run_single_opus,
+        ":material/theater_comedy: Productions": run_single_production,
         ":material/person_search: Artist": run_single_person,
         ":material/person_pin: Role": run_single_role,
     }
