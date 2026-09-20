@@ -348,14 +348,16 @@ def run_single_production():
         production_key_to_performances.items(),
         key=lambda item: (
             get_last_performance_date(item[1]),
-            item[1][0].production,
-            item[1][0].production_identifying_person,
+            item[1][0].production_companies_display,
+            item[1][0].production_identifying_persons_display,
         ),
         reverse=True,
     ):
         first_performance = performances[0]
-        haus = resolve_company_name(first_performance.production)
-        identifying_person = ", ".join(first_performance.production_identifying_persons)
+        haus = ", ".join(
+            resolve_company_name(company) for company in first_performance.production_companies
+        )
+        identifying_person = first_performance.production_identifying_persons_display
         number_of_performances = len(performances)
 
         if first_performance.is_concertante:

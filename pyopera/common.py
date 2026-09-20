@@ -136,8 +136,8 @@ class Performance(BaseModel):
 
     @property
     def production_key(self) -> tuple[str, str, str, tuple[str, ...]]:
-        identifying_person = self.production_identifying_person
-        production = self.production
+        identifying_person = self.production_identifying_persons_display
+        production = self.production_companies_display
         name = self.name
         composers = self.composers_key
 
@@ -169,19 +169,43 @@ class Performance(BaseModel):
         return ", ".join(self.composers)
 
     @property
-    def production_identifying_persons(self) -> list[str]:
-        """All directors (or conductors, for concertante performances) of the production."""
-        leading_team = self.leading_team
-        identifying_person_key = (
-            ["Musikalische Leitung", "Dirigent"]
-            if self.is_concertante
-            else ["Inszenierung"]
-        )
-        for key in identifying_person_key:
-            if key in leading_team:
-                return list(leading_team[key])
+    def production_companies(self) -> tuple[str, ...]:
+        """The production companies of this performance, sorted and de-duplicated.
 
-        return []
+        A comma-separated ``production`` value indicates multiple companies, so
+        ``"DOB, Wiener Staatsoper"`` and ``"Wiener Staatsoper, DOB"`` describe the
+        same set of companies.
+        """
+        return tuple(sorted({part.strip() for part in self.production.split(",") if part.strip()}))
+
+    @property
+    def production_companies_display(self) -> str:
+        return ", ".join(self.production_companies)
+
+    @property
+    def production_identifying_persons(self) -> list[str]:
+        """All directors (or conductors, for concertante performances) of the production.
+
+        For staged productions every leading-team key starting with ``Inszenierung``
+        is considered, because separate acts may credit different directors.
+        """
+        prefixes = (
+            ("Musikalische Leitung", "Dirigent")
+            if self.is_concertante
+            else ("Inszenierung",)
+        )
+        persons = [
+            person
+            for key, key_persons in self.leading_team.items()
+            if any(key.strip().startswith(prefix) for prefix in prefixes)
+            for person in key_persons
+        ]
+
+        return sorted(set(persons))
+
+    @property
+    def production_identifying_persons_display(self) -> str:
+        return ", ".join(self.production_identifying_persons)
 
     @property
     def production_identifying_person(self) -> str:
