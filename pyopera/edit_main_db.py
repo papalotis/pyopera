@@ -12,6 +12,7 @@ from pyopera.common import (
     is_exact_date,
     is_performance_instance,
     normalize_composers,
+    sanitize_segment_assignments,
 )
 from pyopera.deta_base import DatabaseInterface
 from pyopera.streamlit_common import (
@@ -36,7 +37,7 @@ def delete_performance_by_key(key: str) -> None:
 
 
 def clear_cast_leading_team_from_session_state():
-    for key in ("cast", "leading_team"):
+    for key in ("cast", "leading_team", "segment_assignments", "segments_text"):
         try:
             del st.session_state[key]
         except KeyError:
@@ -86,6 +87,7 @@ def run() -> None:
         st.session_state["current_entry_key"] = current_entry_key
         val = entry_to_update.get("visit_index")
         st.session_state["visit_index_input"] = val if val is not None else ""
+        st.session_state["segments_text"] = "\n".join(entry_to_update.get("segments", []))
 
     if __file__ not in st.session_state:
         st.session_state[__file__] = {}
@@ -96,10 +98,17 @@ def run() -> None:
     if "cast" not in st.session_state or coming_from_different_page:
         st.session_state["cast"] = defaultdict(set)
         st.session_state["leading_team"] = defaultdict(set)
+        st.session_state["segment_assignments"] = defaultdict(dict)
 
         if update_existing:
             st.session_state["cast"].update({k: set(v) for k, v in entry_to_update["cast"].items()})
             st.session_state["leading_team"].update({k: set(v) for k, v in entry_to_update["leading_team"].items()})
+            st.session_state["segment_assignments"].update(
+                {
+                    role: {person: list(person_segments) for person, person_segments in persons.items()}
+                    for role, persons in entry_to_update.get("segment_assignments", {}).items()
+                }
+            )
 
     st.title(("Update an existing" if update_existing else "Add a new visited") + " performance")
 
@@ -274,12 +283,37 @@ def run() -> None:
 
             st.button("Clear Group Assignment", on_click=clear_visit_index)
 
+        with st.expander("Segments", expanded=bool(st.session_state.get("segments_text", "").strip())):
+            known_segments = sorted(
+                {
+                    segment
+                    for entry in db
+                    if entry.name == name and entry.composers_key == tuple(composers)
+                    for segment in entry.segments
+                }
+            )
+            if len(known_segments) > 0:
+                st.caption("Known segments for this work: " + ", ".join(known_segments))
+
+            segments_text = st.text_area(
+                "Segments (one per line, in performance order)",
+                key="segments_text",
+                help=(
+                    "Enter one segment per line. The line order defines the segment order "
+                    "used everywhere in the app. Leave empty if the whole performance is "
+                    "one piece."
+                ),
+            )
+
+            segments = [line.strip() for line in segments_text.splitlines() if line.strip()]
+            st.session_state["segments"] = segments
+
     with st.container(border=10):
         mode = st.radio("Cast or Leading team mode", ["Cast", "Leading team"], horizontal=True)
 
         add_to_cast = mode == "Cast"
 
-        col1, col2 = st.columns([1, 1])
+        col1, col2, col3 = st.columns([1, 1, 1])
         with col1:
             relevant_works = [entry for entry in db if entry.name == name and entry.composers_key == tuple(composers)]
             relevant_roles = set(
@@ -314,6 +348,15 @@ def run() -> None:
                 accept_new_options=True,
             )
 
+        with col3:
+            credit_segments = st.multiselect(
+                "Segments",
+                options=segments,
+                default=[],
+                help="Leave empty if this person appears in the whole performance.",
+                disabled=len(segments) == 0,
+            )
+
         append_button = st.button(
             "Append to " + mode,
             disabled=role_or_part in ("", None) or cast_leading_team_name in ("", None),
@@ -322,7 +365,15 @@ def run() -> None:
         if append_button:
             if cast_leading_team_name != "" or role_or_part != "":
                 key = "cast" if add_to_cast else "leading_team"
-                st.session_state[key][role_or_part].update({n.strip() for n in cast_leading_team_name.split(",")})
+                for person in (n.strip() for n in cast_leading_team_name.split(",")):
+                    if person == "":
+                        continue
+
+                    st.session_state[key][role_or_part].add(person)
+                    if len(credit_segments) > 0:
+                        st.session_state["segment_assignments"].setdefault(role_or_part, {})[person] = list(
+                            credit_segments
+                        )
 
             else:
                 st.error("At least one field is empty")
@@ -353,7 +404,53 @@ def run() -> None:
             disabled=len(cast_flat) == 0 and len(leading_team_flat) == 0,
         )
 
-    write_cast_and_leading_team(st.session_state["cast"], st.session_state["leading_team"])
+    if len(segments) > 0 and len([*cast_flat, *leading_team_flat]) > 0:
+        with st.expander("Segment assignment", expanded=bool(st.session_state["segment_assignments"])):
+            st.caption("Empty = the person appears in the whole performance.")
+
+            rows = [
+                {
+                    "role": role,
+                    "person": person,
+                    "segments": st.session_state["segment_assignments"].get(role, {}).get(person, []),
+                }
+                for role, person in [*cast_flat, *leading_team_flat]
+            ]
+
+            edited_rows = st.data_editor(
+                rows,
+                column_config={
+                    "segments": st.column_config.MultiselectColumn(
+                        "Segments",
+                        options=segments,
+                        help="Empty = whole performance",
+                    ),
+                },
+                disabled=["role", "person"],
+                hide_index=True,
+            )
+
+            new_assignments: dict[str, dict[str, list[str]]] = {}
+            for row in edited_rows:
+                if len(row["segments"]) > 0:
+                    new_assignments.setdefault(row["role"], {})[row["person"]] = list(row["segments"])
+
+            st.session_state["segment_assignments"] = new_assignments
+
+    segment_lookup = {
+        (role, person): [
+            segment
+            for segment in segments
+            if segment in st.session_state["segment_assignments"].get(role, {}).get(person, [])
+        ]
+        for role, person in [*cast_flat, *leading_team_flat]
+    }
+
+    write_cast_and_leading_team(
+        st.session_state["cast"],
+        st.session_state["leading_team"],
+        segment_lookup=segment_lookup,
+    )
 
     if update_existing:
         ### delete entry
@@ -397,6 +494,8 @@ def run() -> None:
                 comments,
                 day_index,
                 visit_index,
+                segments,
+                st.session_state["segment_assignments"],
             ],
         )
 
@@ -425,6 +524,8 @@ def remove_person_from_performance(remove: tuple[str, str]):
 
     if len(st.session_state["leading_team"][role]) == 0:
         del st.session_state["leading_team"][role]
+
+    st.session_state["segment_assignments"].get(role, {}).pop(person, None)
 
 
 def toggle_archive_entry(entry_to_update):
@@ -455,6 +556,8 @@ def do_submission(
     comments,
     day_index,
     visit_index,
+    segments,
+    segment_assignments,
 ):
     number_of_form_errors = 0
 
@@ -501,6 +604,8 @@ def do_submission(
             leading_team=leading_team,
             day_index=day_index if day_index != 0 else None,
             visit_index=visit_index if visit_index != "" else None,
+            segments=segments,
+            segment_assignments=sanitize_segment_assignments(segments, segment_assignments),
         )
 
         try:

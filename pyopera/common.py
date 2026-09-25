@@ -36,6 +36,9 @@ NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 NonEmptyStrList = Annotated[List[NonEmptyStr], Field(min_items=1)]
 SHA1Str = Annotated[str, StringConstraints(pattern=r"[0-9a-f]{40}")]
 
+# role -> person -> ordered segments the credit applies to
+SegmentAssignments = Mapping[NonEmptyStr, Mapping[NonEmptyStr, NonEmptyStrList]]
+
 
 def normalize_composers(raw_composers: Any) -> list[str]:
     if raw_composers is None:
@@ -115,6 +118,8 @@ class Performance(BaseModel):
     key: PerformanceKey = Field(default_factory=create_key_for_visited_performance_v3)
     day_index: Optional[int] = None
     visit_index: Optional[str] = None
+    segments: List[NonEmptyStr] = []
+    segment_assignments: SegmentAssignments = {}
 
     @model_validator(mode="before")
     @classmethod
@@ -212,6 +217,88 @@ class Performance(BaseModel):
         persons = self.production_identifying_persons
 
         return persons[0] if len(persons) > 0 else ""
+
+    @property
+    def has_segments(self) -> bool:
+        """Whether this performance is divided into named segments."""
+        return len(self.segments) > 0
+
+    def segments_for(self, role: str, person: str) -> list[str]:
+        """Ordered segments a ``(role, person)`` credit applies to.
+
+        An empty list means the credit applies to the whole performance.
+        """
+        assigned = self.segment_assignments.get(role, {}).get(person, [])
+
+        return [segment for segment in self.segments if segment in assigned]
+
+    def person_is_present(self, person: str) -> bool:
+        """Whether ``person`` is credited in the cast or leading team at all."""
+        return any(person in persons for persons in self.cast.values()) or any(
+            person in persons for persons in self.leading_team.values()
+        )
+
+    def segments_of_person(self, person: str) -> list[str]:
+        """Ordered segments in which ``person`` appears.
+
+        Returns an empty list when the person appears in the whole performance (or
+        is not present at all). Counting is presence-based: a person who appears in
+        any segment still counts for the whole performance.
+        """
+        if not self.has_segments:
+            return []
+
+        appears_in_whole_performance = False
+        assigned: set[str] = set()
+
+        for mapping in (self.cast, self.leading_team):
+            for role, persons in mapping.items():
+                if person not in persons:
+                    continue
+
+                segments = self.segment_assignments.get(role, {}).get(person, [])
+                if len(segments) == 0:
+                    appears_in_whole_performance = True
+                else:
+                    assigned.update(segments)
+
+        if appears_in_whole_performance:
+            return []
+
+        return [segment for segment in self.segments if segment in assigned]
+
+    @property
+    def segment_lookup(self) -> dict[tuple[str, str], list[str]]:
+        """Map every ``(role, person)`` credit to its ordered segments.
+
+        Credits that apply to the whole performance map to an empty list.
+        """
+        return {
+            (role, person): self.segments_for(role, person)
+            for mapping in (self.cast, self.leading_team)
+            for role, persons in mapping.items()
+            for person in persons
+        }
+
+
+def sanitize_segment_assignments(
+    segments: Sequence[str],
+    segment_assignments: Mapping[str, Mapping[str, Sequence[str]]],
+) -> dict[str, dict[str, list[str]]]:
+    """Drop assignments that reference unknown segments or have no segments left."""
+    if len(segments) == 0:
+        return {}
+
+    valid_segments = set(segments)
+    cleaned: dict[str, dict[str, list[str]]] = {}
+
+    for role, persons in segment_assignments.items():
+        for person, person_segments in persons.items():
+            filtered = [segment for segment in person_segments if segment in valid_segments]
+            if len(filtered) > 0:
+                cleaned.setdefault(role, {})[person] = filtered
+
+    return cleaned
 
 
 def is_exact_date(date: ApproxDate | None | dict) -> bool:

@@ -9,6 +9,7 @@ from pyopera.common import (
 from pyopera.streamlit_common import (
     format_iso_date_to_day_month_year_with_dots,
     format_title,
+    group_cast_and_leading_team_by_segment,
     load_db,
     load_db_venues,
     resolve_company_name,
@@ -105,17 +106,34 @@ def run():
 
         return person
 
-    cast_highlighted = {
-        role: [hightlight_person_if_selected(person) for person in persons]
-        for role, persons in performance.cast.items()
-    }
+    def highlight_mapping(mapping: dict[str, list[str]]) -> dict[str, list[str]]:
+        return {
+            role: [hightlight_person_if_selected(person) for person in persons]
+            for role, persons in mapping.items()
+        }
 
-    leading_team_highlighted = {
-        role: [hightlight_person_if_selected(person) for person in persons]
-        for role, persons in performance.leading_team.items()
-    }
+    if performance.has_segments:
+        blocks = group_cast_and_leading_team_by_segment(
+            performance.cast,
+            performance.leading_team,
+            performance.segments,
+            performance.segment_lookup,
+        )
 
-    write_cast_and_leading_team(cast_highlighted, leading_team_highlighted)
+        for segment, cast_block, leading_team_block in blocks:
+            if len(cast_block) == 0 and len(leading_team_block) == 0:
+                continue
+
+            st.markdown(f"### {segment}" if segment is not None else "### Whole performance")
+            write_cast_and_leading_team(
+                highlight_mapping(cast_block),
+                highlight_mapping(leading_team_block),
+            )
+    else:
+        write_cast_and_leading_team(
+            highlight_mapping(performance.cast),
+            highlight_mapping(performance.leading_team),
+        )
 
     if performance.comments != "":
         st.markdown("---")

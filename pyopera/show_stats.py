@@ -404,6 +404,11 @@ def run_single_person():
             pass
         else:
             to_join.extend([entry.composers_display, ", ".join(roles)])
+
+        person_segments = entry.segments_of_person(person)
+        if len(person_segments) > 0:
+            to_join.append("Segments: " + ", ".join(person_segments))
+
         st.markdown("- " + " - ".join(to_join))
 
 

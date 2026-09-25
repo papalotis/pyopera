@@ -96,14 +96,16 @@ def key_is_exception(key: str) -> bool:
     return key_alpha_lower in exceptions or "ensemble" in key_alpha_lower
 
 
-def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
+def write_person_with_role(d: Mapping[str, Sequence[str]], *, segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None = None) -> None:
     d_sorted = dict(sorted(d.items()))
 
     d_without_exceptions = {k: v for k, v in d_sorted.items() if not key_is_exception(k)}
 
     for role, persons in d_without_exceptions.items():
         if len(persons) > 0:
-            persons_str = ", ".join(persons)
+            persons_str = ", ".join(
+                format_person_with_segments(person, role, segment_lookup) for person in persons
+            )
             st.markdown(f"- **{role}** - " + persons_str)
 
     exception_keys = set(d) - set(d_without_exceptions)
@@ -115,20 +117,91 @@ def write_person_with_role(d: Mapping[str, Sequence[str]]) -> None:
                 st.write(f"**{''.join(to_print)}**")
 
 
-def write_role_with_persons(title: str, dict_of_roles: dict):
+def format_person_with_segments(
+    person: str,
+    role: str,
+    segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None,
+) -> str:
+    """Annotate a person with the segments their credit applies to.
+
+    Credits that apply to the whole performance (empty segment list) are left
+    unannotated.
+    """
+    if segment_lookup is None:
+        return person
+
+    segments = segment_lookup.get((role, person), [])
+    if len(segments) == 0:
+        return person
+
+    return f"{person} ({', '.join(segments)})"
+
+
+def write_role_with_persons(
+    title: str,
+    dict_of_roles: dict,
+    *,
+    segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None = None,
+):
     if sum(map(len, dict_of_roles.values())) > 0:
         st.markdown(f"## {title}")
-        write_person_with_role(dict_of_roles)
+        write_person_with_role(dict_of_roles, segment_lookup=segment_lookup)
 
 
-def write_cast_and_leading_team(cast: Mapping[str, Sequence[str]], leading_team: Mapping[str, Sequence[str]]):
+def write_cast_and_leading_team(
+    cast: Mapping[str, Sequence[str]],
+    leading_team: Mapping[str, Sequence[str]],
+    *,
+    segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None = None,
+):
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
-        write_role_with_persons("Cast", cast)
+        write_role_with_persons("Cast", cast, segment_lookup=segment_lookup)
 
     with col_right:
-        write_role_with_persons("Leading team", leading_team)
+        write_role_with_persons("Leading team", leading_team, segment_lookup=segment_lookup)
+
+
+def group_cast_and_leading_team_by_segment(
+    cast: Mapping[str, Sequence[str]],
+    leading_team: Mapping[str, Sequence[str]],
+    segments: Sequence[str],
+    segment_lookup: Mapping[tuple[str, str], Sequence[str]],
+) -> list[tuple[str | None, dict[str, list[str]], dict[str, list[str]]]]:
+    """Split cast and leading team into whole-performance and per-segment blocks.
+
+    Returns a list of ``(segment_label, cast, leading_team)`` tuples. The first
+    entry has ``segment_label is None`` and holds every credit that applies to the
+    whole performance. The remaining entries follow the given ``segments`` order and
+    hold only the credits specific to that segment.
+    """
+    whole_cast: dict[str, list[str]] = {}
+    whole_leading_team: dict[str, list[str]] = {}
+    segment_cast: dict[str, dict[str, list[str]]] = {segment: {} for segment in segments}
+    segment_leading_team: dict[str, dict[str, list[str]]] = {segment: {} for segment in segments}
+
+    for mapping, whole, per_segment in (
+        (cast, whole_cast, segment_cast),
+        (leading_team, whole_leading_team, segment_leading_team),
+    ):
+        for role, persons in mapping.items():
+            for person in persons:
+                person_segments = segment_lookup.get((role, person), [])
+                if len(person_segments) == 0:
+                    whole.setdefault(role, []).append(person)
+                else:
+                    for segment in person_segments:
+                        per_segment.setdefault(segment, {}).setdefault(role, []).append(person)
+
+    blocks: list[tuple[str | None, dict[str, list[str]], dict[str, list[str]]]] = [
+        (None, whole_cast, whole_leading_team)
+    ]
+    blocks.extend(
+        (segment, segment_cast[segment], segment_leading_team[segment]) for segment in segments
+    )
+
+    return blocks
 
 
 def format_iso_date_to_day_month_year_with_dots(
