@@ -256,7 +256,7 @@ def run() -> None:
         ":material/query_stats: Numbers": run_expanded_stats,
     }
 
-    tabs = st.tabs(modes.keys())
+    tabs = st.tabs(list(modes.keys()))
 
     for tab, mode_function in zip(tabs, modes.values()):
         with tab:
