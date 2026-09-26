@@ -120,14 +120,24 @@ def run():
             performance.segment_lookup,
         )
 
+        titles_shown = False
         for segment, cast_block, leading_team_block in blocks:
             if len(cast_block) == 0 and len(leading_team_block) == 0:
                 continue
 
-            st.markdown(f"### {segment}" if segment is not None else "### Whole performance")
+            # The whole-performance block has no heading. The Cast / Leading team
+            # headings belong to the whole-performance block if it has content,
+            # otherwise to the first segment block that has content.
+            show_titles = not titles_shown
+            titles_shown = True
+
+            if segment is not None:
+                st.markdown(f"### {segment}")
+
             write_cast_and_leading_team(
                 highlight_mapping(cast_block),
                 highlight_mapping(leading_team_block),
+                show_titles=show_titles,
             )
     else:
         write_cast_and_leading_team(

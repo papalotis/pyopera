@@ -6,7 +6,9 @@ from typing import Literal, Mapping, Sequence, overload
 import streamlit as st
 
 from pyopera.common import (
+    CAST_SECTION,
     DB_TYPE,
+    LEADING_TEAM_SECTION,
     ApproxDate,
     CompanyModel,
     Performance,
@@ -96,7 +98,12 @@ def key_is_exception(key: str) -> bool:
     return key_alpha_lower in exceptions or "ensemble" in key_alpha_lower
 
 
-def write_person_with_role(d: Mapping[str, Sequence[str]], *, segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None = None) -> None:
+def write_person_with_role(
+    d: Mapping[str, Sequence[str]],
+    *,
+    section: str,
+    segment_lookup: Mapping[tuple[str, str, str], Sequence[str]] | None = None,
+) -> None:
     d_sorted = dict(sorted(d.items()))
 
     d_without_exceptions = {k: v for k, v in d_sorted.items() if not key_is_exception(k)}
@@ -104,7 +111,7 @@ def write_person_with_role(d: Mapping[str, Sequence[str]], *, segment_lookup: Ma
     for role, persons in d_without_exceptions.items():
         if len(persons) > 0:
             persons_str = ", ".join(
-                format_person_with_segments(person, role, segment_lookup) for person in persons
+                format_person_with_segments(person, section, role, segment_lookup) for person in persons
             )
             st.markdown(f"- **{role}** - " + persons_str)
 
@@ -119,8 +126,9 @@ def write_person_with_role(d: Mapping[str, Sequence[str]], *, segment_lookup: Ma
 
 def format_person_with_segments(
     person: str,
+    section: str,
     role: str,
-    segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None,
+    segment_lookup: Mapping[tuple[str, str, str], Sequence[str]] | None,
 ) -> str:
     """Annotate a person with the segments their credit applies to.
 
@@ -130,7 +138,7 @@ def format_person_with_segments(
     if segment_lookup is None:
         return person
 
-    segments = segment_lookup.get((role, person), [])
+    segments = segment_lookup.get((section, role, person), [])
     if len(segments) == 0:
         return person
 
@@ -141,33 +149,45 @@ def write_role_with_persons(
     title: str,
     dict_of_roles: dict,
     *,
-    segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None = None,
+    section: str,
+    segment_lookup: Mapping[tuple[str, str, str], Sequence[str]] | None = None,
+    show_title: bool = True,
 ):
     if sum(map(len, dict_of_roles.values())) > 0:
-        st.markdown(f"## {title}")
-        write_person_with_role(dict_of_roles, segment_lookup=segment_lookup)
+        if show_title:
+            st.markdown(f"## {title}")
+        write_person_with_role(dict_of_roles, section=section, segment_lookup=segment_lookup)
 
 
 def write_cast_and_leading_team(
     cast: Mapping[str, Sequence[str]],
     leading_team: Mapping[str, Sequence[str]],
     *,
-    segment_lookup: Mapping[tuple[str, str], Sequence[str]] | None = None,
+    segment_lookup: Mapping[tuple[str, str, str], Sequence[str]] | None = None,
+    show_titles: bool = True,
 ):
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
-        write_role_with_persons("Cast", cast, segment_lookup=segment_lookup)
+        write_role_with_persons(
+            "Cast", cast, section=CAST_SECTION, segment_lookup=segment_lookup, show_title=show_titles
+        )
 
     with col_right:
-        write_role_with_persons("Leading team", leading_team, segment_lookup=segment_lookup)
+        write_role_with_persons(
+            "Leading team",
+            leading_team,
+            section=LEADING_TEAM_SECTION,
+            segment_lookup=segment_lookup,
+            show_title=show_titles,
+        )
 
 
 def group_cast_and_leading_team_by_segment(
     cast: Mapping[str, Sequence[str]],
     leading_team: Mapping[str, Sequence[str]],
     segments: Sequence[str],
-    segment_lookup: Mapping[tuple[str, str], Sequence[str]],
+    segment_lookup: Mapping[tuple[str, str, str], Sequence[str]],
 ) -> list[tuple[str | None, dict[str, list[str]], dict[str, list[str]]]]:
     """Split cast and leading team into whole-performance and per-segment blocks.
 
@@ -181,13 +201,13 @@ def group_cast_and_leading_team_by_segment(
     segment_cast: dict[str, dict[str, list[str]]] = {segment: {} for segment in segments}
     segment_leading_team: dict[str, dict[str, list[str]]] = {segment: {} for segment in segments}
 
-    for mapping, whole, per_segment in (
-        (cast, whole_cast, segment_cast),
-        (leading_team, whole_leading_team, segment_leading_team),
+    for section, mapping, whole, per_segment in (
+        (CAST_SECTION, cast, whole_cast, segment_cast),
+        (LEADING_TEAM_SECTION, leading_team, whole_leading_team, segment_leading_team),
     ):
         for role, persons in mapping.items():
             for person in persons:
-                person_segments = segment_lookup.get((role, person), [])
+                person_segments = segment_lookup.get((section, role, person), [])
                 if len(person_segments) == 0:
                     whole.setdefault(role, []).append(person)
                 else:

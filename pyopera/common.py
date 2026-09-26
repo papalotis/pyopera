@@ -36,8 +36,12 @@ NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 NonEmptyStrList = Annotated[List[NonEmptyStr], Field(min_items=1)]
 SHA1Str = Annotated[str, StringConstraints(pattern=r"[0-9a-f]{40}")]
 
-# role -> person -> ordered segments the credit applies to
-SegmentAssignments = Mapping[NonEmptyStr, Mapping[NonEmptyStr, NonEmptyStrList]]
+# The two sections a credit can live in.
+CAST_SECTION = "cast"
+LEADING_TEAM_SECTION = "leading_team"
+
+# section -> role -> person -> ordered segments the credit applies to
+SegmentAssignments = Mapping[NonEmptyStr, Mapping[NonEmptyStr, Mapping[NonEmptyStr, NonEmptyStrList]]]
 
 
 def normalize_composers(raw_composers: Any) -> list[str]:
@@ -128,6 +132,47 @@ class Performance(BaseModel):
             data = dict(data)
             if "composers" not in data and "composer" in data:
                 data["composers"] = data.pop("composer")
+
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_segment_assignments(cls, data: Any) -> Any:
+        """Migrate the old flat ``role -> person -> segments`` shape to the section-keyed one.
+
+        The old shape could not distinguish a cast credit from a leading-team credit
+        with the same role name, so the segments are applied to every matching credit.
+        """
+        if not isinstance(data, Mapping):
+            return data
+
+        data = dict(data)
+        assignments = data.get("segment_assignments")
+        if not isinstance(assignments, Mapping) or len(assignments) == 0:
+            return data
+
+        if set(assignments) <= {CAST_SECTION, LEADING_TEAM_SECTION}:
+            # already in the new shape
+            return data
+
+        cast = data.get("cast", {}) or {}
+        leading_team = data.get("leading_team", {}) or {}
+        migrated: dict[str, dict[str, dict[str, list[str]]]] = {
+            CAST_SECTION: {},
+            LEADING_TEAM_SECTION: {},
+        }
+
+        for role, persons in assignments.items():
+            if not isinstance(persons, Mapping):
+                continue
+
+            for person, segments in persons.items():
+                if person in cast.get(role, []):
+                    migrated[CAST_SECTION].setdefault(role, {})[person] = list(segments)
+                if person in leading_team.get(role, []):
+                    migrated[LEADING_TEAM_SECTION].setdefault(role, {})[person] = list(segments)
+
+        data["segment_assignments"] = migrated
 
         return data
 
@@ -223,12 +268,12 @@ class Performance(BaseModel):
         """Whether this performance is divided into named segments."""
         return len(self.segments) > 0
 
-    def segments_for(self, role: str, person: str) -> list[str]:
-        """Ordered segments a ``(role, person)`` credit applies to.
+    def segments_for(self, section: str, role: str, person: str) -> list[str]:
+        """Ordered segments a ``(section, role, person)`` credit applies to.
 
         An empty list means the credit applies to the whole performance.
         """
-        assigned = self.segment_assignments.get(role, {}).get(person, [])
+        assigned = self.segment_assignments.get(section, {}).get(role, {}).get(person, [])
 
         return [segment for segment in self.segments if segment in assigned]
 
@@ -251,12 +296,15 @@ class Performance(BaseModel):
         appears_in_whole_performance = False
         assigned: set[str] = set()
 
-        for mapping in (self.cast, self.leading_team):
+        for section, mapping in (
+            (CAST_SECTION, self.cast),
+            (LEADING_TEAM_SECTION, self.leading_team),
+        ):
             for role, persons in mapping.items():
                 if person not in persons:
                     continue
 
-                segments = self.segment_assignments.get(role, {}).get(person, [])
+                segments = self.segment_assignments.get(section, {}).get(role, {}).get(person, [])
                 if len(segments) == 0:
                     appears_in_whole_performance = True
                 else:
@@ -268,14 +316,17 @@ class Performance(BaseModel):
         return [segment for segment in self.segments if segment in assigned]
 
     @property
-    def segment_lookup(self) -> dict[tuple[str, str], list[str]]:
-        """Map every ``(role, person)`` credit to its ordered segments.
+    def segment_lookup(self) -> dict[tuple[str, str, str], list[str]]:
+        """Map every ``(section, role, person)`` credit to its ordered segments.
 
         Credits that apply to the whole performance map to an empty list.
         """
         return {
-            (role, person): self.segments_for(role, person)
-            for mapping in (self.cast, self.leading_team)
+            (section, role, person): self.segments_for(section, role, person)
+            for section, mapping in (
+                (CAST_SECTION, self.cast),
+                (LEADING_TEAM_SECTION, self.leading_team),
+            )
             for role, persons in mapping.items()
             for person in persons
         }
@@ -283,20 +334,21 @@ class Performance(BaseModel):
 
 def sanitize_segment_assignments(
     segments: Sequence[str],
-    segment_assignments: Mapping[str, Mapping[str, Sequence[str]]],
-) -> dict[str, dict[str, list[str]]]:
+    segment_assignments: Mapping[str, Mapping[str, Mapping[str, Sequence[str]]]],
+) -> dict[str, dict[str, dict[str, list[str]]]]:
     """Drop assignments that reference unknown segments or have no segments left."""
     if len(segments) == 0:
         return {}
 
     valid_segments = set(segments)
-    cleaned: dict[str, dict[str, list[str]]] = {}
+    cleaned: dict[str, dict[str, dict[str, list[str]]]] = {}
 
-    for role, persons in segment_assignments.items():
-        for person, person_segments in persons.items():
-            filtered = [segment for segment in person_segments if segment in valid_segments]
-            if len(filtered) > 0:
-                cleaned.setdefault(role, {})[person] = filtered
+    for section, roles in segment_assignments.items():
+        for role, persons in roles.items():
+            for person, person_segments in persons.items():
+                filtered = [segment for segment in person_segments if segment in valid_segments]
+                if len(filtered) > 0:
+                    cleaned.setdefault(section, {}).setdefault(role, {})[person] = filtered
 
     return cleaned
 

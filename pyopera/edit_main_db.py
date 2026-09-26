@@ -7,6 +7,8 @@ from typing import Mapping, Optional, Sequence, Tuple, Union
 import streamlit as st
 
 from pyopera.common import (
+    CAST_SECTION,
+    LEADING_TEAM_SECTION,
     ApproxDate,
     Performance,
     is_exact_date,
@@ -105,8 +107,11 @@ def run() -> None:
             st.session_state["leading_team"].update({k: set(v) for k, v in entry_to_update["leading_team"].items()})
             st.session_state["segment_assignments"].update(
                 {
-                    role: {person: list(person_segments) for person, person_segments in persons.items()}
-                    for role, persons in entry_to_update.get("segment_assignments", {}).items()
+                    section: {
+                        role: {person: list(person_segments) for person, person_segments in persons.items()}
+                        for role, persons in roles.items()
+                    }
+                    for section, roles in entry_to_update.get("segment_assignments", {}).items()
                 }
             )
 
@@ -365,15 +370,16 @@ def run() -> None:
         if append_button:
             if cast_leading_team_name != "" or role_or_part != "":
                 key = "cast" if add_to_cast else "leading_team"
+                section = CAST_SECTION if add_to_cast else LEADING_TEAM_SECTION
                 for person in (n.strip() for n in cast_leading_team_name.split(",")):
                     if person == "":
                         continue
 
                     st.session_state[key][role_or_part].add(person)
                     if len(credit_segments) > 0:
-                        st.session_state["segment_assignments"].setdefault(role_or_part, {})[person] = list(
-                            credit_segments
-                        )
+                        st.session_state["segment_assignments"].setdefault(section, {}).setdefault(
+                            role_or_part, {}
+                        )[person] = list(credit_segments)
 
             else:
                 st.error("At least one field is empty")
@@ -410,11 +416,18 @@ def run() -> None:
 
             rows = [
                 {
+                    "section": section,
                     "role": role,
                     "person": person,
-                    "segments": st.session_state["segment_assignments"].get(role, {}).get(person, []),
+                    "segments": st.session_state["segment_assignments"]
+                    .get(section, {})
+                    .get(role, {})
+                    .get(person, []),
                 }
-                for role, person in [*cast_flat, *leading_team_flat]
+                for section, role, person in [
+                    *((CAST_SECTION, role, person) for role, person in cast_flat),
+                    *((LEADING_TEAM_SECTION, role, person) for role, person in leading_team_flat),
+                ]
             ]
 
             edited_rows = st.data_editor(
@@ -426,24 +439,30 @@ def run() -> None:
                         help="Empty = whole performance",
                     ),
                 },
-                disabled=["role", "person"],
+                disabled=["section", "role", "person"],
                 hide_index=True,
             )
 
-            new_assignments: dict[str, dict[str, list[str]]] = {}
+            new_assignments: dict[str, dict[str, dict[str, list[str]]]] = {}
             for row in edited_rows:
                 if len(row["segments"]) > 0:
-                    new_assignments.setdefault(row["role"], {})[row["person"]] = list(row["segments"])
+                    new_assignments.setdefault(row["section"], {}).setdefault(row["role"], {})[
+                        row["person"]
+                    ] = list(row["segments"])
 
             st.session_state["segment_assignments"] = new_assignments
 
     segment_lookup = {
-        (role, person): [
+        (section, role, person): [
             segment
             for segment in segments
-            if segment in st.session_state["segment_assignments"].get(role, {}).get(person, [])
+            if segment
+            in st.session_state["segment_assignments"].get(section, {}).get(role, {}).get(person, [])
         ]
-        for role, person in [*cast_flat, *leading_team_flat]
+        for section, role, person in [
+            *((CAST_SECTION, role, person) for role, person in cast_flat),
+            *((LEADING_TEAM_SECTION, role, person) for role, person in leading_team_flat),
+        ]
     }
 
     write_cast_and_leading_team(
@@ -525,7 +544,8 @@ def remove_person_from_performance(remove: tuple[str, str]):
     if len(st.session_state["leading_team"][role]) == 0:
         del st.session_state["leading_team"][role]
 
-    st.session_state["segment_assignments"].get(role, {}).pop(person, None)
+    for section in (CAST_SECTION, LEADING_TEAM_SECTION):
+        st.session_state["segment_assignments"].get(section, {}).get(role, {}).pop(person, None)
 
 
 def toggle_archive_entry(entry_to_update):
